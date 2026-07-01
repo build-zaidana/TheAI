@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\src\CodexBar.Persistence\CodexBar.Persistence.csproj" />
     <ProjectReference Include="..\..\src\CodexBar.Providers\CodexBar.Providers.csproj" />
     <ProjectReference Include="..\..\src\CodexBar.Providers.Codex\CodexBar.Providers.Codex.csproj" />
+    <ProjectReference Include="..\..\src\CodexBar.Providers.Anthropic\CodexBar.Providers.Anthropic.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

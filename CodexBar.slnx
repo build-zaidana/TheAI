@@ -3,6 +3,7 @@
     <Project Path="src/CodexBar.App/CodexBar.App.csproj" />
     <Project Path="src/CodexBar.Core/CodexBar.Core.csproj" />
     <Project Path="src/CodexBar.Persistence/CodexBar.Persistence.csproj" />
+    <Project Path="src/CodexBar.Providers.Anthropic/CodexBar.Providers.Anthropic.csproj" />
     <Project Path="src/CodexBar.Providers.Codex/CodexBar.Providers.Codex.csproj" />
     <Project Path="src/CodexBar.Providers/CodexBar.Providers.csproj" />
     <Project Path="src/CodexBar.Windows/CodexBar.Windows.csproj" />

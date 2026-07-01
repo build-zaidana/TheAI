@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
+using CodexBar.Providers.Anthropic;
 using CodexBar.Providers.Codex;
 
 var metadataOnly = args.Contains("--metadata", StringComparer.OrdinalIgnoreCase);
@@ -29,6 +30,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
     if (reliability != 0)
     {
         return reliability;
+    }
+
+    var anthropic = await RunAnthropicProviderTestsAsync();
+    if (anthropic != 0)
+    {
+        return anthropic;
     }
 
     return await RunDeterministicTestsAsync();
@@ -698,6 +705,96 @@ static async Task AssertThrowsContainingAsync(Func<Task> action, string expected
     throw new InvalidOperationException($"Exception yang memuat '{expectedText}' tidak terjadi.");
 }
 
+static async Task<int> RunAnthropicProviderTestsAsync()
+{
+    try
+    {
+        var models = AnthropicProvider.KnownModels();
+        Assert(models.Count >= 1 && models.Count(m => m.IsDefault) == 1,
+            "Harus ada tepat satu model Claude default.");
+        Assert(models.Single(m => m.IsDefault).Model == AnthropicProvider.DefaultModel,
+            "Model default harus konsisten dengan DefaultModel.");
+
+        var requestJson = AnthropicProvider.BuildRequestJson(
+            "claude-sonnet-5",
+            [new AnthropicProvider.ChatTurn("user", "hai")],
+            4096);
+        using (var doc = JsonDocument.Parse(requestJson))
+        {
+            var root = doc.RootElement;
+            Assert(root.GetProperty("model").GetString() == "claude-sonnet-5", "Model harus masuk request.");
+            Assert(root.GetProperty("max_tokens").GetInt32() == 4096, "max_tokens harus di-set.");
+            Assert(root.GetProperty("stream").GetBoolean(), "stream harus true.");
+            var first = root.GetProperty("messages")[0];
+            Assert(first.GetProperty("role").GetString() == "user" && first.GetProperty("content").GetString() == "hai",
+                "Pesan user harus masuk request dengan benar.");
+        }
+
+        Assert(AnthropicProvider.ParseSseData("""{"type":"content_block_delta","delta":{"type":"text_delta","text":"Halo"}}""").TextDelta == "Halo",
+            "text_delta harus terbaca.");
+        Assert(AnthropicProvider.ParseSseData("""{"type":"message_start","message":{"usage":{"input_tokens":12}}}""").InputTokens == 12,
+            "input_tokens harus terbaca dari message_start.");
+        Assert(AnthropicProvider.ParseSseData("""{"type":"message_delta","usage":{"output_tokens":7}}""").OutputTokens == 7,
+            "output_tokens harus terbaca dari message_delta.");
+        Assert(AnthropicProvider.ParseSseData("""{"type":"message_stop"}""").Stop, "message_stop harus set Stop.");
+        Assert(AnthropicProvider.ParseSseData("""{"type":"error","error":{"message":"boom"}}""").Error == "boom",
+            "Event error harus terbaca.");
+        Assert(AnthropicProvider.ParseSseData("bukan json").TextDelta is null, "JSON rusak harus aman (default).");
+
+        const string sse =
+            "event: message_start\n" +
+            "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":10}}}\n\n" +
+            "event: content_block_delta\n" +
+            "data: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello\"}}\n\n" +
+            "event: content_block_delta\n" +
+            "data: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\" world\"}}\n\n" +
+            "event: message_delta\n" +
+            "data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":5}}\n\n" +
+            "event: message_stop\n" +
+            "data: {\"type\":\"message_stop\"}\n\n";
+
+        await using var provider = new AnthropicProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key");
+        var text = new StringBuilder();
+        var done = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        long totalTokens = 0;
+        provider.EventReceived += (_, ev) =>
+        {
+            switch (ev)
+            {
+                case ProviderTextDeltaEvent d: text.Append(d.Delta); break;
+                case ProviderTokenUsageEvent u: totalTokens = u.TotalTokens; break;
+                case ProviderCompletedEvent c: done.TrySetResult(c.Status); break;
+                case ProviderErrorEvent e: done.TrySetException(new InvalidOperationException(e.Message)); break;
+            }
+        };
+
+        await provider.InitializeAsync();
+        var account = await provider.GetAccountAsync();
+        Assert(account.IsAuthenticated && account.AuthenticationMethod == "api-key",
+            "Akun API-key harus terautentikasi saat key tersedia.");
+        var threadId = await provider.StartOrResumeThreadAsync("", null, "read-only", "never");
+        await provider.SendPromptAsync(threadId, "hi");
+        var status = await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert(status == "completed" && text.ToString() == "Hello world",
+            "Streaming Claude harus merakit teks penuh lalu selesai.");
+        Assert(totalTokens == 15, "Token usage total harus input+output.");
+
+        await using var noKey = new AnthropicProvider(new HttpClient(new CannedSseHandler(sse)), () => null);
+        var errored = false;
+        noKey.EventReceived += (_, ev) => { if (ev is ProviderErrorEvent) { errored = true; } };
+        await noKey.SendPromptAsync("t", "hi");
+        Assert(errored, "Tanpa API key harus memunculkan error, bukan crash.");
+
+        Console.WriteLine("PASS anthropic provider tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
 static int RunProviderReliabilityTests()
 {
     try
@@ -883,6 +980,17 @@ static Process GetChildProcess(CodexProvider provider)
     var transport = typeof(CodexProvider).GetField("_transport", BindingFlags.Instance | BindingFlags.NonPublic)
         ?.GetValue(provider) as ProcessCodexTransport;
     return transport?.Process ?? throw new InvalidOperationException("Child Codex tidak ditemukan.");
+}
+
+sealed class CannedSseHandler(string sse) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        {
+            Content = new StringContent(sse, Encoding.UTF8, "text/event-stream")
+        });
 }
 
 sealed class FakeProvider : IAgentProvider
