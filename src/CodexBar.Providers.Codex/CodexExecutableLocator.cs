@@ -48,6 +48,7 @@ public static class CodexExecutableLocator
             }
         }
 
+        // Not localized: this is caught by onboarding, which shows a localized install panel.
         throw new FileNotFoundException(
             "Codex CLI mandiri tidak ditemukan. Instal dengan: npm install -g @openai/codex");
     }

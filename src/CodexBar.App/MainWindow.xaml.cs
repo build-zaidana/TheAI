@@ -200,10 +200,7 @@ public partial class MainWindow : Window
             WindowPositioner.PlaceAboveTaskbar(this, _settings.Window.Position);
             _bottomAnchored = true;
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            AboutText.Text =
-                $"CodexBar v{version?.ToString(3) ?? "1.0.0"} · aplikasi komunitas tidak resmi. " +
-                "Codex CLI memproses workspace lokal dan mengirim konteks yang diperlukan ke layanan OpenAI " +
-                "sesuai metode login serta kebijakan akun kamu.";
+            AboutText.Text = LF("settings.about", version?.ToString(3) ?? "1.0.0");
             PromptBox.Focus();
             await StartupAsync();
         }
@@ -247,8 +244,8 @@ public partial class MainWindow : Window
             {
                 var choice = System.Windows.MessageBox.Show(
                     this,
-                    "Codex CLI sedang login menggunakan API key. Penggunaan akan ditagihkan ke akun OpenAI Platform dan tidak memakai kuota paket ChatGPT. Lanjutkan?",
-                    "Konfirmasi metode login",
+                    L("dialog.apiKeyWarning"),
+                    L("dialog.apiKeyTitle"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,
                     MessageBoxResult.No);
@@ -382,7 +379,7 @@ public partial class MainWindow : Window
             {
                 var dialog = new OpenFolderDialog
                 {
-                    Title = "Pilih workspace Codex",
+                    Title = L("dialog.chooseWorkspace"),
                     InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                     Multiselect = false
                 };
@@ -632,7 +629,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             ModelRow.Visibility = Visibility.Collapsed;
-            ModelCombo.ToolTip = $"Daftar model tidak tersedia: {exception.Message}";
+            ModelCombo.ToolTip = LF("status.modelsUnavailable", exception.Message);
         }
     }
 
@@ -669,7 +666,7 @@ public partial class MainWindow : Window
         var normalizedPath = Path.GetFullPath(workspacePath);
         if (!Directory.Exists(normalizedPath))
         {
-            throw new DirectoryNotFoundException($"Workspace tidak ditemukan: {normalizedPath}");
+            throw new DirectoryNotFoundException(LF("error.workspaceNotFound", normalizedPath));
         }
 
         var threadKey = _settings.ThreadKey(normalizedPath);
@@ -1703,7 +1700,7 @@ public partial class MainWindow : Window
         {
             _hotKey.ChangeGesture(HotkeyTextBox.Text);
             _settings.Hotkey = _hotKey.CurrentGesture
-                ?? throw new InvalidOperationException("Hotkey baru tidak aktif.");
+                ?? throw new InvalidOperationException(L("hotkey.notActive"));
             HotkeyTextBox.Text = _settings.Hotkey;
             HotkeyStatusText.Text = LF("hotkey.active", _settings.Hotkey);
             HotkeyStatusText.Foreground = StatusReadyBrush;
@@ -1722,7 +1719,7 @@ public partial class MainWindow : Window
                 }
 
                 throw new InvalidOperationException(
-                    "Hotkey tidak dapat disimpan; kombinasi sebelumnya dipulihkan.",
+                    L("hotkey.saveFailed"),
                     saveException);
             }
         }
@@ -1761,8 +1758,8 @@ public partial class MainWindow : Window
                 _dialogVisible = true;
                 confirmation = System.Windows.MessageBox.Show(
                     this,
-                    "danger-full-access memungkinkan Codex membaca dan mengubah file di luar workspace serta menjalankan perintah tanpa batas sandbox. Approval tetap on-request, tetapi mode ini tetap berisiko. Aktifkan?",
-                    "Konfirmasi danger-full-access",
+                    L("dialog.dangerWarning"),
+                    L("dialog.dangerTitle"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,
                     MessageBoxResult.No);
@@ -2166,7 +2163,7 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Pilih workspace Codex",
+            Title = L("dialog.chooseWorkspace"),
             InitialDirectory = Directory.Exists(_settings.WorkspacePath)
                 ? _settings.WorkspacePath
                 : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -2324,7 +2321,7 @@ public partial class MainWindow : Window
     {
         if (_controller.IsBusy)
         {
-            throw new InvalidOperationException("Selesaikan atau batalkan pekerjaan aktif sebelum berpindah percakapan.");
+            throw new InvalidOperationException(L("busy.switchThread"));
         }
 
         await OpenWorkspaceAsync(thread.WorkspacePath, requestedThreadId: thread.Id);
@@ -2338,7 +2335,7 @@ public partial class MainWindow : Window
     {
         if (_controller.IsBusy)
         {
-            throw new InvalidOperationException("Selesaikan atau batalkan pekerjaan aktif sebelum membuat percakapan baru.");
+            throw new InvalidOperationException(L("busy.newThread"));
         }
 
         await OpenWorkspaceAsync(_settings.WorkspacePath, newThread: true);
@@ -2409,7 +2406,7 @@ public partial class MainWindow : Window
             Path.GetInvalidFileNameChars().Contains(character) ? '-' : character));
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Export checkpoint percakapan",
+            Title = L("dialog.exportTitle"),
             FileName = $"{safeName}-codex-checkpoint-{DateTime.Now:yyyyMMdd-HHmm}.md",
             DefaultExt = ".md",
             Filter = "Markdown|*.md|Semua file|*.*",

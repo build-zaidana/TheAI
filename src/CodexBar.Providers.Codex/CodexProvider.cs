@@ -150,7 +150,7 @@ public sealed class CodexProvider : IAgentProvider
         }
 
         _currentThreadId = result.GetProperty("thread").GetProperty("id").GetString()
-            ?? throw new InvalidOperationException("Codex tidak mengembalikan thread ID.");
+            ?? throw new InvalidOperationException(L("provider.error.noThreadId", "Codex tidak mengembalikan thread ID."));
 
         Emit(new ProviderStatusEvent(L("provider.status.threadReady", "Thread siap")));
         return _currentThreadId;
@@ -396,7 +396,9 @@ public sealed class CodexProvider : IAgentProvider
             var fullPath = Path.GetFullPath(attachment.Path);
             if (!File.Exists(fullPath))
             {
-                throw new FileNotFoundException($"Lampiran tidak ditemukan: {attachment.DisplayName}", fullPath);
+                throw new FileNotFoundException(
+                    string.Format(L("provider.error.attachmentNotFound", "Lampiran tidak ditemukan: {0}"), attachment.DisplayName),
+                    fullPath);
             }
 
             input.Add(attachment.Kind == ProviderAttachmentKind.LocalImage
@@ -520,7 +522,9 @@ public sealed class CodexProvider : IAgentProvider
         catch (OperationCanceledException) when (
             !cancellationToken.IsCancellationRequested && !lifetimeToken.IsCancellationRequested)
         {
-            throw new TimeoutException($"Codex tidak merespons permintaan '{method}' dalam {_requestTimeout.TotalSeconds:0.###} detik.");
+            throw new TimeoutException(string.Format(
+                L("provider.error.timeout", "Codex tidak merespons permintaan '{0}' dalam {1} detik."),
+                method, _requestTimeout.TotalSeconds.ToString("0.###")));
         }
         finally
         {
@@ -538,7 +542,7 @@ public sealed class CodexProvider : IAgentProvider
     {
         if (_transport is not { IsRunning: true } transport)
         {
-            throw new InvalidOperationException("Codex App Server belum berjalan.");
+            throw new InvalidOperationException(L("provider.error.notRunning", "Codex App Server belum berjalan."));
         }
 
         var json = JsonSerializer.Serialize(payload, _serializerOptions);
@@ -615,7 +619,7 @@ public sealed class CodexProvider : IAgentProvider
         {
             if (!cancellationToken.IsCancellationRequested)
             {
-                MarkDisconnected(new IOException("Gagal membaca respons Codex App Server.", exception));
+                MarkDisconnected(new IOException(L("provider.error.readFailed", "Gagal membaca respons Codex App Server."), exception));
             }
         }
     }
@@ -1287,7 +1291,7 @@ public sealed class CodexProvider : IAgentProvider
     {
         if (!IsInitialized || _transport is not { IsRunning: true })
         {
-            throw new InvalidOperationException("CodexProvider belum diinisialisasi.");
+            throw new InvalidOperationException(L("provider.error.notInitialized", "CodexProvider belum diinisialisasi."));
         }
     }
 
