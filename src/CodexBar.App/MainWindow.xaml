@@ -410,6 +410,8 @@
                         <Button Content="Salin percakapan" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CopyResponseButton_Click" />
                         <Button Content="Export checkpoint" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportCheckpointButton_Click"
                                 ToolTip="Simpan percakapan aktif sebagai Markdown lokal" />
+                        <Button Content="Buka folder log" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="OpenLogsButton_Click"
+                                ToolTip="Buka folder log diagnostik (%LOCALAPPDATA%\CodexBar\logs)" AutomationProperties.Name="Buka folder log diagnostik" />
                         <Button Content="Reset layout" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ResetLayoutButton_Click" />
                         <Button Content="Tutup" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CloseSettingsButton_Click" />
                         <TextBlock x:Name="TokenUsageText" VerticalAlignment="Center" Margin="4,0,0,6"

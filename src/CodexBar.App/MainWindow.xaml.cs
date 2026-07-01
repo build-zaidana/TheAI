@@ -2411,6 +2411,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OpenLogsButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var directory = DiagnosticsLog.LogDirectory
+                ?? Path.Combine(_settingsStore.BaseDirectory, "logs");
+            System.IO.Directory.CreateDirectory(directory);
+            Process.Start(new ProcessStartInfo(directory) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            ShowError($"Gagal membuka folder log: {exception.Message}");
+        }
+    }
+
     private void CopyResponse()
     {
         if (_messages.Count == 0)
