@@ -2426,6 +2426,73 @@ public partial class MainWindow : Window
         }
     }
 
+    private void TemplatesButton_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new System.Windows.Controls.ContextMenu();
+
+        if (_settings.PromptTemplates.Count == 0)
+        {
+            menu.Items.Add(new System.Windows.Controls.MenuItem
+            {
+                Header = "(Belum ada template)",
+                IsEnabled = false
+            });
+        }
+        else
+        {
+            foreach (var template in _settings.PromptTemplates)
+            {
+                var preview = template.Content.Length <= 80
+                    ? template.Content
+                    : template.Content[..80] + "…";
+                var item = new System.Windows.Controls.MenuItem
+                {
+                    Header = template.Name,
+                    ToolTip = preview.Replace('\n', ' ').Trim()
+                };
+                var captured = template;
+                item.Click += (_, _) => InsertTemplate(captured);
+                menu.Items.Add(item);
+            }
+        }
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+        var save = new System.Windows.Controls.MenuItem { Header = "＋  Simpan prompt ini sebagai template" };
+        save.Click += async (_, _) => await SaveCurrentPromptAsTemplateAsync();
+        menu.Items.Add(save);
+
+        menu.PlacementTarget = TemplatesButton;
+        menu.IsOpen = true;
+    }
+
+    private void InsertTemplate(PromptTemplate template)
+    {
+        PromptBox.Text = template.Content;
+        PromptBox.CaretIndex = PromptBox.Text.Length;
+        PromptBox.Focus();
+    }
+
+    private async Task SaveCurrentPromptAsTemplateAsync()
+    {
+        var content = PromptBox.Text?.Trim();
+        if (string.IsNullOrEmpty(content))
+        {
+            SetStatus("Isi prompt dulu untuk disimpan sebagai template.", StatusBusyBrush);
+            return;
+        }
+
+        var firstLine = content.Split('\n')[0].Trim();
+        var name = firstLine.Length <= 40 ? firstLine : firstLine[..40];
+
+        // New entry first so Normalize's first-wins de-dup lets it replace a same-named one.
+        var updated = new List<PromptTemplate> { new() { Name = name, Content = content } };
+        updated.AddRange(_settings.PromptTemplates);
+        _settings.PromptTemplates = PromptTemplate.Normalize(updated);
+
+        await _settingsStore.SaveAsync(_settings);
+        SetStatus($"Template \"{name}\" tersimpan.", StatusReadyBrush);
+    }
+
     private void CopyResponse()
     {
         if (_messages.Count == 0)

@@ -63,6 +63,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -93,8 +94,15 @@
                         Style="{StaticResource GlassIconButton}" ToolTip="Menu &amp; riwayat Codex"
                         AutomationProperties.Name="Menu dan riwayat Codex" />
 
+                <!-- Template prompt -->
+                <Button x:Name="TemplatesButton" Grid.Column="2" Content="&#xE8FD;" Click="TemplatesButton_Click"
+                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                        VerticalAlignment="Center" Width="34" Height="34" Margin="0,0,6,0"
+                        Style="{StaticResource GlassIconButton}" ToolTip="Template prompt"
+                        AutomationProperties.Name="Template prompt" />
+
                 <!-- Chip direktori -->
-                <Button x:Name="WorkspaceButton" Grid.Column="2" Click="WorkspaceButton_Click"
+                <Button x:Name="WorkspaceButton" Grid.Column="3" Click="WorkspaceButton_Click"
                         Style="{StaticResource GlassPillButton}" Height="34" Padding="11,0"
                         VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Pilih workspace"
                         MouseEnter="WorkspaceButton_MouseEnter" MouseLeave="WorkspaceButton_MouseLeave"
@@ -112,7 +120,7 @@
                 </Button>
 
                 <!-- Field input: kotak ketik + tombol kirim kecil di dalam -->
-                <Border x:Name="PromptField" Grid.Column="3" CornerRadius="16"
+                <Border x:Name="PromptField" Grid.Column="4" CornerRadius="16"
                         BorderThickness="1" Background="#14000000" BorderBrush="#22000000"
                         MouseEnter="PromptField_MouseEnter" MouseLeave="PromptField_MouseLeave">
                     <Grid>
@@ -183,17 +191,17 @@
                     </Grid>
                 </Border>
 
-                <Button x:Name="ContextUsageButton" Grid.Column="4" Content="Ctx —"
+                <Button x:Name="ContextUsageButton" Grid.Column="5" Content="Ctx —"
                         Visibility="Collapsed" Height="30" Padding="9,0" Margin="7,0,0,0"
                         VerticalAlignment="Center" Style="{StaticResource GlassPillButton}"
                         ToolTip="Pemakaian context thread; klik untuk compact"
                         Click="CompactButton_Click" AutomationProperties.Name="Pemakaian context" />
-                <Button x:Name="ConversationButton" Grid.Column="5" Content="&#xE8BD;" Click="ConversationButton_Click"
+                <Button x:Name="ConversationButton" Grid.Column="6" Content="&#xE8BD;" Click="ConversationButton_Click"
                         FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
                         VerticalAlignment="Center" Width="34" Height="34" Margin="8,0,0,0"
                         Style="{StaticResource GlassIconButton}" ToolTip="Tampilkan/sembunyikan percakapan"
                         AutomationProperties.Name="Tampilkan atau sembunyikan percakapan" />
-                <Button x:Name="SettingsButton" Grid.Column="6" Content="&#xE713;" Click="SettingsButton_Click"
+                <Button x:Name="SettingsButton" Grid.Column="7" Content="&#xE713;" Click="SettingsButton_Click"
                         FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
                         VerticalAlignment="Center" Width="34" Height="34" Margin="8,0,0,0"
                         Style="{StaticResource GlassIconButton}" ToolTip="Settings"
