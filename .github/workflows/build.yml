@@ -19,3 +19,5 @@ jobs:
         run: dotnet build CodexBar.slnx -c Release --no-restore
       - name: Deterministic smoke tests
         run: dotnet run --project tests/CodexBar.SmokeTest/CodexBar.SmokeTest.csproj -c Release --no-build
+      - name: WPF UI smoke tests
+        run: dotnet run --project tests/CodexBar.UiSmokeTest/CodexBar.UiSmokeTest.csproj -c Release --no-build

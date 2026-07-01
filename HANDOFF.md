@@ -77,7 +77,7 @@ Kondisi sekarang (semua SUDAH di kode, build hijau):
 - **Permission/sandbox** combo pakai nama Codex resmi: `read-only`/`workspace-write`/`danger-full-access`.
 - Bug fix: `IsMissingThread` cocok "rollout" (thread lama); `ReadThreadAsync` tangani "not materialized" (thread baru kosong) → return [].
 
-> ⚠️ GOTCHA kontrak: bila mengubah signature `IAgentProvider`, WAJIB update `FakeProvider` + call-site di `tests/CodexBar.SmokeTest/Program.cs` (kalau tidak, build merah). `SchemaVersion` saat ini **5** (AppSettings + JsonSettingsStore + assertion test harus sinkron). Build & test SELALU hijau di commit terakhir (`dotnet build` 0/0, smoke test PASS).
+> ⚠️ GOTCHA kontrak: bila mengubah signature `IAgentProvider`, WAJIB update `FakeProvider` + call-site di `tests/CodexBar.SmokeTest/Program.cs` (kalau tidak, build merah). `SchemaVersion` saat ini **7** (AppSettings + JsonSettingsStore + assertion test harus sinkron). Build & test SELALU hijau di commit terakhir (`dotnet build` 0/0, smoke test PASS).
 
 ## 4. Build & jalan (CATATAN PENTING — mesin spesifik)
 - `dotnet` TIDAK di PATH; ada di `%LOCALAPPDATA%\Microsoft\dotnet\dotnet.exe` (publish.ps1 sudah menanganinya).
@@ -107,12 +107,12 @@ Yang masih terbuka:
 - Publisher masih harus menetapkan URL dukungan, kanal laporan keamanan, dan pilihan lisensi sebelum source dipublikasikan.
 - Uji visual, installer, upgrade, dan uninstall pada VM Windows bersih tetap diperlukan.
 
-**Antrean "standar profesional" (belum dikerjakan, build sudah hijau jadi siap dikerjakan):**
-- **Unit test reliability `CodexProvider`** (timeout/disconnect/RPC-error/missing-thread/not-materialized) — bagian paling kritis & belum ada test. Test saat ini hanya `tests/CodexBar.SmokeTest` (controller + settings).
-- **Aksesibilitas** `OutputWindow.xaml` & `SidebarWindow.xaml` (AutomationProperties baru ada di MainWindow).
-- **Dead code**: `MarkdownRenderer.Build` (FlowDocument) tak terpakai sejak bubble; style `FieldChipButton` tak terpakai.
-- **CI** (.github/workflows) build + smoke test otomatis. Belum ada.
-- **Logging/diagnostik** opt-in (kegagalan hanya muncul di UI).
+**Antrean "standar profesional":**
+- ✅ **Unit test reliability `CodexProvider`** — sebagian besar beres. Helper murni (normalisasi sandbox/approval, missing-thread vs not-materialized, format preview, parsing status/summary) di-unit-test (commit 72efca4); reconnect/crash/lifecycle di-integration-test (`--reconnect-check`/`--lifecycle-check`, butuh Codex live). *Sisa:* seam transport untuk uji timeout/RPC-error murni tanpa proses nyata.
+- ✅ **Aksesibilitas** `OutputWindow.xaml` & `SidebarWindow.xaml` — AutomationProperties lengkap (tombol oleh sesi Codex; nama window/region/per-thread commit 692e855).
+- ✅ **Dead code** `MarkdownRenderer.Build`/`CreateCodeBlock` + style `FieldChipButton` — dihapus (commit f38dcf5).
+- ✅ **CI** (.github/workflows/build.yml) — build + deterministic smoke test + WPF UI smoke test otomatis.
+- ✅ **Logging/diagnostik** opt-in — `DiagnosticsLog` + toggle Settings + "Buka folder log" + penangkap unhandled exception (commit e314db8/c95aaf6/aaa4207).
 - **#7 multi-monitor**: `WindowPositioner.PlaceAboveTaskbar` masih pakai monitor kursor (`GetWorkArea` window-based sudah ada tapi tak dipakai di placement). By-design-ish.
 - **Seleksi-drag teks jawaban**: tidak ada (WPF TextBlock). Opsi: read-only TextBox plain (kehilangan format).
 - Fitur Codex lain yg belum: voice/realtime, MCP/skills/plugins, file browser, background terminals, thread fork/archive/delete/rename, remote control.

@@ -63,7 +63,7 @@ $env:CODEXBAR_PFX_PASSWORD = "rahasia"
 | `Ctrl+V` saat clipboard berisi gambar/file | Tambahkan screenshot atau file sebagai lampiran |
 | Drag file/gambar ke CodexBar | Tambahkan sebagai lampiran prompt |
 
-Gunakan tombol `☰` untuk membuka menu/riwayat. Tombol output `▤` hanya muncul saat output disetel terpisah (lihat Tampilan). `Top` (always-on-top) dan `Wrap kode` kini ada di panel Settings, bukan di toolbar, agar input bar tetap minimalis.
+Gunakan tombol `☰` untuk membuka menu/riwayat. Tombol **template prompt** (ikon daftar) di input bar membuka daftar template untuk sisip cepat, atau menyimpan prompt saat ini sebagai template baru. Tombol output `▤` hanya muncul saat output disetel terpisah (lihat Tampilan). `Top` (always-on-top) dan `Wrap kode` kini ada di panel Settings, bukan di toolbar, agar input bar tetap minimalis.
 
 ## Tampilan
 
@@ -74,7 +74,7 @@ CodexBar tampil sebagai **launcher satu baris** yang mengambang tepat di atas ta
 - Tinggi window menyesuaikan isi (`SizeToContent`); saat ada output/Settings, window tumbuh ke atas sehingga tepi bawah tetap menempel di atas taskbar.
 - Tema `System`/`Light`/`Dark` tersedia di panel Settings.
 
-Di panel Settings tersedia opsi **Output menyatu** dan **Menu menyatu** untuk menentukan apakah output dan Codex menu tampil menyatu (docked) dengan input bar atau sebagai window terpisah, plus info versi dan catatan privasi.
+Di panel Settings tersedia opsi **Output menyatu** dan **Menu menyatu** untuk menentukan apakah output dan Codex menu tampil menyatu (docked) dengan input bar atau sebagai window terpisah, plus info versi dan catatan privasi. Tersedia juga toggle **Log diagnostik** (opt-in, default mati) beserta tombol **Buka folder log** — bila diaktifkan, CodexBar menulis log ke `%LOCALAPPDATA%\CodexBar\logs` (rotasi 7 hari) untuk memudahkan pelaporan bug.
 
 ## Build
 
@@ -100,6 +100,9 @@ Lihat [DPPL](../DPPL-CodexBar.md) untuk rancangan lengkap.
 
 ## Progress terbaru
 
+- **Template prompt**: simpan dan sisip cepat prompt yang sering dipakai lewat tombol template di input bar; instal baru di-seed dengan beberapa contoh (Jelaskan kode, Perbaiki bug, Tulis test, Review).
+- **Diagnostics logging opt-in**: toggle di Settings menulis log rotasi harian (7 hari) ke `%LOCALAPPDATA%\CodexBar\logs`, plus penangkap unhandled exception, untuk mempermudah pelaporan bug. Default mati.
+- **Aksesibilitas**: `AutomationProperties` lengkap di input bar serta window Output dan Sidebar (nama window, region percakapan, dan tiap item thread) untuk screen reader.
 - **Fix proses background saat keluar dari tray.** Dulu `CodexBar.App.exe` (dan proses `codex` anak) tetap berjalan/menggantung setelah klik "Keluar". Penyebab: deadlock saat shutdown (`OnExit` memblokir UI thread + `DisposeAsync` menunggu read loop yang tidak pernah selesai). Kini dispose dijalankan di thread pool dengan batas waktu, dan penutupan child process dijamin. **Terverifikasi**: app + child `codex` benar-benar berhenti tanpa orphan.
 - **Output bisa diseleksi & berformat.** Respons kini dirender sebagai Markdown (heading, bold, italic, inline code, list, blockquote, blok kode) di dalam `RichTextBox` read-only, sehingga teks dapat diblok dan disalin.
 - **Setting docked/separated** untuk Output dan Codex menu (default menyatu).
