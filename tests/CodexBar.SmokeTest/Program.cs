@@ -38,6 +38,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return anthropic;
     }
 
+    var credentials = RunCredentialStoreTests();
+    if (credentials != 0)
+    {
+        return credentials;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -796,6 +802,41 @@ static async Task<int> RunAnthropicProviderTestsAsync()
     {
         Console.Error.WriteLine($"FAIL {exception.Message}");
         return 1;
+    }
+}
+
+static int RunCredentialStoreTests()
+{
+    var target = $"CodexBar-tests-{Guid.NewGuid():N}";
+    try
+    {
+        Assert(CredentialStore.TryRead(target) is null, "Target belum tersimpan harus mengembalikan null.");
+
+        Assert(CredentialStore.Save(target, "s3cr3t-value"), "Save harus berhasil.");
+        Assert(CredentialStore.TryRead(target) == "s3cr3t-value", "Read harus mengembalikan nilai yang sama persis.");
+
+        Assert(CredentialStore.Save(target, "overwritten-value"), "Save ulang (overwrite) harus berhasil.");
+        Assert(CredentialStore.TryRead(target) == "overwritten-value", "Overwrite harus menggantikan nilai lama.");
+
+        Assert(CredentialStore.Delete(target), "Delete atas target yang ada harus berhasil.");
+        Assert(CredentialStore.TryRead(target) is null, "Setelah delete, read harus null.");
+
+        // Round-trip a realistic API-key-shaped secret (mixed charset, moderate length).
+        var apiKeyShaped = "sk-ant-" + string.Concat(Enumerable.Repeat("aB3-_xZ9", 12));
+        Assert(CredentialStore.Save(target, apiKeyShaped), "Save API key panjang harus berhasil.");
+        Assert(CredentialStore.TryRead(target) == apiKeyShaped, "API key panjang harus round-trip persis.");
+
+        Console.WriteLine("PASS credential store tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+    finally
+    {
+        CredentialStore.Delete(target);
     }
 }
 

@@ -89,9 +89,12 @@ public partial class App : System.Windows.Application
         }
     }
 
+    /// <summary>Credential Manager target name for a provider's API key.</summary>
+    public static string ApiKeyCredentialTarget(string providerId) => $"CodexBar/apiKey/{providerId}";
+
     // Selects the provider implementation from settings. Codex is the default; "anthropic"
-    // uses the Claude Messages API with the key from the ANTHROPIC_API_KEY environment
-    // variable (a Settings-managed key comes in a later iteration).
+    // uses the Claude Messages API. The key is read from Windows Credential Manager (set via
+    // Settings), falling back to the ANTHROPIC_API_KEY environment variable for advanced/dev use.
     private static IAgentProvider CreateProvider(string providerId)
     {
         Func<string, string> localize = key => CodexBar.Core.Localization.Instance[key];
@@ -99,7 +102,8 @@ public partial class App : System.Windows.Application
         {
             "anthropic" => new AnthropicProvider(
                 SharedHttp,
-                () => Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"),
+                () => CodexBar.Core.CredentialStore.TryRead(ApiKeyCredentialTarget("anthropic"))
+                    ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"),
                 localize),
             _ => new CodexProvider(localize)
         };
