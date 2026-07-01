@@ -1393,6 +1393,7 @@ public partial class MainWindow : Window
             _ => 0
         };
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
+        DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
         {
             "light" => 1,
@@ -1546,6 +1547,8 @@ public partial class MainWindow : Window
         _settings.ApprovalPolicy = (ApprovalCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "on-request";
         _settings.ReasoningEffort = (EffortCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? string.Empty;
         _settings.MenuDocked = MenuDockedCheck.IsChecked == true;
+        _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
+        DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
         _settings.Appearance.Theme = (ThemeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
 
         _suppressSizeSave = true;

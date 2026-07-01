@@ -399,6 +399,8 @@
                         <CheckBox x:Name="WordWrapCheckBox" Content="Wrap kode" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="ShowReasoningCheck" Content="Tampilkan thinking" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="PinCheckBox" Content="Pin" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
+                        <CheckBox x:Name="DiagnosticsLoggingCheck" Content="Log diagnostik" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
+                                  ToolTip="Simpan log ke %LOCALAPPDATA%\CodexBar\logs untuk pelaporan bug. Default mati." />
                     </WrapPanel>
 
                     <WrapPanel Grid.Row="10" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,10,0,0">
