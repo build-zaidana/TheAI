@@ -15,7 +15,8 @@ internal sealed class ApprovalRequestDialog : Window
 
     public ApprovalRequestDialog(ProviderApprovalEvent approval)
     {
-        Title = "Persetujuan Codex";
+        var loc = CodexBar.Core.Localization.Instance;
+        Title = loc["approval.title"];
         Width = 560;
         MaxHeight = 680;
         SizeToContent = SizeToContent.Height;
@@ -28,13 +29,13 @@ internal sealed class ApprovalRequestDialog : Window
         var root = new StackPanel { Margin = new Thickness(22) };
         root.Children.Add(new TextBlock
         {
-            Text = "Codex membutuhkan izin",
+            Text = loc["approval.heading"],
             FontSize = 18,
             FontWeight = FontWeights.SemiBold
         });
         root.Children.Add(new TextBlock
         {
-            Text = "Tinjau tindakan dan pilih cakupan izin yang paling sempit.",
+            Text = loc["approval.subtitle"],
             Margin = new Thickness(0, 5, 0, 12),
             Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC))
         });
@@ -52,7 +53,7 @@ internal sealed class ApprovalRequestDialog : Window
             BorderThickness = new Thickness(1)
         };
         System.Windows.Automation.AutomationProperties.SetName(
-            details, "Detail tindakan yang membutuhkan izin");
+            details, loc["approval.detailsName"]);
         root.Children.Add(details);
 
         var buttons = new WrapPanel
@@ -60,10 +61,10 @@ internal sealed class ApprovalRequestDialog : Window
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             Margin = new Thickness(0, 16, 0, 0)
         };
-        buttons.Children.Add(CreateDecisionButton("Tolak & hentikan", ProviderApprovalDecision.Cancel, false));
-        buttons.Children.Add(CreateDecisionButton("Tolak", ProviderApprovalDecision.Decline, false));
-        buttons.Children.Add(CreateDecisionButton("Izinkan sesi", ProviderApprovalDecision.AcceptForSession, false));
-        buttons.Children.Add(CreateDecisionButton("Izinkan sekali", ProviderApprovalDecision.AcceptOnce, true));
+        buttons.Children.Add(CreateDecisionButton(loc["approval.cancel"], ProviderApprovalDecision.Cancel, false));
+        buttons.Children.Add(CreateDecisionButton(loc["approval.decline"], ProviderApprovalDecision.Decline, false));
+        buttons.Children.Add(CreateDecisionButton(loc["approval.acceptSession"], ProviderApprovalDecision.AcceptForSession, false));
+        buttons.Children.Add(CreateDecisionButton(loc["approval.acceptOnce"], ProviderApprovalDecision.AcceptOnce, true));
         root.Children.Add(buttons);
         Content = root;
     }

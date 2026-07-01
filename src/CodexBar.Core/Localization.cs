@@ -98,6 +98,14 @@ public static class Strings
         ["output.openCodex"] = ("Buka di Codex", "Open in Codex"),
         ["output.hide"] = ("Sembunyikan output", "Hide output"),
         ["output.jumpLatest"] = ("↓ Terbaru", "↓ Latest"),
+        ["approval.title"] = ("Persetujuan Codex", "Codex approval"),
+        ["approval.heading"] = ("Codex membutuhkan izin", "Codex needs permission"),
+        ["approval.subtitle"] = ("Tinjau tindakan dan pilih cakupan izin yang paling sempit.", "Review the action and pick the narrowest permission scope."),
+        ["approval.detailsName"] = ("Detail tindakan yang membutuhkan izin", "Details of the action requiring permission"),
+        ["approval.cancel"] = ("Tolak & hentikan", "Decline & stop"),
+        ["approval.decline"] = ("Tolak", "Decline"),
+        ["approval.acceptSession"] = ("Izinkan sesi", "Allow for session"),
+        ["approval.acceptOnce"] = ("Izinkan sekali", "Allow once"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
