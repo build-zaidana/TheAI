@@ -2507,6 +2507,23 @@ public partial class MainWindow : Window
         PromptPlaceholder.Text = loc["prompt.placeholder"];
         TemplatesButton.ToolTip = loc["templates.tooltip"];
         LanguageLabel.Text = loc["settings.language"];
+
+        // Settings toggles.
+        OutputDockedCheck.Content = loc["settings.outputDocked"];
+        MenuDockedCheck.Content = loc["settings.menuDocked"];
+        WordWrapCheckBox.Content = loc["settings.wrapCode"];
+        ShowReasoningCheck.Content = loc["settings.showThinking"];
+        PinCheckBox.Content = loc["settings.pin"];
+        DiagnosticsLoggingCheck.Content = loc["settings.diagnosticsLog"];
+
+        // Settings action buttons.
+        OutputButton.Content = loc["settings.showOutput"];
+        CompactButton.Content = loc["settings.compact"];
+        CopyConversationButton.Content = loc["settings.copyConversation"];
+        ExportCheckpointButton.Content = loc["settings.exportCheckpoint"];
+        OpenLogsButton.Content = loc["settings.openLogs"];
+        ResetLayoutButton.Content = loc["settings.resetLayout"];
+        CloseSettingsButton.Content = loc["settings.close"];
     }
 
     private void CopyResponse()

@@ -65,6 +65,16 @@ public static class Strings
         ["settings.diagnosticsLog"] = ("Log diagnostik", "Diagnostic log"),
         ["settings.openLogs"] = ("Buka folder log", "Open logs folder"),
         ["settings.close"] = ("Tutup", "Close"),
+        ["settings.outputDocked"] = ("Output menyatu", "Docked output"),
+        ["settings.menuDocked"] = ("Menu menyatu", "Docked menu"),
+        ["settings.wrapCode"] = ("Wrap kode", "Wrap code"),
+        ["settings.showThinking"] = ("Tampilkan thinking", "Show thinking"),
+        ["settings.pin"] = ("Pin", "Pin"),
+        ["settings.showOutput"] = ("Tampilkan output", "Show output"),
+        ["settings.compact"] = ("Padatkan konteks", "Compact context"),
+        ["settings.copyConversation"] = ("Salin percakapan", "Copy conversation"),
+        ["settings.exportCheckpoint"] = ("Export checkpoint", "Export checkpoint"),
+        ["settings.resetLayout"] = ("Reset layout", "Reset layout"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
