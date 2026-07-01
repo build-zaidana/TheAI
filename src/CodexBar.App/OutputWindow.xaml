@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CodexBar.App"
         Title="Codex Output"
+        AutomationProperties.Name="Jendela output Codex"
         Width="620"
         Height="420"
         MinWidth="360"
@@ -45,7 +46,7 @@
             </Grid>
 
             <Grid Grid.Row="1" Margin="14,2,10,13">
-                <local:ConversationView x:Name="OutputConversation" />
+                <local:ConversationView x:Name="OutputConversation" AutomationProperties.Name="Percakapan Codex" />
                 <Button x:Name="JumpLatestButton" Content="↓ Terbaru" Visibility="Collapsed"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,10"
                         Style="{StaticResource GlassPillButton}" Click="JumpLatestButton_Click" AutomationProperties.Name="Lompat ke jawaban terbaru" />
