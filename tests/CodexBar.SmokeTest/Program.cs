@@ -233,7 +233,7 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 7, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 8, "Settings rusak harus dipulihkan ke schema terbaru.");
         Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");
@@ -243,6 +243,7 @@ static async Task<int> RunDeterministicTestsAsync()
             {
               "schemaVersion": 1,
               "provider": "lain",
+              "language": "EN",
               "workspacePath": null,
               "appearance": { "theme": "asing", "inputFontSize": 999 },
               "window": { "width": 9999, "maxExpandedHeight": -1, "position": "asing" },
@@ -269,6 +270,24 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(PromptTemplate.CreateDefaults().Count >= 1 &&
                PromptTemplate.Normalize(PromptTemplate.CreateDefaults()).Count == PromptTemplate.CreateDefaults().Count,
             "Template default harus valid dan stabil terhadap normalisasi.");
+        Assert(normalized.Language == "en", "Kode bahasa harus dinormalisasi (case-insensitive).");
+
+        // Localization: parsing, lookup with fallback, and live-switch notification.
+        Assert(Localization.Parse("en") == AppLanguage.En && Localization.Parse("ID") == AppLanguage.Id &&
+               Localization.Parse("xx") == AppLanguage.Id && Localization.ToCode(AppLanguage.En) == "en",
+            "Parsing/serialisasi kode bahasa harus benar dengan fallback ke Indonesia.");
+        Assert(Strings.Get(AppLanguage.En, "settings.close") == "Close" &&
+               Strings.Get(AppLanguage.Id, "settings.close") == "Tutup" &&
+               Strings.Get(AppLanguage.En, "kunci.tidak.ada") == "kunci.tidak.ada",
+            "Strings.Get harus per-bahasa dengan fallback ke key untuk yang belum diterjemahkan.");
+        var localizationChanged = false;
+        void OnLocalizationChanged(object? _, System.ComponentModel.PropertyChangedEventArgs __) => localizationChanged = true;
+        Localization.Instance.PropertyChanged += OnLocalizationChanged;
+        Localization.Instance.SetLanguage(AppLanguage.En);
+        Assert(localizationChanged && Localization.Instance["settings.close"] == "Close",
+            "Ganti bahasa harus memicu notifikasi dan indexer mengikuti bahasa baru.");
+        Localization.Instance.SetLanguage(AppLanguage.Id);
+        Localization.Instance.PropertyChanged -= OnLocalizationChanged;
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,
             "Save settings tidak boleh meninggalkan file temporary.");

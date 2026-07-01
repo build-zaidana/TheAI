@@ -2,8 +2,11 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 7;
+    public int SchemaVersion { get; set; } = 8;
     public string Provider { get; set; } = "codex";
+
+    /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
+    public string Language { get; set; } = "id";
     public string Hotkey { get; set; } = "Win+Shift+C";
     public bool LaunchAtLogin { get; set; }
     public bool HideOnFocusLost { get; set; } = true;
