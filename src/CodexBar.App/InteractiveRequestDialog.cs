@@ -29,6 +29,7 @@ internal sealed class InteractiveRequestDialog : Window
     public InteractiveRequestDialog(ProviderUserInputEvent request)
     {
         _request = request;
+        var loc = CodexBar.Core.Localization.Instance;
         Title = request.Title;
         Width = 520;
         MaxHeight = 680;
@@ -55,7 +56,7 @@ internal sealed class InteractiveRequestDialog : Window
         if (Uri.TryCreate(request.ActionUrl, UriKind.Absolute, out var actionUri) &&
             actionUri.Scheme is "https" or "http")
         {
-            var openLink = CreateButton($"Buka {actionUri.Host}", true);
+            var openLink = CreateButton($"{loc["dialog.openPrefix"]} {actionUri.Host}", true);
             openLink.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
             openLink.Margin = new Thickness(0, 12, 0, 0);
             openLink.Click += (_, _) =>
@@ -66,7 +67,7 @@ internal sealed class InteractiveRequestDialog : Window
                 }
                 catch (Exception exception)
                 {
-                    System.Windows.MessageBox.Show(this, exception.Message, "Tautan tidak dapat dibuka",
+                    System.Windows.MessageBox.Show(this, exception.Message, loc["dialog.linkError"],
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             };
@@ -105,12 +106,12 @@ internal sealed class InteractiveRequestDialog : Window
         _countdown.VerticalAlignment = VerticalAlignment.Center;
         footer.Children.Add(_countdown);
 
-        var cancel = CreateButton("Batal", false);
+        var cancel = CreateButton(loc["dialog.cancel"], false);
         cancel.Click += (_, _) => { DialogResult = false; Close(); };
         Grid.SetColumn(cancel, 1);
         footer.Children.Add(cancel);
 
-        var submit = CreateButton("Lanjutkan", true);
+        var submit = CreateButton(loc["dialog.continue"], true);
         submit.Margin = new Thickness(8, 0, 0, 0);
         submit.Click += (_, _) => Submit();
         Grid.SetColumn(submit, 2);
@@ -241,15 +242,17 @@ internal sealed class InteractiveRequestDialog : Window
             var nonEmptyValues = values.Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
             if (question.IsRequired && nonEmptyValues.Length == 0)
             {
-                System.Windows.MessageBox.Show(this, $"{question.Header} wajib diisi.", "Input belum lengkap",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                var required = CodexBar.Core.Localization.Instance;
+                System.Windows.MessageBox.Show(this, string.Format(required["dialog.required"], question.Header),
+                    required["dialog.incomplete"], MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             if (nonEmptyValues.Length > 0 && !ValuesMatchType(question.ValueType, nonEmptyValues))
             {
-                var expected = question.ValueType == "integer" ? "bilangan bulat" : "angka";
-                System.Windows.MessageBox.Show(this, $"{question.Header} harus berupa {expected}.",
-                    "Input tidak valid", MessageBoxButton.OK, MessageBoxImage.Information);
+                var loc = CodexBar.Core.Localization.Instance;
+                var expected = question.ValueType == "integer" ? loc["dialog.integer"] : loc["dialog.number"];
+                System.Windows.MessageBox.Show(this, string.Format(loc["dialog.invalidType"], question.Header, expected),
+                    loc["dialog.invalid"], MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             if (nonEmptyValues.Length > 0)
@@ -289,7 +292,8 @@ internal sealed class InteractiveRequestDialog : Window
             return;
         }
 
-        _countdown.Text = $"Pilihan default dipakai dalam {Math.Ceiling(remaining.TotalSeconds)} dtk";
+        _countdown.Text = string.Format(
+            CodexBar.Core.Localization.Instance["dialog.countdown"], Math.Ceiling(remaining.TotalSeconds));
     }
 
     private static Button CreateButton(string text, bool primary) => new()

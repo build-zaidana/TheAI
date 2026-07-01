@@ -106,6 +106,17 @@ public static class Strings
         ["approval.decline"] = ("Tolak", "Decline"),
         ["approval.acceptSession"] = ("Izinkan sesi", "Allow for session"),
         ["approval.acceptOnce"] = ("Izinkan sekali", "Allow once"),
+        ["dialog.openPrefix"] = ("Buka", "Open"),
+        ["dialog.linkError"] = ("Tautan tidak dapat dibuka", "Link cannot be opened"),
+        ["dialog.cancel"] = ("Batal", "Cancel"),
+        ["dialog.continue"] = ("Lanjutkan", "Continue"),
+        ["dialog.required"] = ("{0} wajib diisi.", "{0} is required."),
+        ["dialog.incomplete"] = ("Input belum lengkap", "Incomplete input"),
+        ["dialog.invalidType"] = ("{0} harus berupa {1}.", "{0} must be a {1}."),
+        ["dialog.invalid"] = ("Input tidak valid", "Invalid input"),
+        ["dialog.integer"] = ("bilangan bulat", "integer"),
+        ["dialog.number"] = ("angka", "number"),
+        ["dialog.countdown"] = ("Pilihan default dipakai dalam {0} dtk", "Default choice applies in {0} s"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
