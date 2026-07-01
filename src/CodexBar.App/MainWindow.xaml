@@ -282,6 +282,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock x:Name="AppearanceHeader" Grid.Row="0" Grid.ColumnSpan="3" Text="Tampilan" FontWeight="SemiBold" Foreground="{DynamicResource SettingsValueBrush}" Margin="0,0,0,8" />
@@ -442,6 +443,42 @@
                                FontSize="11.5" TextWrapping="Wrap"
                                Foreground="{DynamicResource SettingsLabelBrush}"
                                Text="Aplikasi komunitas tidak resmi. Prompt dan konteks workspace diproses melalui Codex CLI serta layanan OpenAI sesuai akun dan kebijakan Anda. Settings disimpan lokal." />
+
+                    <StackPanel Grid.Row="12" Grid.ColumnSpan="3" Margin="0,14,0,0">
+                        <TextBlock x:Name="ProviderHeader" Text="Provider" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SettingsValueBrush}" Margin="0,0,0,8" />
+                        <WrapPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" Margin="0,3,14,3" VerticalAlignment="Center">
+                                <TextBlock x:Name="ProviderLabel" Text="Provider" VerticalAlignment="Center"
+                                           Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                                <ComboBox x:Name="ProviderCombo" Width="120"
+                                          SelectionChanged="ProviderCombo_SelectionChanged"
+                                          AutomationProperties.Name="Pilih provider AI">
+                                    <ComboBoxItem Content="Codex" Tag="codex" />
+                                    <ComboBoxItem Content="Claude" Tag="anthropic" />
+                                </ComboBox>
+                            </StackPanel>
+                            <TextBlock x:Name="ProviderRestartNote" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                       Text="Restart CodexBar setelah mengubah provider." />
+                        </WrapPanel>
+                        <StackPanel x:Name="ApiKeyPanel" Orientation="Horizontal" Margin="0,10,0,0" Visibility="Collapsed">
+                            <TextBlock x:Name="ApiKeyLabel" Text="API Key" VerticalAlignment="Center"
+                                       Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                            <PasswordBox x:Name="ApiKeyBox" Width="220" Height="30" Padding="9,4"
+                                         VerticalContentAlignment="Center"
+                                         Background="{DynamicResource GlassTrack}"
+                                         Foreground="{DynamicResource TextPrimary}"
+                                         BorderBrush="{DynamicResource GlassStroke}" BorderThickness="1"
+                                         AutomationProperties.Name="API key Claude" />
+                            <Button x:Name="SaveApiKeyButton" Content="Simpan" Margin="8,0,0,0"
+                                    Style="{StaticResource GlassPillButton}" Click="SaveApiKeyButton_Click" />
+                            <Button x:Name="ClearApiKeyButton" Content="Hapus" Margin="6,0,0,0"
+                                    Style="{StaticResource GlassPillButton}" Click="ClearApiKeyButton_Click" />
+                            <TextBlock x:Name="ApiKeyStatusText" VerticalAlignment="Center" Margin="10,0,0,0"
+                                       FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

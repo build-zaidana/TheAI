@@ -1453,6 +1453,8 @@ public partial class MainWindow : Window
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
+        ProviderCombo.SelectedIndex = _settings.Provider == "anthropic" ? 1 : 0;
+        ApiKeyPanel.Visibility = _settings.Provider == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
         {
             "light" => 1,
@@ -2486,6 +2488,55 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_settingsReady)
+        {
+            return;
+        }
+
+        var providerId = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "anthropic"
+            ? "anthropic"
+            : "codex";
+        ApiKeyPanel.Visibility = providerId == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
+
+        if (providerId == _settings.Provider)
+        {
+            return;
+        }
+
+        _settings.Provider = providerId;
+        _ = SaveSettingsSafeAsync();
+        SetStatus(L("provider.section.restartNote"), StatusBusyBrush);
+    }
+
+    private void SaveApiKeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        var key = ApiKeyBox.Password;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ApiKeyStatusText.Text = L("provider.apiKey.empty");
+            return;
+        }
+
+        if (CodexBar.Core.CredentialStore.Save(App.ApiKeyCredentialTarget("anthropic"), key.Trim()))
+        {
+            ApiKeyBox.Clear();
+            ApiKeyStatusText.Text = L("provider.apiKey.saved");
+        }
+        else
+        {
+            ApiKeyStatusText.Text = L("provider.apiKey.saveFailed");
+        }
+    }
+
+    private void ClearApiKeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        CodexBar.Core.CredentialStore.Delete(App.ApiKeyCredentialTarget("anthropic"));
+        ApiKeyBox.Clear();
+        ApiKeyStatusText.Text = L("provider.apiKey.cleared");
+    }
+
     private void TemplatesButton_Click(object sender, RoutedEventArgs e)
     {
         var menu = new System.Windows.Controls.ContextMenu();
@@ -2747,6 +2798,14 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(ApprovalCombo, loc["automation.main.approvalPolicy"]);
         System.Windows.Automation.AutomationProperties.SetName(EffortCombo, loc["automation.main.reasoningEffort"]);
         System.Windows.Automation.AutomationProperties.SetName(OpenLogsButton, loc["automation.main.openLogs"]);
+
+        // Provider / API key section.
+        ProviderHeader.Text = loc["provider.section.title"];
+        ProviderLabel.Text = loc["provider.section.label"];
+        ProviderRestartNote.Text = loc["provider.section.restartNote"];
+        ApiKeyLabel.Text = loc["provider.apiKey.label"];
+        SaveApiKeyButton.Content = loc["provider.apiKey.save"];
+        ClearApiKeyButton.Content = loc["provider.apiKey.clear"];
     }
 
     private void CopyResponse()

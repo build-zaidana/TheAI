@@ -343,8 +343,18 @@ public static class Strings
         ["onboard.error.body"] = ("Terjadi kesalahan saat menghubungkan Codex.", "An error occurred while connecting to Codex."),
         ["onboard.error.status"] = ("Error", "Error"),
         ["onboard.apikey.title"] = ("API key belum diatur", "API key not set"),
-        ["onboard.apikey.body"] = ("Provider ini butuh API key. Set variabel lingkungan ANTHROPIC_API_KEY dengan API key Anthropic-mu, lalu klik Coba lagi.", "This provider needs an API key. Set the ANTHROPIC_API_KEY environment variable to your Anthropic API key, then click Try again."),
+        ["onboard.apikey.body"] = ("Provider ini butuh API key. Buka Settings, masukkan API key di bagian Provider, lalu restart CodexBar.", "This provider needs an API key. Open Settings, enter your API key in the Provider section, then restart CodexBar."),
         ["onboard.apikey.status"] = ("API key belum diatur", "API key not set"),
+        ["provider.section.title"] = ("Provider", "Provider"),
+        ["provider.section.label"] = ("Provider", "Provider"),
+        ["provider.section.restartNote"] = ("Restart CodexBar setelah mengubah provider.", "Restart CodexBar after changing provider."),
+        ["provider.apiKey.label"] = ("API Key", "API Key"),
+        ["provider.apiKey.save"] = ("Simpan", "Save"),
+        ["provider.apiKey.clear"] = ("Hapus", "Clear"),
+        ["provider.apiKey.empty"] = ("Isi API key dulu.", "Enter an API key first."),
+        ["provider.apiKey.saved"] = ("Key tersimpan.", "Key saved."),
+        ["provider.apiKey.saveFailed"] = ("Gagal menyimpan key.", "Failed to save key."),
+        ["provider.apiKey.cleared"] = ("Key dihapus.", "Key cleared."),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
