@@ -4,6 +4,7 @@
 
 ### Added
 
+- Optional English UI: a Language toggle in Settings with live switching (no restart). The main window input bar, Settings panel, and sidebar are localized; remaining strings migrate incrementally.
 - Prompt templates: save and quick-insert reusable prompts from an input-bar button; fresh installs are seeded with example templates.
 - Opt-in diagnostics logging to `%LOCALAPPDATA%\CodexBar\logs` with 7-day rotation, an unhandled-exception capture hook, a Settings toggle, and an "open logs folder" button.
 - Helper-level reliability unit tests for `CodexProvider` (sandbox/approval normalization, missing-thread vs not-materialized classification, preview formatting, thread status/summary parsing).
