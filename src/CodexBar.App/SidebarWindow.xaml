@@ -56,7 +56,7 @@
                     </Border>
                     <TextBlock Text="Codex" Foreground="{DynamicResource PrimaryText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
-                <Button Grid.Column="1" Content="×" FontSize="19" Style="{StaticResource QuietButton}" Click="CloseButton_Click" ToolTip="Tutup menu" AutomationProperties.Name="Tutup daftar thread" />
+                <Button x:Name="SidebarCloseButton" Grid.Column="1" Content="×" FontSize="19" Style="{StaticResource QuietButton}" Click="CloseButton_Click" ToolTip="Tutup menu" AutomationProperties.Name="Tutup daftar thread" />
             </Grid>
 
             <Border Grid.Row="1" Margin="12,0,12,10" Padding="11" CornerRadius="10" Background="{DynamicResource CardBackground}">
@@ -71,11 +71,11 @@
                         <TextBlock x:Name="AccountNameText" Text="Memeriksa akun…" Foreground="{DynamicResource PrimaryText}" TextTrimming="CharacterEllipsis" />
                         <TextBlock x:Name="AccountPlanText" Text="Codex" Foreground="{DynamicResource MutedText}" FontSize="11" Margin="0,3,0,0" />
                     </StackPanel>
-                    <Button Grid.Column="2" Content="↻" FontSize="16" Style="{StaticResource QuietButton}" Click="RefreshButton_Click" ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang akun dan thread" />
+                    <Button x:Name="SidebarRefreshButton" Grid.Column="2" Content="↻" FontSize="16" Style="{StaticResource QuietButton}" Click="RefreshButton_Click" ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang akun dan thread" />
                 </Grid>
             </Border>
 
-            <Button Grid.Row="2"
+            <Button x:Name="NewThreadButton" Grid.Row="2"
                     Margin="12,2,12,10"
                     Height="40"
                     Content="＋  Percakapan baru"

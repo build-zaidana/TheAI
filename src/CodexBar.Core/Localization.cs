@@ -88,6 +88,12 @@ public static class Strings
         ["bar.contextUsage"] = ("Pemakaian context thread; klik untuk compact", "Thread context usage; click to compact"),
         ["bar.conversation"] = ("Tampilkan/sembunyikan percakapan", "Show/hide conversation"),
         ["bar.settings"] = ("Settings", "Settings"),
+        ["sidebar.newThread"] = ("＋  Percakapan baru", "＋  New conversation"),
+        ["sidebar.search"] = ("Cari percakapan", "Search conversations"),
+        ["sidebar.empty"] = ("Belum ada percakapan", "No conversations yet"),
+        ["sidebar.footer"] = ("Riwayat lokal Codex", "Local Codex history"),
+        ["sidebar.close"] = ("Tutup menu", "Close menu"),
+        ["sidebar.reload"] = ("Muat ulang", "Reload"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>

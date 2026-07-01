@@ -35,12 +35,29 @@ public partial class SidebarWindow : Window
         _dark = dark;
         InitializeComponent();
         _controller.EventReceived += Controller_EventReceived;
+        CodexBar.Core.Localization.Instance.PropertyChanged += Localization_Changed;
+        ApplyLanguage();
         Closed += (_, _) =>
         {
             _controller.EventReceived -= Controller_EventReceived;
+            CodexBar.Core.Localization.Instance.PropertyChanged -= Localization_Changed;
             _searchCts?.Cancel();
             _searchCts?.Dispose();
         };
+    }
+
+    private void Localization_Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => ApplyLanguage();
+
+    private void ApplyLanguage()
+    {
+        var loc = CodexBar.Core.Localization.Instance;
+        NewThreadButton.Content = loc["sidebar.newThread"];
+        SearchBox.ToolTip = loc["sidebar.search"];
+        SearchBox.Tag = loc["sidebar.search"];
+        EmptyText.Text = loc["sidebar.empty"];
+        FooterText.Text = loc["sidebar.footer"];
+        SidebarCloseButton.ToolTip = loc["sidebar.close"];
+        SidebarRefreshButton.ToolTip = loc["sidebar.reload"];
     }
 
     public void ShowNextTo(Window owner, bool docked)
