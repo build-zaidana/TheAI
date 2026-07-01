@@ -19,6 +19,17 @@ public partial class OutputWindow : Window
     {
         InitializeComponent();
         OutputConversation.ScrollChanged += ResponseScroll_ScrollChanged;
+        CodexBar.Core.Localization.Instance.PropertyChanged += (_, _) => ApplyLanguage();
+        ApplyLanguage();
+    }
+
+    private void ApplyLanguage()
+    {
+        var loc = CodexBar.Core.Localization.Instance;
+        CopyOutputButton.ToolTip = loc["output.copy"];
+        OpenCodexButton.ToolTip = loc["output.openCodex"];
+        CloseOutputButton.ToolTip = loc["output.hide"];
+        JumpLatestButton.Content = loc["output.jumpLatest"];
     }
 
     public event ScrollChangedEventHandler? OutputScrollChanged;

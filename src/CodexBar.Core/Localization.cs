@@ -94,6 +94,10 @@ public static class Strings
         ["sidebar.footer"] = ("Riwayat lokal Codex", "Local Codex history"),
         ["sidebar.close"] = ("Tutup menu", "Close menu"),
         ["sidebar.reload"] = ("Muat ulang", "Reload"),
+        ["output.copy"] = ("Salin output", "Copy output"),
+        ["output.openCodex"] = ("Buka di Codex", "Open in Codex"),
+        ["output.hide"] = ("Sembunyikan output", "Hide output"),
+        ["output.jumpLatest"] = ("↓ Terbaru", "↓ Latest"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
