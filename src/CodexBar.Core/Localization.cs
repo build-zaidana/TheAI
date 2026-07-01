@@ -355,6 +355,8 @@ public static class Strings
         ["provider.apiKey.saved"] = ("Key tersimpan.", "Key saved."),
         ["provider.apiKey.saveFailed"] = ("Gagal menyimpan key.", "Failed to save key."),
         ["provider.apiKey.cleared"] = ("Key dihapus.", "Key cleared."),
+        ["provider.capability.noWorkspace"] = ("Tidak berlaku untuk provider ini.", "Not applicable for this provider."),
+        ["provider.capability.noApprovals"] = ("Provider ini tidak memakai approval/sandbox.", "This provider doesn't use approvals/sandbox."),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>

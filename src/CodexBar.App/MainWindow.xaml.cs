@@ -2799,6 +2799,24 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(EffortCombo, loc["automation.main.reasoningEffort"]);
         System.Windows.Automation.AutomationProperties.SetName(OpenLogsButton, loc["automation.main.openLogs"]);
 
+        // Disable (not hide) controls the active provider doesn't support, so the layout
+        // never shifts. This is a no-op for Codex (supports everything); it only kicks in
+        // for reduced-capability providers like Claude.
+        if (!_controller.Capabilities.SupportsWorkspace)
+        {
+            WorkspaceButton.IsEnabled = false;
+            WorkspaceButton.ToolTip = loc["provider.capability.noWorkspace"];
+        }
+
+        if (!_controller.Capabilities.SupportsApprovals)
+        {
+            var note = loc["provider.capability.noApprovals"];
+            SandboxCombo.IsEnabled = false;
+            SandboxCombo.ToolTip = note;
+            ApprovalCombo.IsEnabled = false;
+            ApprovalCombo.ToolTip = note;
+        }
+
         // Provider / API key section.
         ProviderHeader.Text = loc["provider.section.title"];
         ProviderLabel.Text = loc["provider.section.label"];
