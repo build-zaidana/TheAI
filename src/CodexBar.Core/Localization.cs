@@ -80,6 +80,14 @@ public static class Strings
         ["settings.outputHeight"] = ("Tinggi output", "Output height"),
         ["settings.inputFont"] = ("Font input", "Input font"),
         ["settings.responseFont"] = ("Font respons", "Response font"),
+        ["bar.menu"] = ("Menu & riwayat Codex", "Codex menu & history"),
+        ["bar.workspace"] = ("Pilih workspace", "Choose workspace"),
+        ["bar.attach"] = ("Tambahkan gambar atau file", "Add image or file"),
+        ["bar.send"] = ("Kirim (Enter)", "Send (Enter)"),
+        ["bar.stop"] = ("Hentikan pekerjaan (Ctrl+.)", "Stop (Ctrl+.)"),
+        ["bar.contextUsage"] = ("Pemakaian context thread; klik untuk compact", "Thread context usage; click to compact"),
+        ["bar.conversation"] = ("Tampilkan/sembunyikan percakapan", "Show/hide conversation"),
+        ["bar.settings"] = ("Settings", "Settings"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>

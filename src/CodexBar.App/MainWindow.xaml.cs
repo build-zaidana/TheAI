@@ -2505,8 +2505,18 @@ public partial class MainWindow : Window
     {
         var loc = CodexBar.Core.Localization.Instance;
         PromptPlaceholder.Text = loc["prompt.placeholder"];
-        TemplatesButton.ToolTip = loc["templates.tooltip"];
         LanguageLabel.Text = loc["settings.language"];
+
+        // Input bar tooltips.
+        MenuButton.ToolTip = loc["bar.menu"];
+        TemplatesButton.ToolTip = loc["templates.tooltip"];
+        WorkspaceButton.ToolTip = loc["bar.workspace"];
+        AttachButton.ToolTip = loc["bar.attach"];
+        SendButton.ToolTip = loc["bar.send"];
+        StopButton.ToolTip = loc["bar.stop"];
+        ContextUsageButton.ToolTip = loc["bar.contextUsage"];
+        ConversationButton.ToolTip = loc["bar.conversation"];
+        SettingsButton.ToolTip = loc["bar.settings"];
 
         // Settings toggles.
         OutputDockedCheck.Content = loc["settings.outputDocked"];
