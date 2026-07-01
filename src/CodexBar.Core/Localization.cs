@@ -75,6 +75,11 @@ public static class Strings
         ["settings.copyConversation"] = ("Salin percakapan", "Copy conversation"),
         ["settings.exportCheckpoint"] = ("Export checkpoint", "Export checkpoint"),
         ["settings.resetLayout"] = ("Reset layout", "Reset layout"),
+        ["settings.appearance"] = ("Tampilan", "Appearance"),
+        ["settings.width"] = ("Lebar", "Width"),
+        ["settings.outputHeight"] = ("Tinggi output", "Output height"),
+        ["settings.inputFont"] = ("Font input", "Input font"),
+        ["settings.responseFont"] = ("Font respons", "Response font"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>

@@ -2524,6 +2524,13 @@ public partial class MainWindow : Window
         OpenLogsButton.Content = loc["settings.openLogs"];
         ResetLayoutButton.Content = loc["settings.resetLayout"];
         CloseSettingsButton.Content = loc["settings.close"];
+
+        // Settings appearance labels.
+        AppearanceHeader.Text = loc["settings.appearance"];
+        WidthLabel.Text = loc["settings.width"];
+        OutputHeightLabel.Text = loc["settings.outputHeight"];
+        InputFontLabel.Text = loc["settings.inputFont"];
+        ResponseFontLabel.Text = loc["settings.responseFont"];
     }
 
     private void CopyResponse()

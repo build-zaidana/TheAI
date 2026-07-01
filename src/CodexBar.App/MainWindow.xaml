@@ -284,13 +284,13 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Tampilan" FontWeight="SemiBold" Foreground="{DynamicResource SettingsValueBrush}" Margin="0,0,0,8" />
+                    <TextBlock x:Name="AppearanceHeader" Grid.Row="0" Grid.ColumnSpan="3" Text="Tampilan" FontWeight="SemiBold" Foreground="{DynamicResource SettingsValueBrush}" Margin="0,0,0,8" />
 
-                    <TextBlock Grid.Row="1" Text="Lebar" Style="{StaticResource SettingLabelStyle}" />
+                    <TextBlock x:Name="WidthLabel" Grid.Row="1" Text="Lebar" Style="{StaticResource SettingLabelStyle}" />
                     <Slider x:Name="WidthSlider" Grid.Row="1" Grid.Column="1" Minimum="500" Maximum="1200" ValueChanged="SettingsControl_Changed" />
                     <TextBlock x:Name="WidthValue" Grid.Row="1" Grid.Column="2" Style="{StaticResource SettingValueStyle}" />
 
-                    <TextBlock Grid.Row="2" Text="Tinggi output" Style="{StaticResource SettingLabelStyle}" />
+                    <TextBlock x:Name="OutputHeightLabel" Grid.Row="2" Text="Tinggi output" Style="{StaticResource SettingLabelStyle}" />
                     <Slider x:Name="HeightSlider" Grid.Row="2" Grid.Column="1" Minimum="180" Maximum="900" ValueChanged="SettingsControl_Changed" />
                     <TextBlock x:Name="HeightValue" Grid.Row="2" Grid.Column="2" Style="{StaticResource SettingValueStyle}" />
 
@@ -302,11 +302,11 @@
                     <Slider x:Name="InactiveOpacitySlider" Grid.Row="4" Grid.Column="1" Minimum="0.25" Maximum="1" ValueChanged="SettingsControl_Changed" Visibility="Collapsed" />
                     <TextBlock x:Name="InactiveOpacityValue" Grid.Row="4" Grid.Column="2" Style="{StaticResource SettingValueStyle}" Visibility="Collapsed" />
 
-                    <TextBlock Grid.Row="5" Text="Font input" Style="{StaticResource SettingLabelStyle}" />
+                    <TextBlock x:Name="InputFontLabel" Grid.Row="5" Text="Font input" Style="{StaticResource SettingLabelStyle}" />
                     <Slider x:Name="InputFontSlider" Grid.Row="5" Grid.Column="1" Minimum="10" Maximum="24" ValueChanged="SettingsControl_Changed" />
                     <TextBlock x:Name="InputFontValue" Grid.Row="5" Grid.Column="2" Style="{StaticResource SettingValueStyle}" />
 
-                    <TextBlock Grid.Row="6" Text="Font respons" Style="{StaticResource SettingLabelStyle}" />
+                    <TextBlock x:Name="ResponseFontLabel" Grid.Row="6" Text="Font respons" Style="{StaticResource SettingLabelStyle}" />
                     <Slider x:Name="ResponseFontSlider" Grid.Row="6" Grid.Column="1" Minimum="10" Maximum="24" ValueChanged="SettingsControl_Changed" />
                     <TextBlock x:Name="ResponseFontValue" Grid.Row="6" Grid.Column="2" Style="{StaticResource SettingValueStyle}" />
 
