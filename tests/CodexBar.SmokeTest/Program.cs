@@ -233,7 +233,8 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 5, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 6, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");
 
@@ -258,6 +259,27 @@ static async Task<int> RunDeterministicTestsAsync()
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,
             "Save settings tidak boleh meninggalkan file temporary.");
+
+        // Diagnostics logging: opt-in, best-effort, writes a per-day file when enabled.
+        var diagRoot = Path.Combine(temporaryRoot, "diag");
+        DiagnosticsLog.Configure(enabled: true, diagRoot);
+        Assert(DiagnosticsLog.IsEnabled && DiagnosticsLog.LogDirectory is not null,
+            "DiagnosticsLog harus aktif setelah Configure(enabled:true).");
+        DiagnosticsLog.Error("Test", "pesan diagnostik", new InvalidOperationException("boom"));
+        var logFiles = Directory.GetFiles(DiagnosticsLog.LogDirectory!, "codexbar-*.log");
+        Assert(logFiles.Length == 1, "DiagnosticsLog harus menulis satu file log per hari.");
+        var logText = await File.ReadAllTextAsync(logFiles[0]);
+        Assert(logText.Contains("pesan diagnostik", StringComparison.Ordinal) &&
+               logText.Contains("boom", StringComparison.Ordinal),
+            "Log harus memuat pesan dan detail exception.");
+
+        var lengthBeforeDisable = new FileInfo(logFiles[0]).Length;
+        DiagnosticsLog.Configure(enabled: false, diagRoot);
+        Assert(!DiagnosticsLog.IsEnabled && DiagnosticsLog.LogDirectory is null,
+            "DiagnosticsLog harus mati setelah Configure(enabled:false).");
+        DiagnosticsLog.Info("Test", "tidak boleh ditulis");
+        Assert(new FileInfo(logFiles[0]).Length == lengthBeforeDisable,
+            "Saat mati, DiagnosticsLog tidak boleh menambah entri baru.");
 
         await using var protocolProvider = new CodexProvider();
         ProviderEvent? protocolEvent = null;

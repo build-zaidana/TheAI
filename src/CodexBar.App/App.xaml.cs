@@ -1,4 +1,5 @@
 using System.Windows;
+using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
 using CodexBar.Providers.Codex;
@@ -19,6 +20,17 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Best-effort crash capture. No-op until diagnostics logging is enabled from
+        // settings below; we never mark the exception handled, so behavior is unchanged.
+        DispatcherUnhandledException += (_, args) =>
+            DiagnosticsLog.Error("UnhandledDispatcher", args.Exception.Message, args.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            DiagnosticsLog.Error("UnhandledDomain",
+                (args.ExceptionObject as Exception)?.Message ?? "unknown",
+                args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+            DiagnosticsLog.Error("UnobservedTask", args.Exception.Message, args.Exception);
 
         _singleInstanceMutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
         _ownsMutex = createdNew;
@@ -52,6 +64,9 @@ public partial class App : System.Windows.Application
 
             var settingsStore = new JsonSettingsStore();
             var settings = await settingsStore.LoadAsync();
+            DiagnosticsLog.Configure(settings.EnableDiagnosticsLogging, settingsStore.BaseDirectory);
+            DiagnosticsLog.Info("App",
+                $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
             _provider = new CodexProvider();
 
             var window = new MainWindow(settings, settingsStore, _provider);
@@ -61,6 +76,7 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
+            DiagnosticsLog.Error("Startup", "CodexBar gagal dimulai.", exception);
             System.Windows.MessageBox.Show(
                 $"CodexBar gagal dimulai.\n\n{exception.Message}",
                 "CodexBar",
@@ -86,6 +102,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        DiagnosticsLog.Info("App", "CodexBar keluar.");
         _activationCancellation?.Cancel();
         _activationEvent?.Set();
         try

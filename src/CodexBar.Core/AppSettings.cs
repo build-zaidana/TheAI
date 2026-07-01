@@ -2,7 +2,7 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 5;
+    public int SchemaVersion { get; set; } = 6;
     public string Provider { get; set; } = "codex";
     public string Hotkey { get; set; } = "Win+Shift+C";
     public bool LaunchAtLogin { get; set; }
@@ -30,6 +30,9 @@ public sealed class AppSettings
 
     /// <summary>Codex menu (riwayat) menyatu menempel pada input bar, bukan window terpisah.</summary>
     public bool MenuDocked { get; set; } = true;
+
+    /// <summary>Aktifkan diagnostics logging opt-in ke file (untuk pelaporan bug). Default mati.</summary>
+    public bool EnableDiagnosticsLogging { get; set; }
     public AppearanceSettings Appearance { get; set; } = new();
     public WindowSettings Window { get; set; } = new();
     public string WorkspacePath { get; set; } = string.Empty;

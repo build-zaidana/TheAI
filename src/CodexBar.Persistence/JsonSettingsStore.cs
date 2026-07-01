@@ -88,7 +88,7 @@ public sealed class JsonSettingsStore
 
     private static AppSettings Normalize(AppSettings settings)
     {
-        settings.SchemaVersion = 5;
+        settings.SchemaVersion = 6;
         settings.Provider = "codex";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
