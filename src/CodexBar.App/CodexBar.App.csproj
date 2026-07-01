@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodexBar.Core\CodexBar.Core.csproj" />
+    <ProjectReference Include="..\CodexBar.Providers\CodexBar.Providers.csproj" />
+    <ProjectReference Include="..\CodexBar.Providers.Codex\CodexBar.Providers.Codex.csproj" />
+    <ProjectReference Include="..\CodexBar.Windows\CodexBar.Windows.csproj" />
+    <ProjectReference Include="..\CodexBar.Persistence\CodexBar.Persistence.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>codexbar.ico</ApplicationIcon>
+    <AssemblyName>CodexBar.App</AssemblyName>
+    <Product>CodexBar</Product>
+    <Company>CodexBar</Company>
+    <Authors>CodexBar</Authors>
+    <Description>Companion ringan untuk mengirim prompt ke Codex lewat hotkey.</Description>
+    <Version>1.2.0</Version>
+    <FileVersion>1.2.0.0</FileVersion>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <Copyright>© 2026 CodexBar</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="codexbar.ico" />
+  </ItemGroup>
+
+</Project>

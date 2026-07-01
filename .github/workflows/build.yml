@@ -1,0 +1,21 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore CodexBar.slnx
+      - name: Build
+        run: dotnet build CodexBar.slnx -c Release --no-restore
+      - name: Deterministic smoke tests
+        run: dotnet run --project tests/CodexBar.SmokeTest/CodexBar.SmokeTest.csproj -c Release --no-build

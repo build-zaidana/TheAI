@@ -1,0 +1,55 @@
+<Window x:Class="CodexBar.App.OutputWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CodexBar.App"
+        Title="Codex Output"
+        Width="620"
+        Height="420"
+        MinWidth="360"
+        MinHeight="180"
+        MaxWidth="1200"
+        MaxHeight="900"
+        WindowStyle="None"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        AllowsTransparency="True"
+        KeyboardNavigation.TabNavigation="Cycle"
+        Closing="Window_Closing">
+
+    <Border x:Name="RootBorder" CornerRadius="8" BorderThickness="1" BorderBrush="#2EFFFFFF" Background="Transparent">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="12,0,6,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#5EE6A8" Margin="0,0,9,0" />
+                    <TextBlock x:Name="TitleText" Text="Output" Foreground="#1B2230" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock x:Name="ContextText" Grid.Column="1" Margin="12,0" Text="Codex"
+                           Foreground="#586275" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="CopyOutputButton" Content="Copy" Style="{StaticResource GlassIconButton}" Width="46" Click="CopyButton_Click" ToolTip="Salin output" AutomationProperties.Name="Salin seluruh output" />
+                    <Button x:Name="OpenCodexButton" Content="↗" FontSize="15" Style="{StaticResource GlassIconButton}" Click="OpenCodexButton_Click" ToolTip="Buka di Codex" AutomationProperties.Name="Buka thread di Codex" />
+                    <Button x:Name="CloseOutputButton" Content="—" Style="{StaticResource GlassIconButton}" Click="CloseButton_Click" ToolTip="Sembunyikan output" AutomationProperties.Name="Sembunyikan output" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="14,2,10,13">
+                <local:ConversationView x:Name="OutputConversation" />
+                <Button x:Name="JumpLatestButton" Content="↓ Terbaru" Visibility="Collapsed"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,10"
+                        Style="{StaticResource GlassPillButton}" Click="JumpLatestButton_Click" AutomationProperties.Name="Lompat ke jawaban terbaru" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
