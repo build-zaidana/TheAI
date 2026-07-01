@@ -2,7 +2,7 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 6;
+    public int SchemaVersion { get; set; } = 7;
     public string Provider { get; set; } = "codex";
     public string Hotkey { get; set; } = "Win+Shift+C";
     public bool LaunchAtLogin { get; set; }
@@ -33,6 +33,9 @@ public sealed class AppSettings
 
     /// <summary>Aktifkan diagnostics logging opt-in ke file (untuk pelaporan bug). Default mati.</summary>
     public bool EnableDiagnosticsLogging { get; set; }
+
+    /// <summary>Template prompt tersimpan untuk quick-insert. Di-seed dengan contoh pada instal baru.</summary>
+    public List<PromptTemplate> PromptTemplates { get; set; } = PromptTemplate.CreateDefaults();
     public AppearanceSettings Appearance { get; set; } = new();
     public WindowSettings Window { get; set; } = new();
     public string WorkspacePath { get; set; } = string.Empty;
@@ -59,4 +62,65 @@ public sealed class WindowSettings
     public double MaxExpandedHeight { get; set; } = 520;
     public string Position { get; set; } = "bottom-center";
     public bool RememberPerMonitor { get; set; } = true;
+}
+
+public sealed class PromptTemplate
+{
+    /// <summary>Maximum number of templates retained (older/overflow entries are dropped on normalize).</summary>
+    public const int MaxCount = 50;
+    private const int MaxNameLength = 80;
+
+    public string Name { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>Seed templates offered on a fresh install; users can edit or remove them.</summary>
+    public static List<PromptTemplate> CreateDefaults() =>
+    [
+        new() { Name = "Jelaskan kode", Content = "Jelaskan apa yang dilakukan kode berikut dan potensi masalahnya:\n\n" },
+        new() { Name = "Perbaiki bug", Content = "Temukan dan perbaiki bug pada kode ini. Jelaskan penyebab dan perbaikannya:\n\n" },
+        new() { Name = "Tulis unit test", Content = "Tulis unit test yang menyeluruh untuk kode berikut:\n\n" },
+        new() { Name = "Review & rapikan", Content = "Review kode ini untuk keterbacaan, dan sederhanakan tanpa mengubah perilaku:\n\n" },
+    ];
+
+    /// <summary>
+    /// Clean a template list: trim fields, drop entries with an empty name or content,
+    /// de-duplicate by name (case-insensitive, first wins), and cap to <see cref="MaxCount"/>.
+    /// </summary>
+    public static List<PromptTemplate> Normalize(IEnumerable<PromptTemplate>? templates)
+    {
+        var result = new List<PromptTemplate>();
+        if (templates is null)
+        {
+            return result;
+        }
+
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var template in templates)
+        {
+            var name = template?.Name?.Trim() ?? string.Empty;
+            var content = template?.Content ?? string.Empty;
+            if (name.Length == 0 || content.Trim().Length == 0)
+            {
+                continue;
+            }
+
+            if (name.Length > MaxNameLength)
+            {
+                name = name[..MaxNameLength];
+            }
+
+            if (!seenNames.Add(name))
+            {
+                continue;
+            }
+
+            result.Add(new PromptTemplate { Name = name, Content = content });
+            if (result.Count >= MaxCount)
+            {
+                break;
+            }
+        }
+
+        return result;
+    }
 }

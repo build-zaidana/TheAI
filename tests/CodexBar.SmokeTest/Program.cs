@@ -233,7 +233,7 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 6, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 7, "Settings rusak harus dipulihkan ke schema terbaru.");
         Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");
@@ -246,7 +246,13 @@ static async Task<int> RunDeterministicTestsAsync()
               "workspacePath": null,
               "appearance": { "theme": "asing", "inputFontSize": 999 },
               "window": { "width": 9999, "maxExpandedHeight": -1, "position": "asing" },
-              "threadIds": null
+              "threadIds": null,
+              "promptTemplates": [
+                { "name": "  Valid  ", "content": "isi" },
+                { "name": "", "content": "tanpa nama" },
+                { "name": "Kosong", "content": "   " },
+                { "name": "valid", "content": "duplikat nama" }
+              ]
             }
             """);
         var normalized = await store.LoadAsync();
@@ -256,6 +262,13 @@ static async Task<int> RunDeterministicTestsAsync()
             "Appearance di luar batas harus dinormalisasi.");
         Assert(normalized.Window.Width == 1200 && normalized.Window.MaxExpandedHeight == 180,
             "Ukuran window harus dibatasi.");
+        Assert(normalized.PromptTemplates.Count == 1 &&
+               normalized.PromptTemplates[0].Name == "Valid" &&
+               normalized.PromptTemplates[0].Content == "isi",
+            "Prompt template harus di-trim, buang nama/isi kosong, dan dedup nama.");
+        Assert(PromptTemplate.CreateDefaults().Count >= 1 &&
+               PromptTemplate.Normalize(PromptTemplate.CreateDefaults()).Count == PromptTemplate.CreateDefaults().Count,
+            "Template default harus valid dan stabil terhadap normalisasi.");
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,
             "Save settings tidak boleh meninggalkan file temporary.");

@@ -88,11 +88,12 @@ public sealed class JsonSettingsStore
 
     private static AppSettings Normalize(AppSettings settings)
     {
-        settings.SchemaVersion = 6;
+        settings.SchemaVersion = 7;
         settings.Provider = "codex";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
         settings.ThreadIds ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        settings.PromptTemplates = PromptTemplate.Normalize(settings.PromptTemplates);
 
         settings.Appearance.Theme = settings.Appearance.Theme?.ToLowerInvariant() switch
         {
