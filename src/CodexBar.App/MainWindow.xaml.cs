@@ -302,53 +302,49 @@ public partial class MainWindow : Window
     {
         _onboardingKind = kind;
         InlineResponseArea.Visibility = Visibility.Collapsed;
-        OnboardingRetryButton.Content = "Coba lagi";
+        var loc = CodexBar.Core.Localization.Instance;
+        OnboardingRetryButton.Content = loc["onboard.retry"];
         OnboardingDocsButton.Visibility = Visibility.Visible;
         OnboardingActionButton.Visibility = Visibility.Collapsed;
 
         switch (kind)
         {
             case OnboardingKind.InstallNeeded:
-                OnboardingTitle.Text = "Codex CLI belum terpasang";
-                OnboardingBody.Text =
-                    "CodexBar memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, " +
-                    "lalu jalankan \"codex login\", kemudian klik Coba lagi.";
+                OnboardingTitle.Text = loc["onboard.install.title"];
+                OnboardingBody.Text = loc["onboard.install.body"];
                 _onboardingCommand = "npm install -g @openai/codex";
                 OnboardingCommandBox.Visibility = Visibility.Visible;
-                OnboardingActionButton.Content = "Pasang otomatis";
+                OnboardingActionButton.Content = loc["onboard.install.action"];
                 OnboardingActionButton.Visibility = Visibility.Visible;
-                SetStatus("Codex belum terpasang", StatusErrorBrush);
+                SetStatus(loc["onboard.install.status"], StatusErrorBrush);
                 break;
 
             case OnboardingKind.LoginNeeded:
-                OnboardingTitle.Text = "Belum login ke Codex";
-                OnboardingBody.Text = detail ??
-                    "Codex sudah terpasang tetapi belum login. Jalankan perintah ini, selesaikan login " +
-                    "di browser, lalu klik Coba lagi.";
+                OnboardingTitle.Text = loc["onboard.login.title"];
+                OnboardingBody.Text = detail ?? loc["onboard.login.body"];
                 _onboardingCommand = "codex login";
                 OnboardingCommandBox.Visibility = Visibility.Visible;
-                OnboardingActionButton.Content = "Buka login";
+                OnboardingActionButton.Content = loc["onboard.login.action"];
                 OnboardingActionButton.Visibility = Visibility.Visible;
-                SetStatus("Belum login", StatusBusyBrush);
+                SetStatus(loc["onboard.login.status"], StatusBusyBrush);
                 break;
 
             case OnboardingKind.WorkspaceNeeded:
-                OnboardingTitle.Text = "Pilih workspace";
-                OnboardingBody.Text =
-                    "Pilih folder proyek yang boleh dibaca dan diubah Codex. CodexBar tidak memakai folder instalasi atau System32 sebagai workspace otomatis.";
+                OnboardingTitle.Text = loc["onboard.workspace.title"];
+                OnboardingBody.Text = loc["onboard.workspace.body"];
                 _onboardingCommand = string.Empty;
                 OnboardingCommandBox.Visibility = Visibility.Collapsed;
-                OnboardingRetryButton.Content = "Pilih folder";
+                OnboardingRetryButton.Content = loc["onboard.workspace.pick"];
                 OnboardingDocsButton.Visibility = Visibility.Collapsed;
-                SetStatus("Workspace belum dipilih", StatusBusyBrush);
+                SetStatus(loc["onboard.workspace.status"], StatusBusyBrush);
                 break;
 
             default:
-                OnboardingTitle.Text = "Gagal menghubungkan Codex";
-                OnboardingBody.Text = detail ?? "Terjadi kesalahan saat menghubungkan Codex.";
+                OnboardingTitle.Text = loc["onboard.error.title"];
+                OnboardingBody.Text = detail ?? loc["onboard.error.body"];
                 _onboardingCommand = string.Empty;
                 OnboardingCommandBox.Visibility = Visibility.Collapsed;
-                SetStatus("Error", StatusErrorBrush);
+                SetStatus(loc["onboard.error.status"], StatusErrorBrush);
                 break;
         }
 
@@ -365,7 +361,7 @@ public partial class MainWindow : Window
             try
             {
                 System.Windows.Clipboard.SetText(_onboardingCommand);
-                OnboardingCopyButton.Content = "Tersalin";
+                OnboardingCopyButton.Content = CodexBar.Core.Localization.Instance["onboard.copied"];
             }
             catch (Exception exception)
             {

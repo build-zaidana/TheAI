@@ -117,6 +117,23 @@ public static class Strings
         ["dialog.integer"] = ("bilangan bulat", "integer"),
         ["dialog.number"] = ("angka", "number"),
         ["dialog.countdown"] = ("Pilihan default dipakai dalam {0} dtk", "Default choice applies in {0} s"),
+        ["onboard.retry"] = ("Coba lagi", "Try again"),
+        ["onboard.copied"] = ("Tersalin", "Copied"),
+        ["onboard.install.title"] = ("Codex CLI belum terpasang", "Codex CLI not installed"),
+        ["onboard.install.body"] = ("CodexBar memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, lalu jalankan \"codex login\", kemudian klik Coba lagi.", "CodexBar uses a logged-in Codex CLI. Install it via PowerShell/Terminal, run \"codex login\", then click Try again."),
+        ["onboard.install.action"] = ("Pasang otomatis", "Auto-install"),
+        ["onboard.install.status"] = ("Codex belum terpasang", "Codex not installed"),
+        ["onboard.login.title"] = ("Belum login ke Codex", "Not logged in to Codex"),
+        ["onboard.login.body"] = ("Codex sudah terpasang tetapi belum login. Jalankan perintah ini, selesaikan login di browser, lalu klik Coba lagi.", "Codex is installed but not logged in. Run this command, finish the login in your browser, then click Try again."),
+        ["onboard.login.action"] = ("Buka login", "Open login"),
+        ["onboard.login.status"] = ("Belum login", "Not logged in"),
+        ["onboard.workspace.title"] = ("Pilih workspace", "Choose workspace"),
+        ["onboard.workspace.body"] = ("Pilih folder proyek yang boleh dibaca dan diubah Codex. CodexBar tidak memakai folder instalasi atau System32 sebagai workspace otomatis.", "Choose a project folder Codex may read and modify. CodexBar does not auto-use the install folder or System32 as a workspace."),
+        ["onboard.workspace.pick"] = ("Pilih folder", "Choose folder"),
+        ["onboard.workspace.status"] = ("Workspace belum dipilih", "No workspace selected"),
+        ["onboard.error.title"] = ("Gagal menghubungkan Codex", "Failed to connect to Codex"),
+        ["onboard.error.body"] = ("Terjadi kesalahan saat menghubungkan Codex.", "An error occurred while connecting to Codex."),
+        ["onboard.error.status"] = ("Error", "Error"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>
