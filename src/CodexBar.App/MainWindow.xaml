@@ -368,6 +368,14 @@
                             <ComboBoxItem Content="Light" Tag="light" />
                             <ComboBoxItem Content="Dark" Tag="dark" />
                         </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,10,3" VerticalAlignment="Center">
+                            <TextBlock x:Name="LanguageLabel" Text="Bahasa" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                            <ComboBox x:Name="LanguageCombo" Width="120" SelectionChanged="SettingsControl_Changed"
+                                      AutomationProperties.Name="Bahasa antarmuka">
+                                <ComboBoxItem Content="Indonesia" Tag="id" />
+                                <ComboBoxItem Content="English" Tag="en" />
+                            </ComboBox>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,3,12,3" VerticalAlignment="Center">
                             <TextBlock Text="Output" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
                             <ComboBox x:Name="OutputPositionCombo" Width="130" SelectionChanged="SettingsControl_Changed"

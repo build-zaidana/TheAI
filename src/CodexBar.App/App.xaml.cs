@@ -64,6 +64,7 @@ public partial class App : System.Windows.Application
 
             var settingsStore = new JsonSettingsStore();
             var settings = await settingsStore.LoadAsync();
+            CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(settings.Language));
             DiagnosticsLog.Configure(settings.EnableDiagnosticsLogging, settingsStore.BaseDirectory);
             DiagnosticsLog.Info("App",
                 $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");

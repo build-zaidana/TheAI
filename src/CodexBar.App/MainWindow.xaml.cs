@@ -107,6 +107,8 @@ public partial class MainWindow : Window
         InlineConversation.ScrollChanged += ResponseScroll_ScrollChanged;
 
         ConfigureFromSettings();
+        CodexBar.Core.Localization.Instance.PropertyChanged += Localization_Changed;
+        ApplyLanguage();
 
         _renderTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(90) };
         _renderTimer.Tick += (_, _) =>
@@ -1394,6 +1396,7 @@ public partial class MainWindow : Window
         };
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
+        LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
         {
             "light" => 1,
@@ -1549,6 +1552,8 @@ public partial class MainWindow : Window
         _settings.MenuDocked = MenuDockedCheck.IsChecked == true;
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
+        _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
+        CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(_settings.Language));
         _settings.Appearance.Theme = (ThemeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
 
         _suppressSizeSave = true;
@@ -2434,7 +2439,7 @@ public partial class MainWindow : Window
         {
             menu.Items.Add(new System.Windows.Controls.MenuItem
             {
-                Header = "(Belum ada template)",
+                Header = CodexBar.Core.Localization.Instance["templates.none"],
                 IsEnabled = false
             });
         }
@@ -2457,7 +2462,7 @@ public partial class MainWindow : Window
         }
 
         menu.Items.Add(new System.Windows.Controls.Separator());
-        var save = new System.Windows.Controls.MenuItem { Header = "＋  Simpan prompt ini sebagai template" };
+        var save = new System.Windows.Controls.MenuItem { Header = CodexBar.Core.Localization.Instance["templates.saveCurrent"] };
         save.Click += async (_, _) => await SaveCurrentPromptAsTemplateAsync();
         menu.Items.Add(save);
 
@@ -2491,6 +2496,17 @@ public partial class MainWindow : Window
 
         await _settingsStore.SaveAsync(_settings);
         SetStatus($"Template \"{name}\" tersimpan.", StatusReadyBrush);
+    }
+
+    private void Localization_Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => ApplyLanguage();
+
+    /// <summary>Apply the current UI language to controls whose text is localized (grows per i18n phase).</summary>
+    private void ApplyLanguage()
+    {
+        var loc = CodexBar.Core.Localization.Instance;
+        PromptPlaceholder.Text = loc["prompt.placeholder"];
+        TemplatesButton.ToolTip = loc["templates.tooltip"];
+        LanguageLabel.Text = loc["settings.language"];
     }
 
     private void CopyResponse()
