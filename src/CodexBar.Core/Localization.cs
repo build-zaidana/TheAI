@@ -342,6 +342,9 @@ public static class Strings
         ["onboard.error.title"] = ("Gagal menghubungkan Codex", "Failed to connect to Codex"),
         ["onboard.error.body"] = ("Terjadi kesalahan saat menghubungkan Codex.", "An error occurred while connecting to Codex."),
         ["onboard.error.status"] = ("Error", "Error"),
+        ["onboard.apikey.title"] = ("API key belum diatur", "API key not set"),
+        ["onboard.apikey.body"] = ("Provider ini butuh API key. Set variabel lingkungan ANTHROPIC_API_KEY dengan API key Anthropic-mu, lalu klik Coba lagi.", "This provider needs an API key. Set the ANTHROPIC_API_KEY environment variable to your Anthropic API key, then click Try again."),
+        ["onboard.apikey.status"] = ("API key belum diatur", "API key not set"),
     };
 
     /// <summary>Look up a key for a language; returns the key itself when not yet translated.</summary>

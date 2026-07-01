@@ -15,6 +15,12 @@ public sealed class ConversationController(IAgentProvider provider)
     public string? WorkspacePath { get; private set; }
     public bool IsBusy { get; private set; }
 
+    /// <summary>Capabilities of the active provider; the UI adapts to these (threads, workspace, api-key…).</summary>
+    public ProviderCapabilities Capabilities => _provider.Capabilities;
+
+    /// <summary>Stable id of the active provider (e.g. "codex", "anthropic").</summary>
+    public string ProviderId => _provider.Id;
+
     public event EventHandler<ProviderEvent>? EventReceived;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

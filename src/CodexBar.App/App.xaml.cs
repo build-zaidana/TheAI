@@ -2,6 +2,7 @@ using System.Windows;
 using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
+using CodexBar.Providers.Anthropic;
 using CodexBar.Providers.Codex;
 
 namespace CodexBar.App;
@@ -10,6 +11,7 @@ public partial class App : System.Windows.Application
 {
     private const string MutexName = "Local\\CodexBar.SingleInstance";
     private const string ActivationEventName = "Local\\CodexBar.Activate";
+    private static readonly System.Net.Http.HttpClient SharedHttp = new();
     private Mutex? _singleInstanceMutex;
     private bool _ownsMutex;
     private IAgentProvider? _provider;
@@ -68,7 +70,7 @@ public partial class App : System.Windows.Application
             DiagnosticsLog.Configure(settings.EnableDiagnosticsLogging, settingsStore.BaseDirectory);
             DiagnosticsLog.Info("App",
                 $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
-            _provider = new CodexProvider(key => CodexBar.Core.Localization.Instance[key]);
+            _provider = CreateProvider(settings.Provider);
 
             var window = new MainWindow(settings, settingsStore, _provider);
             MainWindow = window;
@@ -85,6 +87,22 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    // Selects the provider implementation from settings. Codex is the default; "anthropic"
+    // uses the Claude Messages API with the key from the ANTHROPIC_API_KEY environment
+    // variable (a Settings-managed key comes in a later iteration).
+    private static IAgentProvider CreateProvider(string providerId)
+    {
+        Func<string, string> localize = key => CodexBar.Core.Localization.Instance[key];
+        return providerId switch
+        {
+            "anthropic" => new AnthropicProvider(
+                SharedHttp,
+                () => Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"),
+                localize),
+            _ => new CodexProvider(localize)
+        };
     }
 
     private void WaitForActivation(MainWindow window, CancellationToken cancellationToken)

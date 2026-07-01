@@ -132,7 +132,11 @@ public sealed class JsonSettingsStore
     private static AppSettings Normalize(AppSettings settings)
     {
         settings.SchemaVersion = 8;
-        settings.Provider = "codex";
+        settings.Provider = settings.Provider?.ToLowerInvariant() switch
+        {
+            "anthropic" => "anthropic",
+            _ => "codex"
+        };
         settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();

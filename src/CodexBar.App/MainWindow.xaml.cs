@@ -235,11 +235,15 @@ public partial class MainWindow : Window
             var account = await _controller.GetAccountAsync();
             if (!account.IsAuthenticated)
             {
-                ShowOnboarding(OnboardingKind.LoginNeeded);
+                ShowOnboarding(_controller.Capabilities.SupportsApiKey
+                    ? OnboardingKind.ApiKeyNeeded
+                    : OnboardingKind.LoginNeeded);
                 return;
             }
 
-            if (!account.AuthenticationMethod.Equals("chatgpt", StringComparison.OrdinalIgnoreCase) &&
+            // The ChatGPT-vs-API-key warning only applies to the Codex CLI (key-based providers skip it).
+            if (!_controller.Capabilities.SupportsApiKey &&
+                !account.AuthenticationMethod.Equals("chatgpt", StringComparison.OrdinalIgnoreCase) &&
                 !_settings.ApiKeyWarningAcknowledged)
             {
                 var choice = System.Windows.MessageBox.Show(
@@ -271,14 +275,21 @@ public partial class MainWindow : Window
         {
             HideOnboarding();
             await LoadModelsAsync();
-            if (string.IsNullOrWhiteSpace(_settings.WorkspacePath) ||
+            if (!_controller.Capabilities.SupportsWorkspace)
+            {
+                // Threadless provider (e.g. Claude): no workspace needed; CWD is an inert placeholder.
+                await OpenWorkspaceAsync(Environment.CurrentDirectory);
+            }
+            else if (string.IsNullOrWhiteSpace(_settings.WorkspacePath) ||
                 !Directory.Exists(_settings.WorkspacePath))
             {
                 ShowOnboarding(OnboardingKind.WorkspaceNeeded);
                 return;
             }
-
-            await OpenWorkspaceAsync(_settings.WorkspacePath);
+            else
+            {
+                await OpenWorkspaceAsync(_settings.WorkspacePath);
+            }
         }
         catch (Exception exception)
         {
@@ -291,6 +302,7 @@ public partial class MainWindow : Window
         InstallNeeded,
         LoginNeeded,
         WorkspaceNeeded,
+        ApiKeyNeeded,
         Error
     }
 
@@ -337,6 +349,15 @@ public partial class MainWindow : Window
                 OnboardingRetryButton.Content = loc["onboard.workspace.pick"];
                 OnboardingDocsButton.Visibility = Visibility.Collapsed;
                 SetStatus(loc["onboard.workspace.status"], StatusBusyBrush);
+                break;
+
+            case OnboardingKind.ApiKeyNeeded:
+                OnboardingTitle.Text = loc["onboard.apikey.title"];
+                OnboardingBody.Text = loc["onboard.apikey.body"];
+                _onboardingCommand = string.Empty;
+                OnboardingCommandBox.Visibility = Visibility.Collapsed;
+                OnboardingDocsButton.Visibility = Visibility.Collapsed;
+                SetStatus(loc["onboard.apikey.status"], StatusErrorBrush);
                 break;
 
             default:

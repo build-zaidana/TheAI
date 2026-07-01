@@ -282,6 +282,10 @@ static async Task<int> RunDeterministicTestsAsync()
             "Variabel template selection/clipboard harus di-expand case-insensitive.");
         Assert(normalized.Language == "en", "Kode bahasa harus dinormalisasi (case-insensitive).");
 
+        await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "Anthropic" }""");
+        Assert((await store.LoadAsync()).Provider == "anthropic",
+            "Provider anthropic harus dipertahankan (case-insensitive), yang tak dikenal jatuh ke codex.");
+
         var history = new PromptHistory(capacity: 2);
         history.Add("  pertama  ");
         history.Add("kedua");
