@@ -4,7 +4,9 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using CodexBar.App;
+using CodexBar.Core;
 using CodexBar.Providers;
+using AppLocalization = CodexBar.Core.Localization;
 
 namespace CodexBar.UiSmokeTest;
 
@@ -15,11 +17,17 @@ internal static class Program
     {
         try
         {
-            _ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/CodexBar.App;component/Theme.xaml")
+            });
+            TestOutputWindowLocalization();
             TestAllApprovalDecisions();
             TestStructuredInputForm();
             TestUrlElicitation();
-            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true");
+            TestTemplateManagerDialog();
+            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true templates=true");
             return 0;
         }
         catch (Exception exception)
@@ -27,6 +35,24 @@ internal static class Program
             Console.Error.WriteLine($"FAIL {exception}");
             return 1;
         }
+    }
+
+    private static void TestOutputWindowLocalization()
+    {
+        AppLocalization.Instance.SetLanguage(AppLanguage.En);
+        var window = new OutputWindow();
+        window.Show();
+        window.UpdateLayout();
+        var buttons = FindVisualChildren<Button>(window).ToArray();
+        Assert(window.Title == "Codex output" &&
+               buttons.Any(button => Equals(button.Content, "Copy")) &&
+               buttons.Any(button => Equals(button.Content, "↓ Latest")),
+            "OutputWindow harus menerapkan judul dan aksi bahasa Inggris.");
+        Assert(AutomationProperties.GetName(window) == "Codex output window",
+            "Nama aksesibilitas OutputWindow harus mengikuti bahasa aplikasi.");
+        window.PrepareForExit();
+        window.Close();
+        AppLocalization.Instance.SetLanguage(AppLanguage.Id);
     }
 
     private static void TestAllApprovalDecisions()
@@ -120,6 +146,45 @@ internal static class Program
             Click(buttons.Single(button => Equals(button.Content, "Lanjutkan")));
         };
         Assert(dialog.ShowDialog() == true, "MCP URL tidak dapat dikonfirmasi.");
+    }
+
+    private static void TestTemplateManagerDialog()
+    {
+        AppLocalization.Instance.SetLanguage(AppLanguage.Id);
+        var dialog = new TemplateManagerDialog(
+        [
+            new PromptTemplate { Name = "Awal", Content = "Isi awal" }
+        ]);
+        dialog.Loaded += (_, _) =>
+        {
+            var controls = FindVisualChildren<FrameworkElement>(dialog).ToArray();
+            var name = controls.OfType<TextBox>()
+                .Single(control => AutomationProperties.GetName(control) == "Nama template");
+            var content = controls.OfType<TextBox>()
+                .Single(control => AutomationProperties.GetName(control) == "Isi template");
+            var list = controls.OfType<ListBox>()
+                .Single(control => AutomationProperties.GetName(control) == "Daftar template prompt");
+            var buttons = controls.OfType<Button>().ToArray();
+
+            name.Text = "Edit";
+            content.Text = "Isi {selection}";
+            Click(buttons.Single(button => Equals(button.Content, "Simpan")));
+
+            Click(buttons.Single(button => Equals(button.Content, "Baru")));
+            name.Text = "Baru";
+            content.Text = "Clipboard {clipboard}";
+            Click(buttons.Single(button => Equals(button.Content, "Simpan")));
+
+            list.SelectedIndex = 0;
+            Click(buttons.Single(button => Equals(button.Content, "Hapus")));
+            Click(buttons.Single(button => Equals(button.Content, "Selesai")));
+        };
+
+        Assert(dialog.ShowDialog() == true, "Dialog kelola template tidak bisa diselesaikan.");
+        Assert(dialog.Templates.Count == 1 &&
+               dialog.Templates[0].Name == "Baru" &&
+               dialog.Templates[0].Content == "Clipboard {clipboard}",
+            "Dialog kelola template harus bisa edit, tambah, hapus, lalu mengembalikan hasil final.");
     }
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject

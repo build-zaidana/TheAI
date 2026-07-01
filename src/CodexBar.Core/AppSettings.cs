@@ -46,6 +46,50 @@ public sealed class AppSettings
     public Dictionary<string, string> ThreadIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public string ThreadKey(string workspacePath) => $"{Provider}|{Path.GetFullPath(workspacePath)}";
+
+    public void ApplyFrom(AppSettings source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        SchemaVersion = source.SchemaVersion;
+        Provider = source.Provider;
+        Language = source.Language;
+        Hotkey = source.Hotkey;
+        LaunchAtLogin = source.LaunchAtLogin;
+        HideOnFocusLost = source.HideOnFocusLost;
+        ShowResponseInline = source.ShowResponseInline;
+        Pinned = source.Pinned;
+        AlwaysOnTop = source.AlwaysOnTop;
+        ApiKeyWarningAcknowledged = source.ApiKeyWarningAcknowledged;
+        SandboxMode = source.SandboxMode;
+        ApprovalPolicy = source.ApprovalPolicy;
+        ReasoningEffort = source.ReasoningEffort;
+        OutputDocked = source.OutputDocked;
+        OutputPosition = source.OutputPosition;
+        ShowReasoning = source.ShowReasoning;
+        MenuDocked = source.MenuDocked;
+        EnableDiagnosticsLogging = source.EnableDiagnosticsLogging;
+        PromptTemplates = PromptTemplate.Normalize(source.PromptTemplates);
+        Appearance = new AppearanceSettings
+        {
+            Theme = source.Appearance.Theme,
+            ActiveOpacity = source.Appearance.ActiveOpacity,
+            InactiveOpacity = source.Appearance.InactiveOpacity,
+            InputFontSize = source.Appearance.InputFontSize,
+            ResponseFontSize = source.Appearance.ResponseFontSize,
+            CodeFontFamily = source.Appearance.CodeFontFamily,
+            CodeWordWrap = source.Appearance.CodeWordWrap
+        };
+        Window = new WindowSettings
+        {
+            Width = source.Window.Width,
+            MaxExpandedHeight = source.Window.MaxExpandedHeight,
+            Position = source.Window.Position,
+            RememberPerMonitor = source.Window.RememberPerMonitor
+        };
+        WorkspacePath = source.WorkspacePath;
+        SelectedModel = source.SelectedModel;
+        ThreadIds = new Dictionary<string, string>(source.ThreadIds, StringComparer.OrdinalIgnoreCase);
+    }
 }
 
 public sealed class AppearanceSettings
@@ -126,4 +170,9 @@ public sealed class PromptTemplate
 
         return result;
     }
+
+    public static string Expand(string content, string? selection, string? clipboard) =>
+        (content ?? string.Empty)
+            .Replace("{selection}", selection ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("{clipboard}", clipboard ?? string.Empty, StringComparison.OrdinalIgnoreCase);
 }

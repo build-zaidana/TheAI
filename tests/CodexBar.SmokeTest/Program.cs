@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Reflection;
 using System.Diagnostics;
+using System.Threading.Channels;
 using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
@@ -93,8 +94,7 @@ if (reconnectCheck || activeReconnectCheck)
         Assert(controller.IsBusy, "Controller harus busy sebelum app-server diputus.");
     }
 
-    var child = (Process?)typeof(CodexProvider).GetField("_process", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?.GetValue(provider) ?? throw new InvalidOperationException("Proses app-server tidak ditemukan.");
+    var child = GetChildProcess(provider);
     child.Kill(entireProcessTree: true);
     await child.WaitForExitAsync(timeout.Token);
     var disconnectDeadline = DateTimeOffset.Now.AddSeconds(5);
@@ -270,7 +270,24 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(PromptTemplate.CreateDefaults().Count >= 1 &&
                PromptTemplate.Normalize(PromptTemplate.CreateDefaults()).Count == PromptTemplate.CreateDefaults().Count,
             "Template default harus valid dan stabil terhadap normalisasi.");
+        Assert(PromptTemplate.Expand("Review {selection}\nContext: {CLIPBOARD}", "kode terpilih", "clipboard") ==
+               "Review kode terpilih\nContext: clipboard",
+            "Variabel template selection/clipboard harus di-expand case-insensitive.");
         Assert(normalized.Language == "en", "Kode bahasa harus dinormalisasi (case-insensitive).");
+
+        var history = new PromptHistory(capacity: 2);
+        history.Add("  pertama  ");
+        history.Add("kedua");
+        history.Add("kedua");
+        history.Add("ketiga");
+        Assert(history.Items.SequenceEqual(["kedua", "ketiga"]),
+            "Prompt history harus trim, cegah duplikat berurutan, dan patuh kapasitas.");
+        Assert(history.Previous("draft") == "ketiga" &&
+               history.Previous("draft") == "kedua" &&
+               history.Previous("draft") == "kedua" &&
+               history.Next() == "ketiga" &&
+               history.Next() == "draft",
+            "Navigasi prompt history Up/Down harus mempertahankan draft input.");
 
         // Localization: parsing, lookup with fallback, and live-switch notification.
         Assert(Localization.Parse("en") == AppLanguage.En && Localization.Parse("ID") == AppLanguage.Id &&
@@ -291,6 +308,45 @@ static async Task<int> RunDeterministicTestsAsync()
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,
             "Save settings tidak boleh meninggalkan file temporary.");
+        var exportPath = Path.Combine(temporaryRoot, "settings-export.json");
+        var exportSettings = new AppSettings
+        {
+            Language = "EN",
+            Hotkey = " Ctrl+Alt+C ",
+            WorkspacePath = temporaryRoot,
+            SandboxMode = "read-only",
+            ApprovalPolicy = "never",
+            PromptTemplates =
+            [
+                new PromptTemplate { Name = "  Ekspor  ", Content = "Isi {selection}" },
+                new PromptTemplate { Name = "ekspor", Content = "duplikat" }
+            ],
+            Appearance = new AppearanceSettings { Theme = "dark", InputFontSize = 18 },
+            ThreadIds = new Dictionary<string, string> { ["C:\\Repo"] = "thread-1" }
+        };
+        await store.ExportAsync(exportSettings, exportPath);
+        var importedSettings = await store.ImportAsync(exportPath);
+        Assert(importedSettings.Language == "en" &&
+               importedSettings.Hotkey == "Ctrl+Alt+C" &&
+               importedSettings.SandboxMode == "read-only" &&
+               importedSettings.ApprovalPolicy == "never" &&
+               importedSettings.PromptTemplates.Count == 1 &&
+               importedSettings.PromptTemplates[0].Name == "Ekspor" &&
+               importedSettings.PromptTemplates[0].Content == "Isi {selection}" &&
+               importedSettings.Appearance.Theme == "dark" &&
+               importedSettings.Appearance.InputFontSize == 18,
+            "Export/import settings harus roundtrip dan tetap melewati normalisasi.");
+        Assert(importedSettings.ThreadIds.ContainsKey("c:\\repo"),
+            "ThreadIds hasil import harus tetap case-insensitive.");
+        var applied = new AppSettings();
+        applied.ApplyFrom(importedSettings);
+        importedSettings.PromptTemplates[0].Name = "Mutasi";
+        importedSettings.Appearance.Theme = "light";
+        importedSettings.ThreadIds["D:\\Repo"] = "thread-2";
+        Assert(applied.PromptTemplates[0].Name == "Ekspor" &&
+               applied.Appearance.Theme == "dark" &&
+               !applied.ThreadIds.ContainsKey("D:\\Repo"),
+            "ApplyFrom harus melakukan copy mandiri untuk template, appearance, dan thread map.");
 
         // Diagnostics logging: opt-in, best-effort, writes a per-day file when enabled.
         var diagRoot = Path.Combine(temporaryRoot, "diag");
@@ -313,7 +369,27 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(new FileInfo(logFiles[0]).Length == lengthBeforeDisable,
             "Saat mati, DiagnosticsLog tidak boleh menambah entri baru.");
 
-        await using var protocolProvider = new CodexProvider();
+        await RunTransportSeamTestsAsync();
+
+        var protocolTransport = new TestCodexTransport
+        {
+            Responder = request =>
+            {
+                if (!request.TryGetProperty("id", out var id) ||
+                    !request.TryGetProperty("method", out var method) ||
+                    method.GetString() != "initialize")
+                {
+                    return null;
+                }
+
+                return $"{{\"id\":{id.GetRawText()},\"result\":{{}}}}";
+            }
+        };
+        await using var protocolProvider = new CodexProvider(
+            () => protocolTransport,
+            TimeSpan.FromSeconds(1),
+            key => Strings.Get(AppLanguage.En, key));
+        await protocolProvider.InitializeAsync();
         ProviderEvent? protocolEvent = null;
         protocolProvider.EventReceived += (_, value) => protocolEvent = value;
 
@@ -339,10 +415,13 @@ static async Task<int> RunDeterministicTestsAsync()
         var userInput = protocolEvent as ProviderUserInputEvent;
         Assert(userInput is not null && userInput.Questions.Count == 1,
             "request_user_input harus dipetakan menjadi event input provider.");
-        Assert(userInput!.AutoResolutionMs == 60000 && userInput.Questions[0].AllowsOther &&
+        Assert(userInput!.Title == "Codex needs an answer" &&
+               userInput.Message == "Answer so the agent can continue working.",
+            "Teks fallback request_user_input harus mengikuti bahasa aplikasi.");
+        Assert(userInput.AutoResolutionMs == 60000 && userInput.Questions[0].AllowsOther &&
                userInput.Questions[0].Options.Count == 2,
             "Metadata pilihan dan auto-resolution request_user_input harus dipertahankan.");
-        var userInputResponse = await CaptureServerResponseAsync(protocolProvider, () => userInput.RespondAsync(
+        var userInputResponse = await CaptureServerResponseAsync(protocolTransport, () => userInput.RespondAsync(
             new Dictionary<string, IReadOnlyList<string>> { ["strategy"] = ["Aman"] }));
         using (var responseDocument = JsonDocument.Parse(userInputResponse))
         {
@@ -378,12 +457,14 @@ static async Task<int> RunDeterministicTestsAsync()
         var mcpInput = protocolEvent as ProviderUserInputEvent;
         Assert(mcpInput is not null && mcpInput.Questions.Count == 3,
             "MCP form harus dipetakan menjadi pertanyaan terstruktur.");
-        Assert(mcpInput!.Questions.Single(question => question.Id == "count").ValueType == "integer" &&
+        Assert(mcpInput!.Title == "Input for test-server",
+            "Judul fallback MCP form harus mengikuti bahasa aplikasi.");
+        Assert(mcpInput.Questions.Single(question => question.Id == "count").ValueType == "integer" &&
                mcpInput.Questions.Single(question => question.Id == "count").IsRequired,
             "Tipe dan required MCP field harus dipertahankan.");
         Assert(mcpInput.Questions.Single(question => question.Id == "tags").AllowsMultiple,
             "MCP array enum harus menjadi pilihan jamak.");
-        var mcpResponse = await CaptureServerResponseAsync(protocolProvider, () => mcpInput.RespondAsync(
+        var mcpResponse = await CaptureServerResponseAsync(protocolTransport, () => mcpInput.RespondAsync(
             new Dictionary<string, IReadOnlyList<string>>
             {
                 ["count"] = ["3"],
@@ -402,6 +483,30 @@ static async Task<int> RunDeterministicTestsAsync()
         }
 
         protocolEvent = null;
+        InvokeServerRequest(protocolProvider, "mcpServer/elicitation/request",
+            """
+            {
+              "serverName": "test-server",
+              "threadId": "thread-test",
+              "turnId": "turn-test",
+              "mode": "url",
+              "url": "https://example.com/authorize"
+            }
+            """);
+        var mcpUrl = protocolEvent as ProviderUserInputEvent;
+        Assert(mcpUrl is not null && mcpUrl.Title == "Connect test-server" &&
+               mcpUrl.Message == "Complete the steps in your browser, then return to CodexBar." &&
+               mcpUrl.Questions.Single().Header == "Confirmation" &&
+               mcpUrl.Questions.Single().Options.Single().Label == "I'm finished",
+            "Teks fallback MCP URL elicitation harus mengikuti bahasa aplikasi.");
+        _ = await CaptureServerResponseAsync(protocolTransport, () => mcpUrl!.RespondAsync(null));
+
+        protocolEvent = null;
+        InvokeNotification(protocolProvider, "turn/started", """{"turn":{"id":"turn-test"}}""");
+        Assert(protocolEvent is ProviderStatusEvent { Message: "Codex is working…" },
+            "Status dinamis provider harus mengikuti bahasa aplikasi.");
+
+        protocolEvent = null;
         InvokeServerRequest(protocolProvider, "item/commandExecution/requestApproval",
             """
             {
@@ -415,8 +520,12 @@ static async Task<int> RunDeterministicTestsAsync()
         var commandApproval = protocolEvent as ProviderApprovalEvent;
         Assert(commandApproval is not null && commandApproval.Summary.Contains("dotnet test"),
             "Approval perintah harus memuat command yang akan dijalankan.");
-        var commandResponse = await CaptureServerResponseAsync(protocolProvider, () =>
-            commandApproval!.RespondAsync(ProviderApprovalDecision.AcceptForSession));
+        Assert(commandApproval!.Summary.StartsWith("Allow Codex to run the following command?", StringComparison.Ordinal) &&
+               commandApproval.Summary.Contains("Folder: C:\\workspace", StringComparison.Ordinal) &&
+               commandApproval.Summary.Contains("Reason: Verifikasi perubahan", StringComparison.Ordinal),
+            "Ringkasan approval harus mengikuti bahasa aplikasi.");
+        var commandResponse = await CaptureServerResponseAsync(protocolTransport, () =>
+            commandApproval.RespondAsync(ProviderApprovalDecision.AcceptForSession));
         using (var responseDocument = JsonDocument.Parse(commandResponse))
         {
             Assert(responseDocument.RootElement.GetProperty("result").GetProperty("decision").GetString() ==
@@ -436,7 +545,7 @@ static async Task<int> RunDeterministicTestsAsync()
             """);
         var permissionApproval = protocolEvent as ProviderApprovalEvent;
         Assert(permissionApproval is not null, "Permission request harus menjadi approval event.");
-        var permissionResponse = await CaptureServerResponseAsync(protocolProvider, () =>
+        var permissionResponse = await CaptureServerResponseAsync(protocolTransport, () =>
             permissionApproval!.RespondAsync(ProviderApprovalDecision.AcceptForSession));
         using (var responseDocument = JsonDocument.Parse(permissionResponse))
         {
@@ -497,35 +606,96 @@ static void InvokeNotification(CodexProvider provider, string method, string par
     handler.Invoke(provider, [method, paramsDocument.RootElement.Clone()]);
 }
 
-static async Task<string> CaptureServerResponseAsync(CodexProvider provider, Func<Task> respond)
+static async Task<string> CaptureServerResponseAsync(TestCodexTransport transport, Func<Task> respond)
 {
-    using var stream = new MemoryStream();
-    await using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true)
-    {
-        AutoFlush = true
-    };
-    SetPrivateField(provider, "_process", Process.GetCurrentProcess());
-    SetPrivateField(provider, "_writer", writer);
-    try
-    {
-        await respond();
-    }
-    finally
-    {
-        SetPrivateField(provider, "_writer", null);
-        SetPrivateField(provider, "_process", null);
-    }
-
-    stream.Position = 0;
-    using var reader = new StreamReader(stream, Encoding.UTF8);
-    return await reader.ReadToEndAsync();
+    var before = transport.WrittenLines.Count;
+    await respond();
+    return transport.WrittenLines.Skip(before).LastOrDefault()
+        ?? throw new InvalidOperationException("Provider tidak menulis response transport.");
 }
 
-static void SetPrivateField(object target, string name, object? value)
+static async Task RunTransportSeamTestsAsync()
 {
-    var field = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException($"Field {name} tidak ditemukan.");
-    field.SetValue(target, value);
+    static string? InitializeOnly(JsonElement request)
+    {
+        if (!request.TryGetProperty("id", out var id) ||
+            !request.TryGetProperty("method", out var method) ||
+            method.GetString() != "initialize")
+        {
+            return null;
+        }
+
+        return $"{{\"id\":{id.GetRawText()},\"result\":{{}}}}";
+    }
+
+    var timeoutTransport = new TestCodexTransport { Responder = InitializeOnly };
+    await using (var provider = new CodexProvider(
+        () => timeoutTransport,
+        TimeSpan.FromMilliseconds(60)))
+    {
+        await provider.InitializeAsync();
+        await AssertThrowsAsync<TimeoutException>(() => provider.GetAccountAsync());
+        Assert(provider.IsInitialized,
+            "Timeout satu RPC tidak boleh menandai seluruh transport terputus.");
+    }
+
+    var rpcTransport = new TestCodexTransport
+    {
+        Responder = request =>
+        {
+            if (!request.TryGetProperty("id", out var id))
+            {
+                return null;
+            }
+
+            return request.TryGetProperty("method", out var method) && method.GetString() == "initialize"
+                ? $"{{\"id\":{id.GetRawText()},\"result\":{{}}}}"
+                : request.TryGetProperty("method", out _)
+                    ? $"{{\"id\":{id.GetRawText()},\"error\":{{\"code\":-32000,\"message\":\"rpc-boom\"}}}}"
+                    : null;
+        }
+    };
+    await using (var provider = new CodexProvider(
+        () => rpcTransport,
+        TimeSpan.FromSeconds(1)))
+    {
+        await provider.InitializeAsync();
+        await AssertThrowsContainingAsync(() => provider.GetAccountAsync(), "rpc-boom");
+    }
+
+    var disconnectTransport = new TestCodexTransport { Responder = InitializeOnly };
+    await using (var provider = new CodexProvider(
+        () => disconnectTransport,
+        TimeSpan.FromSeconds(1)))
+    {
+        var disconnected = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        provider.EventReceived += (_, providerEvent) =>
+        {
+            if (providerEvent is ProviderErrorEvent error)
+            {
+                disconnected.TrySetResult(error.Message);
+            }
+        };
+        await provider.InitializeAsync();
+        disconnectTransport.Disconnect();
+        var message = await disconnected.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert(!provider.IsInitialized && message.Contains("terputus", StringComparison.OrdinalIgnoreCase),
+            "EOF transport harus menandai provider disconnected dan menerbitkan error.");
+    }
+}
+
+static async Task AssertThrowsContainingAsync(Func<Task> action, string expectedText)
+{
+    try
+    {
+        await action();
+    }
+    catch (Exception exception) when (exception.Message.Contains(expectedText, StringComparison.Ordinal))
+    {
+        return;
+    }
+
+    throw new InvalidOperationException($"Exception yang memuat '{expectedText}' tidak terjadi.");
 }
 
 static int RunProviderReliabilityTests()
@@ -646,8 +816,7 @@ static async Task<int> RunCrashHostAsync(string[] arguments)
         .Skip(1).FirstOrDefault() ?? throw new ArgumentException("--pid-file wajib diisi.");
     await using var provider = new CodexProvider();
     await provider.InitializeAsync();
-    var child = (Process?)typeof(CodexProvider).GetField("_process", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?.GetValue(provider) ?? throw new InvalidOperationException("Child Codex tidak ditemukan.");
+    var child = GetChildProcess(provider);
     await File.WriteAllTextAsync(pidFile, child.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
     Environment.FailFast("CodexBar lifecycle crash smoke test");
     return 99;
@@ -707,6 +876,13 @@ static bool IsProcessRunning(int processId)
     {
         return false;
     }
+}
+
+static Process GetChildProcess(CodexProvider provider)
+{
+    var transport = typeof(CodexProvider).GetField("_transport", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?.GetValue(provider) as ProcessCodexTransport;
+    return transport?.Process ?? throw new InvalidOperationException("Child Codex tidak ditemukan.");
 }
 
 sealed class FakeProvider : IAgentProvider
@@ -794,5 +970,89 @@ sealed class FakeProvider : IAgentProvider
     {
         StartCount++;
         return result;
+    }
+}
+
+sealed class TestCodexTransport : ICodexTransport
+{
+    private readonly Channel<string> _output = Channel.CreateUnbounded<string>();
+    private readonly Channel<string> _error = Channel.CreateUnbounded<string>();
+    private readonly List<string> _writtenLines = [];
+
+    public Func<JsonElement, string?>? Responder { get; init; }
+    public bool IsRunning { get; private set; }
+    public IReadOnlyList<string> WrittenLines
+    {
+        get
+        {
+            lock (_writtenLines)
+            {
+                return _writtenLines.ToArray();
+            }
+        }
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        IsRunning = true;
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask WriteLineAsync(string line, CancellationToken cancellationToken)
+    {
+        if (!IsRunning)
+        {
+            throw new InvalidOperationException("Test transport tidak berjalan.");
+        }
+
+        lock (_writtenLines)
+        {
+            _writtenLines.Add(line);
+        }
+
+        using var document = JsonDocument.Parse(line);
+        if (Responder?.Invoke(document.RootElement) is { } response)
+        {
+            await _output.Writer.WriteAsync(response, cancellationToken);
+        }
+    }
+
+    public ValueTask<string?> ReadOutputLineAsync(CancellationToken cancellationToken) =>
+        ReadLineAsync(_output.Reader, cancellationToken);
+
+    public ValueTask<string?> ReadErrorLineAsync(CancellationToken cancellationToken) =>
+        ReadLineAsync(_error.Reader, cancellationToken);
+
+    public Task StopAsync()
+    {
+        IsRunning = false;
+        _output.Writer.TryComplete();
+        _error.Writer.TryComplete();
+        return Task.CompletedTask;
+    }
+
+    public ValueTask DisposeAsync() => new(StopAsync());
+
+    public void Disconnect()
+    {
+        IsRunning = false;
+        _output.Writer.TryComplete();
+        _error.Writer.TryComplete();
+    }
+
+    private static async ValueTask<string?> ReadLineAsync(
+        ChannelReader<string> reader,
+        CancellationToken cancellationToken)
+    {
+        while (await reader.WaitToReadAsync(cancellationToken))
+        {
+            if (reader.TryRead(out var line))
+            {
+                return line;
+            }
+        }
+
+        return null;
     }
 }

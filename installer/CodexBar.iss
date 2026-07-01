@@ -24,8 +24,10 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 SetupIconFile=..\src\CodexBar.App\codexbar.ico
 OutputDir=..\artifacts\installer
 OutputBaseFilename=CodexBar-Setup-{#MyAppVersion}
-Compression=lzma2
-SolidCompression=yes
+; Single-file .NET sudah dikompresi saat publish. ZIP menghindari kompresi ulang
+; LZMA yang sangat lambat dengan penghematan ukuran yang nyaris tidak ada.
+Compression=zip
+SolidCompression=no
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

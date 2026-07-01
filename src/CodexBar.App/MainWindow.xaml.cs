@@ -60,6 +60,7 @@ public partial class MainWindow : Window
     private readonly SemaphoreSlim _approvalGate = new(1, 1);
     private readonly List<ChatMessage> _messages = new();
     private readonly List<ProviderInputAttachment> _attachments = new();
+    private readonly PromptHistory _promptHistory = new();
     private readonly HashSet<string> _temporaryAttachmentPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ProviderThreadStatusEvent> _threadStatuses = new(StringComparer.Ordinal);
     private ChatMessage? _streamingAgent;
@@ -218,7 +219,7 @@ public partial class MainWindow : Window
 
         try
         {
-            SetStatus("Menghubungkan Codex…", StatusBusyBrush);
+            SetStatus(L("status.connecting"), StatusBusyBrush);
             await _controller.InitializeAsync();
         }
         catch (System.IO.FileNotFoundException)
@@ -304,6 +305,8 @@ public partial class MainWindow : Window
         InlineResponseArea.Visibility = Visibility.Collapsed;
         var loc = CodexBar.Core.Localization.Instance;
         OnboardingRetryButton.Content = loc["onboard.retry"];
+        OnboardingCopyButton.Content = loc["onboard.copy"];
+        OnboardingDocsButton.Content = loc["onboard.docs"];
         OnboardingDocsButton.Visibility = Visibility.Visible;
         OnboardingActionButton.Visibility = Visibility.Collapsed;
 
@@ -365,7 +368,7 @@ public partial class MainWindow : Window
             }
             catch (Exception exception)
             {
-                ShowError($"Clipboard tidak tersedia: {exception.Message}");
+                ShowError(LF("status.clipboardUnavailable", exception.Message));
             }
         }
     }
@@ -410,7 +413,7 @@ public partial class MainWindow : Window
         finally
         {
             OnboardingRetryButton.IsEnabled = true;
-            OnboardingCopyButton.Content = "Salin";
+            OnboardingCopyButton.Content = CodexBar.Core.Localization.Instance["onboard.copy"];
         }
     }
 
@@ -438,7 +441,7 @@ public partial class MainWindow : Window
             if (_onboardingKind == OnboardingKind.LoginNeeded)
             {
                 LaunchCodexLogin();
-                OnboardingBody.Text = "Selesaikan login pada jendela yang terbuka, lalu klik Coba lagi.";
+                OnboardingBody.Text = CodexBar.Core.Localization.Instance["onboard.login.wait"];
                 return;
             }
 
@@ -447,14 +450,15 @@ public partial class MainWindow : Window
                 return;
             }
 
-            OnboardingBody.Text = "Menyiapkan Codex CLI… Jendela ini boleh tetap terbuka.";
-            SetStatus("Memasang Codex CLI…", StatusBusyBrush);
+            var loc = CodexBar.Core.Localization.Instance;
+            OnboardingBody.Text = loc["onboard.install.progress"];
+            SetStatus(loc["onboard.install.statusProgress"], StatusBusyBrush);
             var npm = FindCommand("npm.cmd") ?? FindCommand("npm.exe");
             if (npm is null)
             {
                 var winget = FindCommand("winget.exe")
                     ?? throw new InvalidOperationException(
-                        "Node.js belum terpasang dan Windows Package Manager tidak ditemukan. Buka panduan untuk instalasi manual.");
+                        loc["onboard.install.nodeMissing"]);
                 await RunSetupProcessAsync(winget,
                     "install", "--id", "OpenJS.NodeJS.LTS", "--exact",
                     "--accept-package-agreements", "--accept-source-agreements", "--silent");
@@ -462,17 +466,18 @@ public partial class MainWindow : Window
                     ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "npm.cmd");
                 if (!File.Exists(npm))
                 {
-                    throw new FileNotFoundException("Node.js selesai dipasang tetapi npm belum dapat ditemukan. Tutup dan buka CodexBar, lalu coba lagi.");
+                    throw new FileNotFoundException(loc["onboard.install.npmMissing"]);
                 }
             }
 
             await RunSetupProcessAsync(npm, "install", "-g", "@openai/codex");
             ShowOnboarding(OnboardingKind.LoginNeeded,
-                "Codex CLI sudah terpasang. Klik Buka login untuk menghubungkan akun ChatGPT/Codex.");
+                loc["onboard.install.success"]);
         }
         catch (Exception exception)
         {
-            ShowOnboarding(OnboardingKind.Error, $"Instalasi otomatis gagal: {exception.Message}");
+            ShowOnboarding(OnboardingKind.Error, string.Format(
+                CodexBar.Core.Localization.Instance["onboard.install.failed"], exception.Message));
         }
         finally
         {
@@ -570,7 +575,7 @@ public partial class MainWindow : Window
             _hotKey.Register(this, _settings.Hotkey);
             _settings.Hotkey = _hotKey.CurrentGesture ?? _settings.Hotkey;
             HotkeyTextBox.Text = _settings.Hotkey;
-            HotkeyStatusText.Text = $"Aktif: {_settings.Hotkey}";
+            HotkeyStatusText.Text = LF("hotkey.active", _settings.Hotkey);
             HotkeyStatusText.Foreground = StatusReadyBrush;
         }
         catch (Exception exception)
@@ -580,7 +585,7 @@ public partial class MainWindow : Window
             SetStatus(exception.Message, StatusErrorBrush);
             _trayIcon.ShowBalloonTip(
                 5000,
-                "Hotkey CodexBar tidak aktif",
+                L("notification.hotkeyInactive"),
                 exception.Message,
                 Forms.ToolTipIcon.Warning);
         }
@@ -677,8 +682,8 @@ public partial class MainWindow : Window
         _workspaceLabel = new DirectoryInfo(normalizedPath).Name;
         WorkspacePathText.Text = FormatWorkspaceDisplay(normalizedPath);
         WorkspaceButton.ToolTip = normalizedPath;
-        SetStatus("Siap", StatusReadyBrush);
-        _outputWindow?.SetContext(_workspaceLabel, "Siap");
+        SetStatus(L("status.ready"), StatusReadyBrush);
+        _outputWindow?.SetContext(_workspaceLabel, L("status.ready"));
 
         if (_controller.ThreadId is { } threadId)
         {
@@ -723,9 +728,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        SetStatus("Memuat percakapan…", StatusBusyBrush);
+        SetStatus(L("status.loadingConversation"), StatusBusyBrush);
         await LoadThreadMessagesAsync(threadId);
-        SetStatus("Siap", StatusReadyBrush);
+        SetStatus(L("status.ready"), StatusReadyBrush);
     }
 
     private static string FormatWorkspaceDisplay(string fullPath)
@@ -754,6 +759,11 @@ public partial class MainWindow : Window
             _trayIcon.Text = trayText.Length <= 63 ? trayText : trayText[..60] + "…";
         }
     }
+
+    private static string L(string key) => CodexBar.Core.Localization.Instance[key];
+
+    private static string LF(string key, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, L(key), arguments);
 
     private static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
     {
@@ -800,6 +810,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Keyboard.Modifiers == ModifierKeys.None && e.Key is Key.Up or Key.Down &&
+            TryRecallPrompt(e.Key == Key.Up))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
@@ -834,7 +851,7 @@ public partial class MainWindow : Window
         SetBusyUi(true);
         _outputWindow?.SetContext(_workspaceLabel, "Mengirim…");
         ShowOutputSurface();
-        SetStatus("Mengirim…", StatusBusyBrush);
+        SetStatus(L("status.sending"), StatusBusyBrush);
 
         try
         {
@@ -842,6 +859,7 @@ public partial class MainWindow : Window
                 ?? _settings.SelectedModel;
             var effort = string.IsNullOrWhiteSpace(_settings.ReasoningEffort) ? null : _settings.ReasoningEffort;
             await _controller.SendAsync(prompt, pendingAttachments, selectedModel, effort);
+            _promptHistory.Add(prompt);
             PromptBox.Clear();
             _attachments.Clear();
             CleanupTemporaryAttachments(pendingAttachments.Select(item => item.Path));
@@ -854,6 +872,26 @@ public partial class MainWindow : Window
             SetBusyUi(false);
             ShowError(exception.Message);
         }
+    }
+
+    private bool TryRecallPrompt(bool previous)
+    {
+        if (_promptHistory.Items.Count == 0 || PromptBox.SelectionLength > 0)
+        {
+            return false;
+        }
+
+        var line = PromptBox.GetLineIndexFromCharacterIndex(PromptBox.CaretIndex);
+        if (previous && line > 0 || !previous && line >= 0 && line < PromptBox.LineCount - 1)
+        {
+            return false;
+        }
+
+        PromptBox.Text = previous
+            ? _promptHistory.Previous(PromptBox.Text)
+            : _promptHistory.Next();
+        PromptBox.CaretIndex = PromptBox.Text.Length;
+        return true;
     }
 
     private void AttachButton_Click(object sender, RoutedEventArgs e)
@@ -878,7 +916,7 @@ public partial class MainWindow : Window
             {
                 if (_attachments.Count >= 10)
                 {
-                    ShowError("Maksimal 10 lampiran per prompt.");
+                    ShowError(L("status.maxAttachments"));
                     break;
                 }
 
@@ -889,7 +927,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Lampiran gagal ditambahkan: {exception.Message}");
+            ShowError(LF("status.attachmentFailed", exception.Message));
         }
         finally
         {
@@ -922,7 +960,7 @@ public partial class MainWindow : Window
                 _temporaryAttachmentPaths.Add(path);
                 AddAttachment(path, "Screenshot clipboard.png");
                 RenderAttachments();
-                SetStatus("Screenshot clipboard ditambahkan", StatusReadyBrush);
+                SetStatus(L("status.screenshotAdded"), StatusReadyBrush);
                 return true;
             }
 
@@ -936,14 +974,14 @@ public partial class MainWindow : Window
                 if (added)
                 {
                     RenderAttachments();
-                    SetStatus("File clipboard ditambahkan", StatusReadyBrush);
+                    SetStatus(L("status.clipboardFileAdded"), StatusReadyBrush);
                 }
                 return added;
             }
         }
         catch (Exception exception)
         {
-            ShowError($"Isi clipboard tidak dapat dilampirkan: {exception.Message}");
+            ShowError(LF("status.clipboardAttachFailed", exception.Message));
             return true;
         }
 
@@ -954,7 +992,7 @@ public partial class MainWindow : Window
     {
         if (_attachments.Count >= 10)
         {
-            ShowError("Maksimal 10 lampiran per prompt.");
+            ShowError(L("status.maxAttachments"));
             return false;
         }
 
@@ -1003,7 +1041,7 @@ public partial class MainWindow : Window
         if (added > 0)
         {
             RenderAttachments();
-            SetStatus($"{added} file ditambahkan", StatusReadyBrush);
+            SetStatus(LF("status.filesAdded", added), StatusReadyBrush);
             PromptBox.Focus();
         }
     }
@@ -1122,7 +1160,9 @@ public partial class MainWindow : Window
                 case ProviderCompletedEvent completed:
                     var completedNormally = completed.Status == "completed";
                     SetStatus(
-                        completedNormally ? "Selesai" : completed.Status == "interrupted" ? "Dibatalkan" : completed.Status,
+                        completedNormally ? L("status.finished") : completed.Status == "interrupted"
+                            ? L("status.cancelled")
+                            : completed.Status,
                         completedNormally || completed.Status == "interrupted" ? StatusReadyBrush : StatusErrorBrush);
                     _outputWindow?.SetContext(_workspaceLabel, StatusText.Text);
                     SetBusyUi(false);
@@ -1133,16 +1173,17 @@ public partial class MainWindow : Window
                     }
                     if (!IsVisible || !IsActive)
                     {
-                        _trayIcon.ShowBalloonTip(2500, "CodexBar", "Respons Codex sudah selesai.", Forms.ToolTipIcon.Info);
+                        _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
+                            Forms.ToolTipIcon.Info);
                     }
                     break;
 
                 case ProviderErrorEvent error:
-                    SetStatus(error.WillRetry ? "Mencoba kembali…" : "Error",
+                    SetStatus(error.WillRetry ? L("status.retrying") : L("status.error"),
                         error.WillRetry ? StatusBusyBrush : StatusErrorBrush);
                     if (error.WillRetry)
                     {
-                        _outputWindow?.SetContext(_workspaceLabel, "Mencoba kembali…");
+                        _outputWindow?.SetContext(_workspaceLabel, L("status.retrying"));
                         break;
                     }
 
@@ -1173,7 +1214,7 @@ public partial class MainWindow : Window
                 !string.Equals(requestThreadId, _controller.ThreadId, StringComparison.Ordinal))
             {
                 await input.RespondAsync(null);
-                SetStatus("Pertanyaan thread lama dibatalkan", StatusErrorBrush);
+                SetStatus(L("status.oldQuestionCancelled"), StatusErrorBrush);
                 return;
             }
 
@@ -1195,7 +1236,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Jawaban gagal diproses: {exception.Message}");
+            ShowError(LF("status.answerFailed", exception.Message));
         }
         finally
         {
@@ -1217,7 +1258,7 @@ public partial class MainWindow : Window
                 !string.Equals(requestThreadId, _controller.ThreadId, StringComparison.Ordinal))
             {
                 await approval.RespondAsync(ProviderApprovalDecision.Decline);
-                SetStatus("Approval thread lama ditolak", StatusErrorBrush);
+                SetStatus(L("status.oldApprovalDeclined"), StatusErrorBrush);
                 return;
             }
 
@@ -1229,8 +1270,9 @@ public partial class MainWindow : Window
             _approvalVisible = true;
             if (!IsVisible || !IsActive)
             {
-                _trayIcon.ShowBalloonTip(4000, "Codex membutuhkan izin",
-                    "Buka CodexBar untuk meninjau permintaan agent.", Forms.ToolTipIcon.Warning);
+                var loc = CodexBar.Core.Localization.Instance;
+                _trayIcon.ShowBalloonTip(4000, loc["approval.notificationTitle"],
+                    loc["approval.notificationBody"], Forms.ToolTipIcon.Warning);
             }
             Show();
             Activate();
@@ -1245,7 +1287,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Approval gagal diproses: {exception.Message}");
+            ShowError(LF("status.approvalFailed", exception.Message));
         }
         finally
         {
@@ -1277,7 +1319,7 @@ public partial class MainWindow : Window
         try
         {
             StopButton.IsEnabled = false;
-            SetStatus("Membatalkan…", StatusBusyBrush);
+            SetStatus(L("status.cancelling"), StatusBusyBrush);
             await _controller.CancelAsync();
         }
         catch (Exception exception)
@@ -1605,7 +1647,7 @@ public partial class MainWindow : Window
         {
             HotkeyTextBox.Text = _hotKey.CurrentGesture ?? _settings.Hotkey;
             ApplyHotkeyButton.IsEnabled = false;
-            HotkeyStatusText.Text = "Perubahan dibatalkan.";
+            HotkeyStatusText.Text = L("hotkey.cancelled");
             HotkeyStatusText.Foreground = _mutedText;
             return;
         }
@@ -1613,7 +1655,7 @@ public partial class MainWindow : Window
         if (key is Key.LeftAlt or Key.RightAlt or Key.LeftCtrl or Key.RightCtrl or
             Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
         {
-            HotkeyStatusText.Text = "Tahan modifier, lalu tekan satu tombol utama.";
+            HotkeyStatusText.Text = L("hotkey.holdModifier");
             HotkeyStatusText.Foreground = _mutedText;
             return;
         }
@@ -1621,7 +1663,7 @@ public partial class MainWindow : Window
         var modifiers = Keyboard.Modifiers;
         if (modifiers == ModifierKeys.None)
         {
-            HotkeyStatusText.Text = "Gunakan minimal satu modifier: Win, Ctrl, Alt, atau Shift.";
+            HotkeyStatusText.Text = L("hotkey.modifierRequired");
             HotkeyStatusText.Foreground = StatusErrorBrush;
             return;
         }
@@ -1641,8 +1683,8 @@ public partial class MainWindow : Window
                 _hotKey.CurrentGesture,
                 StringComparison.Ordinal);
             HotkeyStatusText.Text = ApplyHotkeyButton.IsEnabled
-                ? "Klik Terapkan untuk mengaktifkan kombinasi baru."
-                : $"Aktif: {HotkeyTextBox.Text}";
+                ? L("hotkey.applyHint")
+                : LF("hotkey.active", HotkeyTextBox.Text);
             HotkeyStatusText.Foreground = _mutedText;
         }
         catch (FormatException exception)
@@ -1663,9 +1705,9 @@ public partial class MainWindow : Window
             _settings.Hotkey = _hotKey.CurrentGesture
                 ?? throw new InvalidOperationException("Hotkey baru tidak aktif.");
             HotkeyTextBox.Text = _settings.Hotkey;
-            HotkeyStatusText.Text = $"Aktif: {_settings.Hotkey}";
+            HotkeyStatusText.Text = LF("hotkey.active", _settings.Hotkey);
             HotkeyStatusText.Foreground = StatusReadyBrush;
-            SetStatus("Hotkey diperbarui", StatusReadyBrush);
+            SetStatus(L("status.hotkeyUpdated"), StatusReadyBrush);
             try
             {
                 await _settingsStore.SaveAsync(_settings);
@@ -1741,7 +1783,7 @@ public partial class MainWindow : Window
 
         _permissionChangePending = true;
         SandboxCombo.IsEnabled = false;
-        SandboxStatusText.Text = "Menerapkan permission…";
+        SandboxStatusText.Text = L("sandbox.applying");
         var appliedToThread = false;
         try
         {
@@ -1751,7 +1793,7 @@ public partial class MainWindow : Window
             await _settingsStore.SaveAsync(_settings);
             SandboxStatusText.Text = SandboxDescription(requestedMode);
             SandboxStatusText.Foreground = StatusReadyBrush;
-            SetStatus("Permission diperbarui", StatusReadyBrush);
+            SetStatus(L("status.permissionUpdated"), StatusReadyBrush);
         }
         catch (Exception exception)
         {
@@ -1768,7 +1810,7 @@ public partial class MainWindow : Window
 
             _settings.SandboxMode = previousMode;
             SelectSandboxMode(previousMode);
-            SandboxStatusText.Text = $"Permission gagal diubah: {exception.Message}";
+            SandboxStatusText.Text = LF("sandbox.failed", exception.Message);
             SandboxStatusText.Foreground = StatusErrorBrush;
         }
         finally
@@ -1790,9 +1832,9 @@ public partial class MainWindow : Window
 
     private static string SandboxDescription(string sandboxMode) => sandboxMode switch
     {
-        "read-only" => "read-only: Codex hanya membaca; perubahan/perintah yang butuh akses lebih akan meminta approval.",
-        "danger-full-access" => "danger-full-access: sandbox file dinonaktifkan. Gunakan hanya pada workspace tepercaya.",
-        _ => "workspace-write: Codex dapat mengubah file di workspace; akses lain tetap meminta approval."
+        "read-only" => L("sandbox.readOnly"),
+        "danger-full-access" => L("sandbox.fullAccess"),
+        _ => L("sandbox.workspaceWrite")
     };
 
     /// <summary>Menukar urutan baris: output di bawah (default) atau di atas input bar.</summary>
@@ -1812,7 +1854,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            StatusText.Text = $"Settings gagal disimpan: {exception.Message}";
+            StatusText.Text = LF("status.settingsSaveFailed", exception.Message);
         }
     }
 
@@ -1865,7 +1907,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Riwayat tidak dapat dimuat: {exception.Message}");
+            ShowError(LF("status.historyFailed", exception.Message));
             return;
         }
 
@@ -1970,23 +2012,23 @@ public partial class MainWindow : Window
         if (_attentionMenuItem is not null)
         {
             _attentionMenuItem.Text = attention > 0
-                ? $"{attention} perlu perhatian · {active} aktif"
+                ? LF("attention.needs", attention, active)
                 : errors > 0
-                    ? $"{errors} thread error"
+                    ? LF("attention.errors", errors)
                     : active > 0
-                        ? $"{active} agent sedang bekerja"
-                        : "Tidak ada agent aktif";
+                        ? LF("attention.active", active)
+                        : L("attention.none");
             _attentionMenuItem.Enabled = active + attention + errors > 0;
         }
 
         if (!hadAttention && status.ActiveFlags.Count > 0 &&
             !string.Equals(status.ThreadId, _controller.ThreadId, StringComparison.Ordinal))
         {
-            var reason = status.ActiveFlags.Contains("waitingOnApproval")
-                ? "membutuhkan izin"
-                : "membutuhkan jawaban";
-            _trayIcon.ShowBalloonTip(4000, "Agent membutuhkan perhatian",
-                $"Thread lain {reason}. Klik untuk membuka daftar.", Forms.ToolTipIcon.Warning);
+            var message = status.ActiveFlags.Contains("waitingOnApproval")
+                ? L("notification.attentionApproval")
+                : L("notification.attentionAnswer");
+            _trayIcon.ShowBalloonTip(4000, L("notification.attentionTitle"),
+                message, Forms.ToolTipIcon.Warning);
         }
     }
 
@@ -2215,8 +2257,7 @@ public partial class MainWindow : Window
         var percent = (int)Math.Round(ratio * 100);
         _lastContextPercent = percent;
         UpdateContextBadgeLayout();
-        ContextUsageButton.ToolTip =
-            $"Context {usage.TotalTokens:N0} / {contextWindow:N0} token. Klik untuk memadatkan.";
+        ContextUsageButton.ToolTip = LF("context.tooltip", usage.TotalTokens, contextWindow);
         ContextUsageButton.Foreground = ratio switch
         {
             >= 0.9 => StatusErrorBrush,
@@ -2230,8 +2271,8 @@ public partial class MainWindow : Window
             _contextWarningShown = true;
             _trayIcon.ShowBalloonTip(
                 4000,
-                "Context Codex hampir penuh",
-                "Klik indikator Ctx di CodexBar untuk memadatkan percakapan.",
+                L("notification.contextTitle"),
+                L("notification.contextBody"),
                 Forms.ToolTipIcon.Warning);
         }
         else if (ratio < 0.75)
@@ -2244,19 +2285,19 @@ public partial class MainWindow : Window
     {
         if (_controller.IsBusy)
         {
-            SetStatus("Tunggu pekerjaan aktif selesai sebelum compact.", StatusBusyBrush);
+            SetStatus(L("status.compactBusy"), StatusBusyBrush);
             return;
         }
 
         if (_controller.ThreadId is null)
         {
-            SetStatus("Belum ada percakapan untuk dipadatkan.", StatusBusyBrush);
+            SetStatus(L("status.compactEmpty"), StatusBusyBrush);
             return;
         }
 
         try
         {
-            SetStatus("Memadatkan konteks…", StatusBusyBrush);
+            SetStatus(L("status.compacting"), StatusBusyBrush);
             await _controller.CompactAsync();
         }
         catch (Exception exception)
@@ -2320,8 +2361,8 @@ public partial class MainWindow : Window
             HotkeyTextBox.Text = _hotKey.CurrentGesture ?? _settings.Hotkey;
             ApplyHotkeyButton.IsEnabled = false;
             HotkeyStatusText.Text = _hotKey.CurrentGesture is { } active
-                ? $"Aktif: {active}. Klik field lalu tekan kombinasi baru."
-                : "Hotkey belum aktif. Klik field lalu tekan kombinasi baru.";
+                ? LF("hotkey.activeHint", active)
+                : L("hotkey.inactiveHint");
             HotkeyStatusText.Foreground = _hotKey.CurrentGesture is null
                 ? StatusErrorBrush
                 : _mutedText;
@@ -2357,7 +2398,7 @@ public partial class MainWindow : Window
     {
         if (_messages.Count == 0)
         {
-            SetStatus("Belum ada percakapan untuk diekspor.", StatusBusyBrush);
+            SetStatus(L("status.exportEmpty"), StatusBusyBrush);
             return;
         }
 
@@ -2400,11 +2441,11 @@ public partial class MainWindow : Window
             }
 
             await File.WriteAllTextAsync(dialog.FileName, checkpoint.ToString(), new UTF8Encoding(false));
-            SetStatus("Checkpoint tersimpan", StatusReadyBrush);
+            SetStatus(L("status.checkpointSaved"), StatusReadyBrush);
         }
         catch (Exception exception)
         {
-            ShowError($"Checkpoint gagal disimpan: {exception.Message}");
+            ShowError(LF("status.checkpointFailed", exception.Message));
         }
         finally
         {
@@ -2423,7 +2464,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Gagal membuka folder log: {exception.Message}");
+            ShowError(LF("status.openLogsFailed", exception.Message));
         }
     }
 
@@ -2468,7 +2509,22 @@ public partial class MainWindow : Window
 
     private void InsertTemplate(PromptTemplate template)
     {
-        PromptBox.Text = template.Content;
+        var selection = PromptBox.SelectedText;
+        var clipboard = string.Empty;
+        if (template.Content.Contains("{clipboard}", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                clipboard = System.Windows.Clipboard.ContainsText()
+                    ? System.Windows.Clipboard.GetText()
+                    : string.Empty;
+            }
+            catch
+            {
+            }
+        }
+
+        PromptBox.Text = PromptTemplate.Expand(template.Content, selection, clipboard);
         PromptBox.CaretIndex = PromptBox.Text.Length;
         PromptBox.Focus();
     }
@@ -2478,7 +2534,7 @@ public partial class MainWindow : Window
         var content = PromptBox.Text?.Trim();
         if (string.IsNullOrEmpty(content))
         {
-            SetStatus("Isi prompt dulu untuk disimpan sebagai template.", StatusBusyBrush);
+            SetStatus(L("status.templateEmpty"), StatusBusyBrush);
             return;
         }
 
@@ -2491,7 +2547,118 @@ public partial class MainWindow : Window
         _settings.PromptTemplates = PromptTemplate.Normalize(updated);
 
         await _settingsStore.SaveAsync(_settings);
-        SetStatus($"Template \"{name}\" tersimpan.", StatusReadyBrush);
+        SetStatus(LF("status.templateSaved", name), StatusReadyBrush);
+    }
+
+    private async void ManageTemplatesButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new TemplateManagerDialog(_settings.PromptTemplates) { Owner = this };
+        _dialogVisible = true;
+        try
+        {
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            _settings.PromptTemplates = PromptTemplate.Normalize(dialog.Templates);
+            await _settingsStore.SaveAsync(_settings);
+            SetStatus(L("templates.updated"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
+        finally
+        {
+            _dialogVisible = false;
+        }
+    }
+
+    private async void ExportSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = L("settings.exportTitle"),
+            FileName = $"CodexBar-settings-{DateTime.Now:yyyyMMdd}.json",
+            DefaultExt = ".json",
+            AddExtension = true,
+            Filter = "JSON|*.json"
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await _settingsStore.ExportAsync(_settings, dialog.FileName);
+            SetStatus(L("settings.exported"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(LF("settings.exportFailed", exception.Message));
+        }
+    }
+
+    private async void ImportSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = L("settings.importTitle"),
+            CheckFileExists = true,
+            Multiselect = false,
+            Filter = "JSON|*.json|All files|*.*"
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        var previousHotkey = _hotKey.CurrentGesture;
+        try
+        {
+            var imported = await _settingsStore.ImportAsync(dialog.FileName);
+            var activeWorkspace = _settings.WorkspacePath;
+            var activeThreads = new Dictionary<string, string>(_settings.ThreadIds, StringComparer.OrdinalIgnoreCase);
+
+            if (!string.Equals(imported.Hotkey, previousHotkey, StringComparison.OrdinalIgnoreCase))
+            {
+                _hotKey.ChangeGesture(imported.Hotkey);
+                imported.Hotkey = _hotKey.CurrentGesture ?? imported.Hotkey;
+            }
+
+            if (_controller.ThreadId is not null &&
+                (!string.Equals(imported.SandboxMode, _settings.SandboxMode, StringComparison.Ordinal) ||
+                 !string.Equals(imported.ApprovalPolicy, _settings.ApprovalPolicy, StringComparison.Ordinal)))
+            {
+                await _controller.ChangePermissionsAsync(imported.SandboxMode, imported.ApprovalPolicy);
+            }
+
+            _settings.ApplyFrom(imported);
+            _settings.WorkspacePath = activeWorkspace;
+            _settings.ThreadIds = activeThreads;
+            await _settingsStore.SaveAsync(_settings);
+            CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(_settings.Language));
+            DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
+            ConfigureFromSettings();
+            SetStatus(L("settings.imported"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            if (previousHotkey is not null &&
+                !string.Equals(_hotKey.CurrentGesture, previousHotkey, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    _hotKey.ChangeGesture(previousHotkey);
+                }
+                catch
+                {
+                }
+            }
+            ShowError(LF("settings.importFailed", exception.Message));
+        }
     }
 
     private void Localization_Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => ApplyLanguage();
@@ -2526,6 +2693,9 @@ public partial class MainWindow : Window
         OutputButton.Content = loc["settings.showOutput"];
         CompactButton.Content = loc["settings.compact"];
         CopyConversationButton.Content = loc["settings.copyConversation"];
+        ManageTemplatesButton.Content = loc["templates.manage"];
+        ExportSettingsButton.Content = loc["settings.export"];
+        ImportSettingsButton.Content = loc["settings.import"];
         ExportCheckpointButton.Content = loc["settings.exportCheckpoint"];
         OpenLogsButton.Content = loc["settings.openLogs"];
         ResetLayoutButton.Content = loc["settings.resetLayout"];
@@ -2537,6 +2707,28 @@ public partial class MainWindow : Window
         OutputHeightLabel.Text = loc["settings.outputHeight"];
         InputFontLabel.Text = loc["settings.inputFont"];
         ResponseFontLabel.Text = loc["settings.responseFont"];
+
+        OnboardingCopyButton.Content = loc["onboard.copy"];
+        OnboardingDocsButton.Content = loc["onboard.docs"];
+
+        // Screen-reader labels follow the selected UI language as well.
+        System.Windows.Automation.AutomationProperties.SetName(MenuButton, loc["automation.main.menu"]);
+        System.Windows.Automation.AutomationProperties.SetName(TemplatesButton, loc["automation.main.templates"]);
+        System.Windows.Automation.AutomationProperties.SetName(WorkspaceButton, loc["automation.main.workspace"]);
+        System.Windows.Automation.AutomationProperties.SetName(PromptBox, loc["automation.main.prompt"]);
+        System.Windows.Automation.AutomationProperties.SetName(AttachButton, loc["automation.main.attach"]);
+        System.Windows.Automation.AutomationProperties.SetName(SendButton, loc["automation.main.send"]);
+        System.Windows.Automation.AutomationProperties.SetName(StopButton, loc["automation.main.stop"]);
+        System.Windows.Automation.AutomationProperties.SetName(ContextUsageButton, loc["automation.main.context"]);
+        System.Windows.Automation.AutomationProperties.SetName(ConversationButton, loc["automation.main.conversation"]);
+        System.Windows.Automation.AutomationProperties.SetName(SettingsButton, loc["automation.main.settings"]);
+        System.Windows.Automation.AutomationProperties.SetName(HotkeyTextBox, loc["automation.main.hotkey"]);
+        System.Windows.Automation.AutomationProperties.SetName(SandboxCombo, loc["automation.main.permission"]);
+        System.Windows.Automation.AutomationProperties.SetName(LanguageCombo, loc["automation.main.language"]);
+        System.Windows.Automation.AutomationProperties.SetName(OutputPositionCombo, loc["automation.main.outputPosition"]);
+        System.Windows.Automation.AutomationProperties.SetName(ApprovalCombo, loc["automation.main.approvalPolicy"]);
+        System.Windows.Automation.AutomationProperties.SetName(EffortCombo, loc["automation.main.reasoningEffort"]);
+        System.Windows.Automation.AutomationProperties.SetName(OpenLogsButton, loc["automation.main.openLogs"]);
     }
 
     private void CopyResponse()
@@ -2557,11 +2749,11 @@ public partial class MainWindow : Window
         try
         {
             System.Windows.Clipboard.SetText(transcript.ToString().Trim());
-            SetStatus("Percakapan tersalin", StatusReadyBrush);
+            SetStatus(L("status.conversationCopied"), StatusReadyBrush);
         }
         catch (Exception exception)
         {
-            ShowError($"Clipboard tidak tersedia: {exception.Message}");
+            ShowError(LF("status.clipboardUnavailable", exception.Message));
         }
     }
 
@@ -2599,7 +2791,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowError($"Codex Desktop tidak dapat dibuka: {exception.Message}");
+            ShowError(LF("status.openCodexFailed", exception.Message));
         }
     }
 
@@ -2760,7 +2952,7 @@ public partial class MainWindow : Window
 
     private void ShowError(string message)
     {
-        SetStatus("Error", StatusErrorBrush);
+        SetStatus(L("status.error"), StatusErrorBrush);
         _streamingAgent = null;
         var markdown = $"**Error:** {message}";
         if (_messages.LastOrDefault() is not { IsUser: false } last || last.Markdown != markdown)

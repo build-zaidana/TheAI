@@ -58,6 +58,13 @@ public partial class SidebarWindow : Window
         FooterText.Text = loc["sidebar.footer"];
         SidebarCloseButton.ToolTip = loc["sidebar.close"];
         SidebarRefreshButton.ToolTip = loc["sidebar.reload"];
+        System.Windows.Automation.AutomationProperties.SetName(this, loc["sidebar.windowName"]);
+        System.Windows.Automation.AutomationProperties.SetName(SidebarCloseButton, loc["sidebar.closeName"]);
+        System.Windows.Automation.AutomationProperties.SetName(SidebarRefreshButton, loc["sidebar.reloadName"]);
+        System.Windows.Automation.AutomationProperties.SetName(NewThreadButton, loc["sidebar.newThreadName"]);
+        System.Windows.Automation.AutomationProperties.SetName(SearchBox, loc["sidebar.searchName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ThreadList, loc["sidebar.listName"]);
+        ApplyFilter();
     }
 
     public void ShowNextTo(Window owner, bool docked)
@@ -120,7 +127,8 @@ public partial class SidebarWindow : Window
 
     private async Task RefreshAsync()
     {
-        FooterText.Text = "Memuat akun dan riwayat…";
+        var loc = CodexBar.Core.Localization.Instance;
+        FooterText.Text = loc["sidebar.loading"];
         try
         {
             var accountTask = _controller.GetAccountAsync();
@@ -130,13 +138,13 @@ public partial class SidebarWindow : Window
             UpdateAccount(await accountTask);
             _threads = await threadsTask;
             ApplyFilter();
-            FooterText.Text = $"{_threads.Count} percakapan lokal Codex";
+            FooterText.Text = string.Format(loc["sidebar.count"], _threads.Count);
         }
         catch (Exception exception)
         {
             FooterText.Text = exception.Message;
-            AccountNameText.Text = "Status akun tidak tersedia";
-            AccountPlanText.Text = "Periksa koneksi Codex";
+            AccountNameText.Text = loc["sidebar.accountUnavailable"];
+            AccountPlanText.Text = loc["sidebar.checkConnection"];
             AccountDot.Fill = new SolidColorBrush(Color.FromRgb(232, 104, 104));
         }
     }
@@ -145,13 +153,13 @@ public partial class SidebarWindow : Window
     {
         if (!account.IsAuthenticated)
         {
-            AccountNameText.Text = "Belum login";
-            AccountPlanText.Text = "Jalankan codex login";
+            AccountNameText.Text = CodexBar.Core.Localization.Instance["sidebar.notLoggedIn"];
+            AccountPlanText.Text = CodexBar.Core.Localization.Instance["sidebar.runLogin"];
             AccountDot.Fill = new SolidColorBrush(Color.FromRgb(232, 104, 104));
             return;
         }
 
-        AccountNameText.Text = account.Email ?? "Akun Codex aktif";
+        AccountNameText.Text = account.Email ?? CodexBar.Core.Localization.Instance["sidebar.activeAccount"];
         AccountPlanText.Text = account.AuthenticationMethod == "chatgpt"
             ? $"ChatGPT · {FormatPlan(account.PlanType)}"
             : "OpenAI API key";
@@ -198,11 +206,11 @@ public partial class SidebarWindow : Window
 
         _openingThread = true;
         ThreadList.IsEnabled = false;
-        FooterText.Text = "Membuka percakapan…";
+        FooterText.Text = CodexBar.Core.Localization.Instance["sidebar.opening"];
         try
         {
             await _openThread(item.Thread);
-            FooterText.Text = "Percakapan aktif di CodexBar";
+            FooterText.Text = CodexBar.Core.Localization.Instance["sidebar.opened"];
         }
         catch (Exception exception)
         {
@@ -220,7 +228,7 @@ public partial class SidebarWindow : Window
     {
         try
         {
-            FooterText.Text = "Membuat percakapan…";
+            FooterText.Text = CodexBar.Core.Localization.Instance["sidebar.creating"];
             await _createThread();
             await RefreshAsync();
         }
@@ -241,7 +249,7 @@ public partial class SidebarWindow : Window
         {
             _searchCts?.Cancel();
             ApplyFilter();
-            FooterText.Text = $"{_threads.Count} percakapan lokal Codex";
+            FooterText.Text = string.Format(CodexBar.Core.Localization.Instance["sidebar.count"], _threads.Count);
             return;
         }
 
@@ -262,8 +270,8 @@ public partial class SidebarWindow : Window
             ThreadList.ItemsSource = items;
             EmptyText.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             FooterText.Text = items.Count == 0
-                ? $"Tidak ada hasil untuk “{query}”"
-                : $"{items.Count} hasil untuk “{query}”";
+                ? string.Format(CodexBar.Core.Localization.Instance["sidebar.noResults"], query)
+                : string.Format(CodexBar.Core.Localization.Instance["sidebar.results"], items.Count, query);
         }
         catch (OperationCanceledException)
         {
@@ -293,7 +301,7 @@ public partial class SidebarWindow : Window
         "enterprise" => "Enterprise",
         "edu" => "Edu",
         "free" => "Free",
-        null or "" => "aktif",
+        null or "" => CodexBar.Core.Localization.Instance["sidebar.activePlan"],
         _ => planType.Replace('_', ' ')
     };
 
@@ -312,9 +320,9 @@ public partial class SidebarWindow : Window
         public string UpdatedLabel => FormatUpdatedAt(Thread.UpdatedAt);
         public string StatusLabel => Thread.Status switch
         {
-            "active" when Thread.ActiveFlags?.Contains("waitingOnApproval") == true => "Perlu izin",
-            "active" when Thread.ActiveFlags?.Contains("waitingOnUserInput") == true => "Perlu jawaban",
-            "active" => "Bekerja",
+            "active" when Thread.ActiveFlags?.Contains("waitingOnApproval") == true => CodexBar.Core.Localization.Instance["sidebar.needsApproval"],
+            "active" when Thread.ActiveFlags?.Contains("waitingOnUserInput") == true => CodexBar.Core.Localization.Instance["sidebar.needsAnswer"],
+            "active" => CodexBar.Core.Localization.Instance["sidebar.working"],
             "systemError" => "Error",
             _ => string.Empty
         };
@@ -339,7 +347,7 @@ public partial class SidebarWindow : Window
             return local.Date == today
                 ? local.ToString("HH:mm")
                 : local.Date == today.AddDays(-1)
-                    ? "Kemarin"
+                    ? CodexBar.Core.Localization.Instance["sidebar.yesterday"]
                     : local.ToString("dd MMM");
         }
     }

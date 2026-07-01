@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text.Json;
 using CodexBar.Providers;
 
@@ -7,25 +6,46 @@ namespace CodexBar.Providers.Codex;
 
 public sealed class CodexProvider : IAgentProvider
 {
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(30);
     private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
     private readonly ConcurrentDictionary<string, byte> _serverRequests = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly SemaphoreSlim _initializeLock = new(1, 1);
+    private readonly Func<string, string>? _localize;
+    private readonly Func<ICodexTransport> _transportFactory;
+    private readonly TimeSpan _requestTimeout;
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
     private CancellationTokenSource? _lifetime;
-    private Process? _process;
-    private ProcessJob? _processJob;
-    private StreamWriter? _writer;
+    private ICodexTransport? _transport;
     private Task? _readLoop;
     private Task? _errorLoop;
     private long _nextRequestId;
     private string? _currentThreadId;
     private string? _currentTurnId;
+
+    public CodexProvider(Func<string, string>? localize = null)
+        : this(
+            () => new ProcessCodexTransport(CodexExecutableLocator.Locate()),
+            DefaultRequestTimeout,
+            localize)
+    {
+    }
+
+    internal CodexProvider(
+        Func<ICodexTransport> transportFactory,
+        TimeSpan requestTimeout,
+        Func<string, string>? localize = null)
+    {
+        _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
+        _requestTimeout = requestTimeout > TimeSpan.Zero
+            ? requestTimeout
+            : throw new ArgumentOutOfRangeException(nameof(requestTimeout));
+        _localize = localize;
+    }
 
     public string Id => "codex";
     public string DisplayName => "Codex";
@@ -45,43 +65,20 @@ public sealed class CodexProvider : IAgentProvider
         await _initializeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (IsInitialized && _process is { HasExited: false })
+            if (IsInitialized && _transport is { IsRunning: true })
             {
                 return;
             }
 
             await StopProcessAsync().ConfigureAwait(false);
-            var executable = CodexExecutableLocator.Locate();
             _lifetime = new CancellationTokenSource();
-
-            _process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = executable,
-                    Arguments = "app-server --stdio",
-                    UseShellExecute = false,
-                    RedirectStandardInput = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                },
-                EnableRaisingEvents = true
-            };
+            _transport = _transportFactory();
 
             try
             {
-                if (!_process.Start())
-                {
-                    throw new InvalidOperationException("Codex App Server gagal dijalankan.");
-                }
-
-                _processJob = ProcessJob.Attach(_process);
-
-                _writer = _process.StandardInput;
-                _writer.AutoFlush = true;
-                _readLoop = ReadLoopAsync(_process, _lifetime.Token);
-                _errorLoop = ReadErrorLoopAsync(_process, _lifetime.Token);
+                await _transport.StartAsync(cancellationToken).ConfigureAwait(false);
+                _readLoop = ReadLoopAsync(_transport, _lifetime.Token);
+                _errorLoop = ReadErrorLoopAsync(_transport, _lifetime.Token);
 
                 await SendRequestAsync(
                     "initialize",
@@ -98,7 +95,7 @@ public sealed class CodexProvider : IAgentProvider
 
                 await SendNotificationAsync("initialized", new { }, cancellationToken).ConfigureAwait(false);
                 IsInitialized = true;
-                Emit(new ProviderStatusEvent("Codex terhubung"));
+                Emit(new ProviderStatusEvent(L("provider.status.connected", "Codex terhubung")));
             }
             catch
             {
@@ -142,7 +139,8 @@ public sealed class CodexProvider : IAgentProvider
             catch (CodexRpcException exception) when (
                 !cancellationToken.IsCancellationRequested && IsMissingThread(exception.Message))
             {
-                Emit(new ProviderStatusEvent("Thread sebelumnya tidak tersedia; membuat thread baru."));
+                Emit(new ProviderStatusEvent(L("provider.status.threadReplaced",
+                    "Thread sebelumnya tidak tersedia; membuat thread baru.")));
                 result = await StartThreadAsync(workspacePath, sandboxMode, approvalPolicy, cancellationToken);
             }
         }
@@ -154,7 +152,7 @@ public sealed class CodexProvider : IAgentProvider
         _currentThreadId = result.GetProperty("thread").GetProperty("id").GetString()
             ?? throw new InvalidOperationException("Codex tidak mengembalikan thread ID.");
 
-        Emit(new ProviderStatusEvent("Thread siap"));
+        Emit(new ProviderStatusEvent(L("provider.status.threadReady", "Thread siap")));
         return _currentThreadId;
     }
 
@@ -425,14 +423,14 @@ public sealed class CodexProvider : IAgentProvider
 
         _currentThreadId = threadId;
         _currentTurnId = result.GetProperty("turn").GetProperty("id").GetString();
-        Emit(new ProviderStatusEvent("Codex sedang bekerja…"));
+        Emit(new ProviderStatusEvent(L("provider.status.working", "Codex sedang bekerja…")));
     }
 
     public async Task CompactAsync(string threadId, CancellationToken cancellationToken = default)
     {
         EnsureInitialized();
         await SendRequestAsync("thread/compact/start", new { threadId }, cancellationToken);
-        Emit(new ProviderStatusEvent("Memadatkan konteks percakapan…"));
+        Emit(new ProviderStatusEvent(L("provider.status.compacting", "Memadatkan konteks percakapan…")));
     }
 
     public async Task CancelAsync(CancellationToken cancellationToken = default)
@@ -503,7 +501,7 @@ public sealed class CodexProvider : IAgentProvider
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             lifetimeToken);
-        timeout.CancelAfter(RequestTimeout);
+        timeout.CancelAfter(_requestTimeout);
 
         using var registration = timeout.Token.Register(() =>
         {
@@ -522,7 +520,7 @@ public sealed class CodexProvider : IAgentProvider
         catch (OperationCanceledException) when (
             !cancellationToken.IsCancellationRequested && !lifetimeToken.IsCancellationRequested)
         {
-            throw new TimeoutException($"Codex tidak merespons permintaan '{method}' dalam {RequestTimeout.TotalSeconds:0} detik.");
+            throw new TimeoutException($"Codex tidak merespons permintaan '{method}' dalam {_requestTimeout.TotalSeconds:0.###} detik.");
         }
         finally
         {
@@ -538,7 +536,7 @@ public sealed class CodexProvider : IAgentProvider
 
     private async Task SendAsync(object payload, CancellationToken cancellationToken)
     {
-        if (_writer is null || _process is null || _process.HasExited)
+        if (_transport is not { IsRunning: true } transport)
         {
             throw new InvalidOperationException("Codex App Server belum berjalan.");
         }
@@ -547,7 +545,7 @@ public sealed class CodexProvider : IAgentProvider
         await _writeLock.WaitAsync(cancellationToken);
         try
         {
-            await _writer.WriteLineAsync(json.AsMemory(), cancellationToken);
+            await transport.WriteLineAsync(json, cancellationToken);
         }
         finally
         {
@@ -555,13 +553,13 @@ public sealed class CodexProvider : IAgentProvider
         }
     }
 
-    private async Task ReadLoopAsync(Process process, CancellationToken cancellationToken)
+    private async Task ReadLoopAsync(ICodexTransport transport, CancellationToken cancellationToken)
     {
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var line = await process.StandardOutput.ReadLineAsync(cancellationToken);
+                var line = await transport.ReadOutputLineAsync(cancellationToken);
                 if (line is null)
                 {
                     break;
@@ -600,7 +598,8 @@ public sealed class CodexProvider : IAgentProvider
                 }
                 catch (JsonException exception)
                 {
-                    Emit(new ProviderErrorEvent($"Event Codex tidak valid: {exception.Message}"));
+                    Emit(new ProviderErrorEvent(LF("provider.error.invalidEvent",
+                        "Event Codex tidak valid: {0}", exception.Message)));
                 }
             }
 
@@ -621,11 +620,11 @@ public sealed class CodexProvider : IAgentProvider
         }
     }
 
-    private async Task ReadErrorLoopAsync(Process process, CancellationToken cancellationToken)
+    private async Task ReadErrorLoopAsync(ICodexTransport transport, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var line = await process.StandardError.ReadLineAsync(cancellationToken);
+            var line = await transport.ReadErrorLineAsync(cancellationToken);
             if (line is null)
             {
                 return;
@@ -679,7 +678,7 @@ public sealed class CodexProvider : IAgentProvider
 
             case "turn/started":
                 _currentTurnId = GetNestedString(parameters, "turn", "id") ?? _currentTurnId;
-                Emit(new ProviderStatusEvent("Codex sedang bekerja…"));
+                Emit(new ProviderStatusEvent(L("provider.status.working", "Codex sedang bekerja…")));
                 break;
 
             case "turn/completed":
@@ -703,7 +702,7 @@ public sealed class CodexProvider : IAgentProvider
                 break;
 
             case "thread/compacted":
-                Emit(new ProviderStatusEvent("Konteks percakapan dipadatkan."));
+                Emit(new ProviderStatusEvent(L("provider.status.compacted", "Konteks percakapan dipadatkan.")));
                 break;
 
             case "serverRequest/resolved":
@@ -722,7 +721,7 @@ public sealed class CodexProvider : IAgentProvider
                 break;
 
             case "item/started":
-                Emit(new ProviderStatusEvent("Menjalankan langkah…"));
+                Emit(new ProviderStatusEvent(L("provider.status.runningStep", "Menjalankan langkah…")));
                 break;
         }
     }
@@ -818,7 +817,8 @@ public sealed class CodexProvider : IAgentProvider
             properties.ValueKind != JsonValueKind.Object)
         {
             _ = SendRpcResultSafeAsync(requestId, new { action = "decline" });
-            Emit(new ProviderStatusEvent("Format input MCP ini belum dapat ditampilkan dengan aman."));
+            Emit(new ProviderStatusEvent(L("provider.mcp.unsupported",
+                "Format input MCP ini belum dapat ditampilkan dengan aman.")));
             return;
         }
 
@@ -841,7 +841,8 @@ public sealed class CodexProvider : IAgentProvider
             var fieldSchema = property.Value.Clone();
             fieldSchemas[property.Name] = fieldSchema;
             var title = GetString(fieldSchema, "title") ?? property.Name;
-            var description = GetString(fieldSchema, "description") ?? $"Masukkan nilai untuk {title}.";
+            var description = GetString(fieldSchema, "description") ?? LF(
+                "provider.mcp.fieldDescription", "Masukkan nilai untuk {0}.", title);
             var type = GetString(fieldSchema, "type") ?? "string";
             var options = ReadMcpOptions(fieldSchema, type);
             questions.Add(new ProviderInputQuestion(
@@ -859,7 +860,8 @@ public sealed class CodexProvider : IAgentProvider
         if (questions.Count == 0)
         {
             _ = SendRpcResultSafeAsync(requestId, new { action = "decline" });
-            Emit(new ProviderStatusEvent("Form MCP tidak memiliki field yang dapat ditampilkan."));
+            Emit(new ProviderStatusEvent(L("provider.mcp.emptyForm",
+                "Form MCP tidak memiliki field yang dapat ditampilkan.")));
             return;
         }
 
@@ -867,8 +869,9 @@ public sealed class CodexProvider : IAgentProvider
         _serverRequests[requestKey] = 0;
         var serverName = GetString(parameters, "serverName") ?? "MCP server";
         Emit(new ProviderUserInputEvent(
-            $"Input untuk {serverName}",
-            GetString(parameters, "message") ?? "Tool membutuhkan informasi tambahan.",
+            LF("provider.mcp.inputTitle", "Input untuk {0}", serverName),
+            GetString(parameters, "message") ?? L("provider.mcp.inputMessage",
+                "Tool membutuhkan informasi tambahan."),
             questions,
             async answers =>
             {
@@ -906,7 +909,8 @@ public sealed class CodexProvider : IAgentProvider
             uri.Scheme is not ("https" or "http"))
         {
             _ = SendRpcResultSafeAsync(requestId, new { action = "decline" });
-            Emit(new ProviderStatusEvent("MCP mengirim tautan yang tidak valid atau tidak aman."));
+            Emit(new ProviderStatusEvent(L("provider.mcp.invalidUrl",
+                "MCP mengirim tautan yang tidak valid atau tidak aman.")));
             return;
         }
 
@@ -914,13 +918,16 @@ public sealed class CodexProvider : IAgentProvider
         _serverRequests[requestKey] = 0;
         var serverName = GetString(parameters, "serverName") ?? "MCP server";
         Emit(new ProviderUserInputEvent(
-            $"Hubungkan {serverName}",
-            GetString(parameters, "message") ?? "Selesaikan langkah pada browser lalu kembali ke CodexBar.",
+            LF("provider.mcp.connectTitle", "Hubungkan {0}", serverName),
+            GetString(parameters, "message") ?? L("provider.mcp.connectMessage",
+                "Selesaikan langkah pada browser lalu kembali ke CodexBar."),
             [new ProviderInputQuestion(
                 "completed",
-                "Konfirmasi",
-                "Setelah langkah di browser selesai, pilih konfirmasi berikut.",
-                [new ProviderInputOption("Saya sudah selesai", string.Empty, "completed")])],
+                L("provider.mcp.confirmHeader", "Konfirmasi"),
+                L("provider.mcp.confirmQuestion",
+                    "Setelah langkah di browser selesai, pilih konfirmasi berikut."),
+                [new ProviderInputOption(L("provider.mcp.confirmDone", "Saya sudah selesai"),
+                    string.Empty, "completed")])],
             async answers =>
             {
                 if (!_serverRequests.TryRemove(requestKey, out _))
@@ -939,14 +946,14 @@ public sealed class CodexProvider : IAgentProvider
             uri.ToString()));
     }
 
-    private static IReadOnlyList<ProviderInputOption> ReadMcpOptions(JsonElement schema, string type)
+    private IReadOnlyList<ProviderInputOption> ReadMcpOptions(JsonElement schema, string type)
     {
         if (type == "boolean")
         {
             return
             [
-                new ProviderInputOption("Ya", string.Empty, "true"),
-                new ProviderInputOption("Tidak", string.Empty, "false")
+                new ProviderInputOption(L("provider.option.yes", "Ya"), string.Empty, "true"),
+                new ProviderInputOption(L("provider.option.no", "Tidak"), string.Empty, "false")
             ];
         }
 
@@ -964,7 +971,8 @@ public sealed class CodexProvider : IAgentProvider
         {
             return titled.EnumerateArray()
                 .Select(value => new ProviderInputOption(
-                    GetString(value, "title") ?? GetString(value, "const") ?? "Pilihan",
+                    GetString(value, "title") ?? GetString(value, "const") ??
+                        L("provider.option.choice", "Pilihan"),
                     string.Empty,
                     GetString(value, "const")))
                 .ToArray();
@@ -1028,7 +1036,7 @@ public sealed class CodexProvider : IAgentProvider
 
                 questions.Add(new ProviderInputQuestion(
                     id,
-                    GetString(question, "header") ?? "Pertanyaan",
+                    GetString(question, "header") ?? L("provider.input.question", "Pertanyaan"),
                     GetString(question, "question") ?? string.Empty,
                     options,
                     question.TryGetProperty("isOther", out var isOther) && isOther.ValueKind == JsonValueKind.True,
@@ -1040,7 +1048,8 @@ public sealed class CodexProvider : IAgentProvider
         {
             _serverRequests.TryRemove(requestKey, out _);
             _ = SendRpcResultSafeAsync(requestId, new { answers = new { } });
-            Emit(new ProviderStatusEvent("Codex meminta input tanpa pertanyaan yang dapat ditampilkan."));
+            Emit(new ProviderStatusEvent(L("provider.input.empty",
+                "Codex meminta input tanpa pertanyaan yang dapat ditampilkan.")));
             return;
         }
 
@@ -1052,8 +1061,8 @@ public sealed class CodexProvider : IAgentProvider
         }
 
         Emit(new ProviderUserInputEvent(
-            "Codex membutuhkan jawaban",
-            "Jawab agar agent dapat melanjutkan pekerjaannya.",
+            L("provider.input.title", "Codex membutuhkan jawaban"),
+            L("provider.input.message", "Jawab agar agent dapat melanjutkan pekerjaannya."),
             questions,
             async answers =>
             {
@@ -1078,48 +1087,59 @@ public sealed class CodexProvider : IAgentProvider
             () => _serverRequests.ContainsKey(requestKey)));
     }
 
-    private static string BuildCommandApprovalSummary(
+    private string BuildCommandApprovalSummary(
         JsonElement parameters,
         string? command,
         string? cwd,
         string? reason)
     {
-        var lines = new List<string> { "Izinkan Codex menjalankan perintah berikut?", string.Empty };
-        lines.Add(command ?? "Perintah tidak tersedia");
-        AddDetail(lines, "Folder", cwd);
-        AddDetail(lines, "Alasan", reason);
+        var lines = new List<string>
+        {
+            L("provider.approval.command", "Izinkan Codex menjalankan perintah berikut?"),
+            string.Empty
+        };
+        lines.Add(command ?? L("provider.approval.commandMissing", "Perintah tidak tersedia"));
+        AddDetail(lines, L("provider.approval.folder", "Folder"), cwd);
+        AddDetail(lines, L("provider.approval.reason", "Alasan"), reason);
 
         if (parameters.TryGetProperty("networkApprovalContext", out var network) &&
             network.ValueKind == JsonValueKind.Object)
         {
             var host = GetString(network, "host");
             var protocol = GetString(network, "protocol");
-            AddDetail(lines, "Akses jaringan", string.Join("://", new[] { protocol, host }
+            AddDetail(lines, L("provider.approval.network", "Akses jaringan"),
+                string.Join("://", new[] { protocol, host }
                 .Where(value => !string.IsNullOrWhiteSpace(value))));
         }
 
         return string.Join(Environment.NewLine, lines);
     }
 
-    private static string BuildFileApprovalSummary(JsonElement parameters, string? reason)
+    private string BuildFileApprovalSummary(JsonElement parameters, string? reason)
     {
-        var lines = new List<string> { "Izinkan Codex mengubah file?", string.Empty };
-        AddDetail(lines, "Alasan", reason ?? "Codex meminta perubahan workspace");
-        AddDetail(lines, "Akses tulis tambahan", GetString(parameters, "grantRoot"));
+        var lines = new List<string> { L("provider.approval.file", "Izinkan Codex mengubah file?"), string.Empty };
+        AddDetail(lines, L("provider.approval.reason", "Alasan"),
+            reason ?? L("provider.approval.fileReason", "Codex meminta perubahan workspace"));
+        AddDetail(lines, L("provider.approval.writeRoot", "Akses tulis tambahan"),
+            GetString(parameters, "grantRoot"));
         return string.Join(Environment.NewLine, lines);
     }
 
-    private static string BuildPermissionApprovalSummary(
+    private string BuildPermissionApprovalSummary(
         JsonElement parameters,
         string? cwd,
         string? reason)
     {
-        var lines = new List<string> { "Izinkan akses tambahan untuk langkah ini?", string.Empty };
-        AddDetail(lines, "Folder kerja", cwd);
-        AddDetail(lines, "Alasan", reason);
+        var lines = new List<string>
+        {
+            L("provider.approval.permission", "Izinkan akses tambahan untuk langkah ini?"),
+            string.Empty
+        };
+        AddDetail(lines, L("provider.approval.workspace", "Folder kerja"), cwd);
+        AddDetail(lines, L("provider.approval.reason", "Alasan"), reason);
         if (parameters.TryGetProperty("permissions", out var permissions))
         {
-            AddDetail(lines, "Izin yang diminta", permissions.ToString());
+            AddDetail(lines, L("provider.approval.permissions", "Izin yang diminta"), permissions.ToString());
         }
 
         return string.Join(Environment.NewLine, lines);
@@ -1133,6 +1153,17 @@ public sealed class CodexProvider : IAgentProvider
             lines.Add($"{label}: {value}");
         }
     }
+
+    private string L(string key, string fallback)
+    {
+        var localized = _localize?.Invoke(key);
+        return string.IsNullOrWhiteSpace(localized) || string.Equals(localized, key, StringComparison.Ordinal)
+            ? fallback
+            : localized;
+    }
+
+    private string LF(string key, string fallback, params object?[] arguments) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, L(key, fallback), arguments);
 
     private static string RequestKey(JsonElement requestId) =>
         requestId.ValueKind == JsonValueKind.String
@@ -1153,7 +1184,8 @@ public sealed class CodexProvider : IAgentProvider
         }
         catch (Exception exception)
         {
-            Emit(new ProviderErrorEvent($"Gagal merespons Codex: {exception.Message}"));
+            Emit(new ProviderErrorEvent(LF("provider.error.respond",
+                "Gagal merespons Codex: {0}", exception.Message)));
         }
     }
 
@@ -1165,7 +1197,8 @@ public sealed class CodexProvider : IAgentProvider
         }
         catch (Exception exception)
         {
-            Emit(new ProviderErrorEvent($"Gagal merespons Codex: {exception.Message}"));
+            Emit(new ProviderErrorEvent(LF("provider.error.respond",
+                "Gagal merespons Codex: {0}", exception.Message)));
         }
     }
 
@@ -1252,7 +1285,7 @@ public sealed class CodexProvider : IAgentProvider
 
     private void EnsureInitialized()
     {
-        if (!IsInitialized || _process is null || _process.HasExited)
+        if (!IsInitialized || _transport is not { IsRunning: true })
         {
             throw new InvalidOperationException("CodexProvider belum diinisialisasi.");
         }
@@ -1265,26 +1298,11 @@ public sealed class CodexProvider : IAgentProvider
         FailPending(new IOException("Koneksi Codex App Server ditutup."));
         _serverRequests.Clear();
 
-        if (_writer is not null)
+        if (_transport is { } transport)
         {
             try
             {
-                await _writer.DisposeAsync().ConfigureAwait(false);
-            }
-            catch
-            {
-            }
-        }
-
-        if (_process is { } process)
-        {
-            try
-            {
-                if (!process.HasExited && !process.WaitForExit(1500))
-                {
-                    process.Kill(entireProcessTree: true);
-                    process.WaitForExit(1500);
-                }
+                await transport.StopAsync().ConfigureAwait(false);
             }
             catch
             {
@@ -1304,13 +1322,19 @@ public sealed class CodexProvider : IAgentProvider
             }
         }
 
-        _writer = null;
         _readLoop = null;
         _errorLoop = null;
-        _process?.Dispose();
-        _process = null;
-        _processJob?.Dispose();
-        _processJob = null;
+        if (_transport is not null)
+        {
+            try
+            {
+                await _transport.DisposeAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+            }
+        }
+        _transport = null;
         _lifetime?.Dispose();
         _lifetime = null;
         _currentTurnId = null;

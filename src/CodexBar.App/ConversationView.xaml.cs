@@ -102,7 +102,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         {
             MessagesPanel.Children.Add(new TextBlock
             {
-                Text = "Respons Codex akan muncul di sini.",
+                Text = CodexBar.Core.Localization.Instance["conversation.placeholder"],
                 Foreground = theme.Placeholder,
                 Margin = new Thickness(6, 8, 6, 0),
                 TextWrapping = TextWrapping.Wrap
@@ -115,7 +115,8 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         {
             var older = new Button
             {
-                Content = $"Tampilkan {Math.Min(MessagePageSize, firstVisibleIndex)} pesan lebih lama",
+                Content = string.Format(CodexBar.Core.Localization.Instance["conversation.older"],
+                    Math.Min(MessagePageSize, firstVisibleIndex)),
                 Margin = new Thickness(60, 4, 60, 10),
                 Padding = new Thickness(10, 6, 10, 6),
                 Background = Brushes.Transparent,
@@ -202,6 +203,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     private FrameworkElement BuildAgentContent(ChatMessage message, ChatTheme theme, bool isLast)
     {
         var stack = new StackPanel();
+        var loc = CodexBar.Core.Localization.Instance;
 
         // Bagian "Berpikir" (reasoning) yang bisa diciutkan.
         var body = new TextBlock
@@ -219,20 +221,21 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             Cursor = System.Windows.Input.Cursors.Hand,
             FontSize = Math.Max(11, theme.Markdown.FontSize - 2),
             Foreground = theme.ReasoningText,
-            Content = (body.Visibility == Visibility.Visible ? "▾  " : "▸  ") + "Berpikir",
+            Content = (body.Visibility == Visibility.Visible ? "▾  " : "▸  ") + loc["conversation.thinking"],
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left
         };
         System.Windows.Automation.AutomationProperties.SetName(
-            header, "Tampilkan atau sembunyikan proses berpikir");
+            header, loc["conversation.thinkingName"]);
         header.Click += (_, _) =>
         {
             body.Visibility = body.Visibility == Visibility.Visible
                 ? Visibility.Collapsed
                 : Visibility.Visible;
-            header.Content = (body.Visibility == Visibility.Visible ? "▾  " : "▸  ") + "Berpikir";
+            header.Content = (body.Visibility == Visibility.Visible ? "▾  " : "▸  ") +
+                CodexBar.Core.Localization.Instance["conversation.thinking"];
         };
 
         var reasoningStack = new StackPanel();
@@ -258,7 +261,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         // Tombol salin jawaban (menyalin teks markdown pesan ini).
         var copyButton = new Button
         {
-            Content = "⧉  Salin",
+            Content = loc["conversation.copy"],
             Cursor = System.Windows.Input.Cursors.Hand,
             FontSize = Math.Max(11, theme.Markdown.FontSize - 2.5),
             Foreground = theme.ReasoningText,
@@ -268,17 +271,17 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0)
         };
-        System.Windows.Automation.AutomationProperties.SetName(copyButton, "Salin jawaban agent");
+        System.Windows.Automation.AutomationProperties.SetName(copyButton, loc["conversation.copyName"]);
         copyButton.Click += (_, _) =>
         {
             try
             {
                 System.Windows.Clipboard.SetText(message.Markdown);
-                copyButton.Content = "✓  Tersalin";
+                copyButton.Content = CodexBar.Core.Localization.Instance["conversation.copied"];
             }
             catch
             {
-                copyButton.Content = "Gagal menyalin";
+                copyButton.Content = CodexBar.Core.Localization.Instance["conversation.copyFailed"];
             }
         };
         stack.Children.Add(copyButton);

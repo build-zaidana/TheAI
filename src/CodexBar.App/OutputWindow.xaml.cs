@@ -26,10 +26,19 @@ public partial class OutputWindow : Window
     private void ApplyLanguage()
     {
         var loc = CodexBar.Core.Localization.Instance;
+        Title = loc["output.windowTitle"];
+        TitleText.Text = loc["output.title"];
+        CopyOutputButton.Content = loc["output.copyButton"];
         CopyOutputButton.ToolTip = loc["output.copy"];
         OpenCodexButton.ToolTip = loc["output.openCodex"];
         CloseOutputButton.ToolTip = loc["output.hide"];
         JumpLatestButton.Content = loc["output.jumpLatest"];
+        System.Windows.Automation.AutomationProperties.SetName(this, loc["output.windowName"]);
+        System.Windows.Automation.AutomationProperties.SetName(CopyOutputButton, loc["output.copyName"]);
+        System.Windows.Automation.AutomationProperties.SetName(OpenCodexButton, loc["output.openName"]);
+        System.Windows.Automation.AutomationProperties.SetName(CloseOutputButton, loc["output.hideName"]);
+        System.Windows.Automation.AutomationProperties.SetName(OutputConversation, loc["output.conversationName"]);
+        System.Windows.Automation.AutomationProperties.SetName(JumpLatestButton, loc["output.jumpLatestName"]);
     }
 
     public event ScrollChangedEventHandler? OutputScrollChanged;

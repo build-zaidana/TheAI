@@ -188,7 +188,8 @@ public sealed class ConversationController(IAgentProvider provider)
                 return;
             }
 
-            EventReceived?.Invoke(this, new ProviderStatusEvent("Menghubungkan ulang Codex…"));
+            EventReceived?.Invoke(this, new ProviderStatusEvent(
+                Localization.Instance["controller.status.reconnecting"]));
             await _provider.InitializeAsync(cancellationToken);
             if (WorkspacePath is not null && ThreadId is not null)
             {
@@ -213,7 +214,7 @@ public sealed class ConversationController(IAgentProvider provider)
             var interruptedTurn = IsBusy;
             IsBusy = false;
             EventReceived?.Invoke(this, new ProviderErrorEvent(
-                $"{error.Message} Menghubungkan ulang…",
+                string.Format(Localization.Instance["controller.status.retrySuffix"], error.Message),
                 WillRetry: true));
             if (_recoveryTask is null || _recoveryTask.IsCompleted)
             {
@@ -237,8 +238,8 @@ public sealed class ConversationController(IAgentProvider provider)
             await EnsureConnectedAsync(CancellationToken.None);
             EventReceived?.Invoke(this, new ProviderStatusEvent(
                 interruptedTurn
-                    ? "Codex terhubung kembali; pekerjaan yang terputus dihentikan."
-                    : "Codex terhubung kembali."));
+                    ? Localization.Instance["controller.status.interrupted"]
+                    : Localization.Instance["controller.status.reconnected"]));
             if (interruptedTurn)
             {
                 EventReceived?.Invoke(this, new ProviderCompletedEvent("interrupted"));
@@ -247,7 +248,7 @@ public sealed class ConversationController(IAgentProvider provider)
         catch (Exception exception)
         {
             EventReceived?.Invoke(this, new ProviderErrorEvent(
-                $"Codex gagal terhubung kembali: {exception.Message}"));
+                string.Format(Localization.Instance["controller.error.reconnect"], exception.Message)));
         }
     }
 }

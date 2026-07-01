@@ -86,6 +86,49 @@ public sealed class JsonSettingsStore
         }
     }
 
+    public async Task ExportAsync(
+        AppSettings settings,
+        string destinationPath,
+        CancellationToken cancellationToken = default)
+    {
+        var fullPath = Path.GetFullPath(destinationPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)
+            ?? throw new InvalidOperationException("Folder tujuan export tidak valid."));
+        var temporaryPath = $"{fullPath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await using (var stream = File.Create(temporaryPath))
+            {
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    Normalize(settings),
+                    SerializerOptions,
+                    cancellationToken);
+            }
+
+            File.Move(temporaryPath, fullPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    public async Task<AppSettings> ImportAsync(
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
+        await using var stream = File.OpenRead(Path.GetFullPath(sourcePath));
+        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(
+            stream,
+            SerializerOptions,
+            cancellationToken) ?? throw new JsonException("File settings kosong.");
+        return Normalize(settings);
+    }
+
     private static AppSettings Normalize(AppSettings settings)
     {
         settings.SchemaVersion = 8;
@@ -93,7 +136,9 @@ public sealed class JsonSettingsStore
         settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
-        settings.ThreadIds ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        settings.ThreadIds = new Dictionary<string, string>(
+            settings.ThreadIds ?? new Dictionary<string, string>(),
+            StringComparer.OrdinalIgnoreCase);
         settings.PromptTemplates = PromptTemplate.Normalize(settings.PromptTemplates);
 
         settings.Appearance.Theme = settings.Appearance.Theme?.ToLowerInvariant() switch
