@@ -275,7 +275,20 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 10, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 11, "Settings rusak harus dipulihkan ke schema terbaru.");
+
+        var scheduledNow = new DateTimeOffset(2026, 7, 2, 10, 0, 0, TimeSpan.Zero);
+        var scheduled = ScheduledPrompt.Normalize(new[]
+        {
+            new ScheduledPrompt { Prompt = "nanti", RunAt = scheduledNow.AddMinutes(30) },
+            new ScheduledPrompt { Prompt = "  ", RunAt = scheduledNow },
+            new ScheduledPrompt { Prompt = "sekarang", RunAt = scheduledNow.AddMinutes(-5) }
+        });
+        Assert(scheduled.Count == 2 && scheduled[0].Prompt == "sekarang",
+            "ScheduledPrompt.Normalize buang prompt kosong & urut berdasarkan waktu.");
+        var due = ScheduledPrompt.Due(scheduled, scheduledNow);
+        Assert(due.Count == 1 && due[0].Prompt == "sekarang",
+            "ScheduledPrompt.Due hanya mengembalikan yang waktunya sudah tiba.");
         Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");

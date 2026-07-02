@@ -2,7 +2,7 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 10;
+    public int SchemaVersion { get; set; } = 11;
     public string Provider { get; set; } = "codex";
 
     /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
@@ -45,6 +45,9 @@ public sealed class AppSettings
 
     /// <summary>Template prompt tersimpan untuk quick-insert. Di-seed dengan contoh pada instal baru.</summary>
     public List<PromptTemplate> PromptTemplates { get; set; } = PromptTemplate.CreateDefaults();
+
+    /// <summary>Prompt terjadwal yang akan dikirim otomatis pada waktu tertentu.</summary>
+    public List<ScheduledPrompt> ScheduledPrompts { get; set; } = new();
     public AppearanceSettings Appearance { get; set; } = new();
     public WindowSettings Window { get; set; } = new();
     public string WorkspacePath { get; set; } = string.Empty;
@@ -196,4 +199,37 @@ public sealed class PendingResume
     public DateTimeOffset RetryAt { get; set; }
     public bool IsContinuation { get; set; }
     public string? ThreadId { get; set; }
+}
+
+/// <summary>A prompt queued to run automatically at <see cref="RunAt"/>.</summary>
+public sealed class ScheduledPrompt
+{
+    public const int MaxCount = 50;
+
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Prompt { get; set; } = string.Empty;
+    public DateTimeOffset RunAt { get; set; }
+
+    /// <summary>Clean a list: drop entries with a blank prompt, order by time, cap the count.</summary>
+    public static List<ScheduledPrompt> Normalize(IEnumerable<ScheduledPrompt>? items)
+    {
+        if (items is null)
+        {
+            return new List<ScheduledPrompt>();
+        }
+
+        return items
+            .Where(item => item is not null && !string.IsNullOrWhiteSpace(item.Prompt))
+            .OrderBy(item => item.RunAt)
+            .Take(MaxCount)
+            .ToList();
+    }
+
+    /// <summary>Entries whose time has arrived (RunAt &lt;= now), earliest first.</summary>
+    public static List<ScheduledPrompt> Due(IEnumerable<ScheduledPrompt>? items, DateTimeOffset now) =>
+        items is null
+            ? new List<ScheduledPrompt>()
+            : items.Where(item => item is not null && !string.IsNullOrWhiteSpace(item.Prompt) && item.RunAt <= now)
+                .OrderBy(item => item.RunAt)
+                .ToList();
 }

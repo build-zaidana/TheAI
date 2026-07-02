@@ -437,6 +437,8 @@
                                 ToolTip="Buka respons terakhir di editor default (.md)" AutomationProperties.Name="Buka respons di editor" />
                         <Button x:Name="CopyConversationButton" Content="Salin percakapan" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CopyResponseButton_Click" />
                         <Button x:Name="ManageTemplatesButton" Content="Kelola template" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ManageTemplatesButton_Click" />
+                        <Button x:Name="ScheduleButton" Content="Jadwalkan" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ScheduleButton_Click"
+                                ToolTip="Jadwalkan prompt saat ini untuk dikirim otomatis nanti" AutomationProperties.Name="Jadwalkan prompt" />
                         <Button x:Name="ExportSettingsButton" Content="Ekspor settings" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportSettingsButton_Click" />
                         <Button x:Name="ImportSettingsButton" Content="Impor settings" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ImportSettingsButton_Click" />
                         <Button x:Name="ExportCheckpointButton" Content="Export checkpoint" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportCheckpointButton_Click"

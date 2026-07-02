@@ -89,6 +89,7 @@ public partial class MainWindow : Window
     private string? _lastPrompt;
     private string? _autoResumeSendText;
     private DispatcherTimer? _autoResumeTimer;
+    private DispatcherTimer? _scheduleTimer;
     private int? _lastContextPercent;
     private double _responseZoomDelta;
     private OnboardingKind _onboardingKind;
@@ -141,6 +142,10 @@ public partial class MainWindow : Window
             }
         };
         _renderTimer.Start();
+
+        _scheduleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _scheduleTimer.Tick += ScheduleTick;
+        _scheduleTimer.Start();
 
         _trayIcon = new Forms.NotifyIcon
         {
@@ -1120,6 +1125,47 @@ public partial class MainWindow : Window
             _settings.PendingResume = null;
             _ = SaveSettingsSafeAsync();
         }
+    }
+
+    private async void ScheduleButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SchedulePromptDialog(PromptBox.Text, _settings.ScheduledPrompts) { Owner = this };
+        try
+        {
+            _dialogVisible = true;
+            if (dialog.ShowDialog() == true)
+            {
+                _settings.ScheduledPrompts = new List<CodexBar.Core.ScheduledPrompt>(dialog.Schedules);
+                await SaveSettingsSafeAsync();
+                SetStatus(LF("schedule.saved", _settings.ScheduledPrompts.Count), StatusReadyBrush);
+            }
+        }
+        finally
+        {
+            _dialogVisible = false;
+        }
+    }
+
+    private void ScheduleTick(object? sender, EventArgs e)
+    {
+        if (_controller.IsBusy || _controller.ThreadId is null || _settings.ScheduledPrompts.Count == 0)
+        {
+            return;
+        }
+
+        var due = CodexBar.Core.ScheduledPrompt.Due(_settings.ScheduledPrompts, DateTimeOffset.Now);
+        if (due.Count == 0)
+        {
+            return;
+        }
+
+        // Fire the earliest due prompt; the rest run on later ticks.
+        var next = due[0];
+        _settings.ScheduledPrompts.RemoveAll(item => item.Id == next.Id);
+        _ = SaveSettingsSafeAsync();
+        SetStatus(L("schedule.running"), StatusBusyBrush);
+        PromptBox.Text = next.Prompt;
+        _ = SendPromptAsync();
     }
 
     private bool TryRecallPrompt(bool previous)
@@ -3157,6 +3203,7 @@ public partial class MainWindow : Window
         AutoCopyResponseCheck.Content = loc["settings.autoCopy"];
         CopyConversationButton.Content = loc["settings.copyConversation"];
         ManageTemplatesButton.Content = loc["templates.manage"];
+        ScheduleButton.Content = loc["schedule.button"];
         ExportSettingsButton.Content = loc["settings.export"];
         ImportSettingsButton.Content = loc["settings.import"];
         ExportCheckpointButton.Content = loc["settings.exportCheckpoint"];
