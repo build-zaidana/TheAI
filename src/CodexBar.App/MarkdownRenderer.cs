@@ -164,16 +164,48 @@ public static class MarkdownRenderer
     private static FrameworkElement CreateCodePanel(string language, string code, MarkdownStyle style)
     {
         var content = new StackPanel();
+
+        // Header: optional language label (left) + a copy-to-clipboard button (right).
+        var header = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         if (!string.IsNullOrWhiteSpace(language))
         {
-            content.Children.Add(new TextBlock
+            header.Children.Add(new TextBlock
             {
                 Text = language.ToLowerInvariant(),
                 Foreground = style.Muted,
                 FontSize = style.FontSize - 3,
-                Margin = new Thickness(0, 0, 0, 4)
+                VerticalAlignment = VerticalAlignment.Center
             });
         }
+
+        var copyButton = new System.Windows.Controls.Button
+        {
+            Content = CodexBar.Core.Localization.Instance["code.copy"],
+            FontSize = style.FontSize - 3.5,
+            Padding = new Thickness(6, 1, 6, 1),
+            Foreground = style.Muted,
+            Background = System.Windows.Media.Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right
+        };
+        Grid.SetColumn(copyButton, 1);
+        copyButton.Click += (_, _) =>
+        {
+            try
+            {
+                System.Windows.Clipboard.SetText(code);
+                copyButton.Content = CodexBar.Core.Localization.Instance["code.copied"];
+            }
+            catch
+            {
+                // Clipboard can be briefly locked by another app; a failed copy is non-fatal.
+            }
+        };
+        header.Children.Add(copyButton);
+        content.Children.Add(header);
 
         var codeText = new TextBlock
         {

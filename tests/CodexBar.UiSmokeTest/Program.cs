@@ -29,7 +29,8 @@ internal static class Program
             TestUrlElicitation();
             TestTemplateManagerDialog();
             TestQuickCaptureClipboardGuard();
-            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true templates=true quick-capture=true");
+            TestCodeBlockCopyButton();
+            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true templates=true quick-capture=true code-copy=true");
             return 0;
         }
         catch (Exception exception)
@@ -197,6 +198,24 @@ internal static class Program
                dialog.Templates[0].Name == "Baru" &&
                dialog.Templates[0].Content == "Clipboard {clipboard}",
             "Dialog kelola template harus bisa edit, tambah, hapus, lalu mengembalikan hasil final.");
+    }
+
+    private static void TestCodeBlockCopyButton()
+    {
+        var style = new MarkdownStyle(
+            Brushes.White, Brushes.Gray, Brushes.LightBlue, Brushes.White,
+            Brushes.Black, Brushes.Gray, Brushes.Gray,
+            new FontFamily("Consolas"), 14, true);
+        var panel = MarkdownRenderer.BuildPanel("```csharp\nvar x = 1;\n```", style);
+        panel.Measure(new Size(800, 600));
+        panel.Arrange(new Rect(0, 0, 800, 600));
+
+        var copyButton = FindVisualChildren<Button>(panel)
+            .FirstOrDefault(button => Equals(button.Content, AppLocalization.Instance["code.copy"]));
+        Assert(copyButton is not null, "Blok kode harus menampilkan tombol Copy.");
+
+        // Clicking must never throw (clipboard access is best-effort/guarded).
+        Click(copyButton!);
     }
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject

@@ -76,6 +76,8 @@ public static class Strings
         ["settings.diagnosticsLog"] = ("Log diagnostik", "Diagnostic log"),
         ["settings.openLogs"] = ("Buka folder log", "Open logs folder"),
         ["settings.reportBug"] = ("Laporkan bug", "Report a bug"),
+        ["code.copy"] = ("Salin", "Copy"),
+        ["code.copied"] = ("Tersalin", "Copied"),
         ["autoResume.scheduled"] = ("Kuota habis. Lanjut otomatis ~{0} (kirim manual untuk batal).", "Usage limit reached. Auto-resuming ~{0} (send manually to cancel)."),
         ["autoResume.scheduledContinue"] = ("Kuota habis di tengah respons. Lanjutkan sisanya otomatis ~{0}.", "Usage limit hit mid-response. Auto-continuing the rest ~{0}."),
         ["autoResume.continueInstruction"] = ("Lanjutkan respons kamu sebelumnya yang terpotong karena batas kuota. Jangan ulangi bagian yang sudah ditulis.", "Continue your previous response that was cut off by the usage limit. Do not repeat what you already wrote."),
