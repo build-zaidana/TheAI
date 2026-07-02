@@ -3201,6 +3201,19 @@ public partial class MainWindow : Window
         EditLastButton.Content = loc["response.editLast"];
         OpenInEditorButton.Content = loc["response.openInEditor"];
         AutoCopyResponseCheck.Content = loc["settings.autoCopy"];
+
+        // Controls that were previously left as static XAML text (so they didn't switch language).
+        TopmostToggle.Content = loc["settings.alwaysOnTop"];
+        ApplyHotkeyButton.Content = loc["hotkey.apply"];
+        ModelCombo.ToolTip = loc["settings.modelTooltip"];
+        if (OutputPositionCombo.Items.Count >= 2)
+        {
+            ((System.Windows.Controls.ComboBoxItem)OutputPositionCombo.Items[0]).Content = loc["output.below"];
+            ((System.Windows.Controls.ComboBoxItem)OutputPositionCombo.Items[1]).Content = loc["output.above"];
+        }
+        // Re-localize dynamic status labels so they follow a language switch too.
+        SandboxStatusText.Text = SandboxDescription(_settings.SandboxMode);
+        HotkeyStatusText.Text = LF("hotkey.active", _settings.Hotkey);
         CopyConversationButton.Content = loc["settings.copyConversation"];
         ManageTemplatesButton.Content = loc["templates.manage"];
         ScheduleButton.Content = loc["schedule.button"];
