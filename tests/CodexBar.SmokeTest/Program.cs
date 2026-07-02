@@ -44,6 +44,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return credentials;
     }
 
+    var bugReport = RunBugReportTests();
+    if (bugReport != 0)
+    {
+        return bugReport;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -819,6 +825,42 @@ static async Task<int> RunAnthropicProviderTestsAsync()
     {
         Console.Error.WriteLine($"FAIL {exception.Message}");
         return 1;
+    }
+}
+
+static int RunBugReportTests()
+{
+    var root = Path.Combine(Path.GetTempPath(), $"CodexBar-bugreport-{Guid.NewGuid():N}");
+    try
+    {
+        var logsDir = Path.Combine(root, "logs");
+        Directory.CreateDirectory(logsDir);
+        File.WriteAllText(Path.Combine(logsDir, "codexbar-20260101.log"), "baris log contoh");
+        File.WriteAllText(Path.Combine(logsDir, "codexbar-20260102.log"), "baris log lain");
+        File.WriteAllText(Path.Combine(logsDir, "ignore.txt"), "bukan log");
+
+        var zipPath = BugReport.Create(root, "CodexBar 9.9.9\nOS: test");
+        Assert(File.Exists(zipPath), "Zip laporan bug harus dibuat.");
+
+        using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
+        var entries = archive.Entries.Select(entry => entry.FullName).ToArray();
+        Assert(entries.Contains("info.txt"), "Laporan harus memuat info.txt.");
+        Assert(entries.Contains("logs/codexbar-20260101.log") && entries.Contains("logs/codexbar-20260102.log"),
+            "Laporan harus memuat semua file .log.");
+        Assert(!entries.Any(name => name.EndsWith("ignore.txt", StringComparison.Ordinal)),
+            "Laporan hanya memuat file .log, bukan file lain.");
+
+        Console.WriteLine("PASS bug report tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+    finally
+    {
+        try { Directory.Delete(root, recursive: true); } catch { }
     }
 }
 

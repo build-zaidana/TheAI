@@ -2541,6 +2541,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ReportBugButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?";
+            var info = string.Join(Environment.NewLine,
+                $"CodexBar {version}",
+                $"OS: {Environment.OSVersion}",
+                $"Provider: {_settings.Provider}",
+                $"DiagnosticsLogging: {_settings.EnableDiagnosticsLogging}",
+                $"Language: {_settings.Language}",
+                $"Time: {DateTimeOffset.Now:O}");
+            var zipPath = CodexBar.Core.BugReport.Create(_settingsStore.BaseDirectory, info);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{zipPath}\"") { UseShellExecute = true });
+            SetStatus(L("bugReport.created"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(LF("bugReport.failed", exception.Message));
+        }
+    }
+
     private async void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_settingsReady)
@@ -2854,6 +2876,7 @@ public partial class MainWindow : Window
         ImportSettingsButton.Content = loc["settings.import"];
         ExportCheckpointButton.Content = loc["settings.exportCheckpoint"];
         OpenLogsButton.Content = loc["settings.openLogs"];
+        ReportBugButton.Content = loc["settings.reportBug"];
         ResetLayoutButton.Content = loc["settings.resetLayout"];
         CloseSettingsButton.Content = loc["settings.close"];
 

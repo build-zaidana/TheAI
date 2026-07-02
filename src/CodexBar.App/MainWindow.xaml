@@ -432,6 +432,8 @@
                                 ToolTip="Simpan percakapan aktif sebagai Markdown lokal" />
                         <Button x:Name="OpenLogsButton" Content="Buka folder log" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="OpenLogsButton_Click"
                                 ToolTip="Buka folder log diagnostik (%LOCALAPPDATA%\CodexBar\logs)" AutomationProperties.Name="Buka folder log diagnostik" />
+                        <Button x:Name="ReportBugButton" Content="Laporkan bug" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ReportBugButton_Click"
+                                ToolTip="Kumpulkan log jadi satu zip untuk dilampirkan ke laporan bug" AutomationProperties.Name="Buat laporan bug" />
                         <Button x:Name="ResetLayoutButton" Content="Reset layout" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ResetLayoutButton_Click" />
                         <Button x:Name="CloseSettingsButton" Content="Tutup" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CloseSettingsButton_Click" />
                         <TextBlock x:Name="TokenUsageText" VerticalAlignment="Center" Margin="4,0,0,6"
