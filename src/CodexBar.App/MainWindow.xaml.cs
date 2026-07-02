@@ -949,6 +949,8 @@ public partial class MainWindow : Window
             var selectedModel = (ModelCombo.SelectedItem as ProviderModelInfo)?.Model
                 ?? _settings.SelectedModel;
             var effort = string.IsNullOrWhiteSpace(_settings.ReasoningEffort) ? null : _settings.ReasoningEffort;
+            DiagnosticsLog.Info("Send",
+                $"provider={_controller.ProviderId} model={selectedModel ?? "default"} promptChars={prompt.Length} attachments={pendingAttachments.Length}");
             await _controller.SendAsync(prompt, pendingAttachments, selectedModel, effort);
             _promptHistory.Add(prompt);
             PromptBox.Clear();
@@ -1452,6 +1454,7 @@ public partial class MainWindow : Window
                     break;
 
                 case ProviderCompletedEvent completed:
+                    DiagnosticsLog.Info("Turn", $"completed status={completed.Status}");
                     var completedNormally = completed.Status == "completed";
                     SetStatus(
                         completedNormally ? L("status.finished") : completed.Status == "interrupted"
@@ -1481,6 +1484,7 @@ public partial class MainWindow : Window
                     break;
 
                 case ProviderErrorEvent error:
+                    DiagnosticsLog.Error("Provider", error.Message);
                     if (!error.WillRetry && !_autoResumeArmed && _lastPrompt is { Length: > 0 } &&
                         CodexBar.Core.RateLimit.IsRateLimited(error.Message))
                     {

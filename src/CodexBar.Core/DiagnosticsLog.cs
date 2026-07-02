@@ -46,6 +46,9 @@ public static class DiagnosticsLog
                 _logDirectory = directory;
                 IsEnabled = true;
                 Prune(directory);
+                // Write an initial marker so the log file exists the moment logging is enabled
+                // (otherwise a report taken right after enabling would contain no log file).
+                Write("INFO", "Diagnostics", "Logging enabled.");
             }
             catch
             {
