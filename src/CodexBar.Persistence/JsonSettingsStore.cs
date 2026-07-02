@@ -131,7 +131,11 @@ public sealed class JsonSettingsStore
 
     private static AppSettings Normalize(AppSettings settings)
     {
-        settings.SchemaVersion = 8;
+        settings.SchemaVersion = 9;
+        if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
+        {
+            settings.PendingResume = null;
+        }
         settings.Provider = settings.Provider?.ToLowerInvariant() switch
         {
             "anthropic" => "anthropic",

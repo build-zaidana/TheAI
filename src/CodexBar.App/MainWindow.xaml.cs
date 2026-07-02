@@ -83,8 +83,11 @@ public partial class MainWindow : Window
     private bool _contextWarningShown;
     private bool _quickCaptureActive;
     private bool _autoResumeArmed;
+    private bool _autoResumeIsContinuation;
+    private bool _pendingResumeChecked;
     private DateTimeOffset? _autoResumeAt;
     private string? _lastPrompt;
+    private string? _autoResumeSendText;
     private DispatcherTimer? _autoResumeTimer;
     private int? _lastContextPercent;
     private double _responseZoomDelta;
@@ -299,6 +302,11 @@ public partial class MainWindow : Window
             else
             {
                 await OpenWorkspaceAsync(_settings.WorkspacePath);
+            }
+
+            if (_controller.ThreadId is not null)
+            {
+                RestorePendingResume();
             }
         }
         catch (Exception exception)
@@ -964,8 +972,38 @@ public partial class MainWindow : Window
             return false;
         }
 
+        // If a response had already started streaming when the limit hit, resume by asking
+        // the model to continue the cut-off part rather than resending the whole prompt.
+        var isContinuation = _streamingAgent is { } partial && !string.IsNullOrWhiteSpace(partial.Markdown);
+        var sendText = isContinuation ? L("autoResume.continueInstruction") : _lastPrompt;
+        if (string.IsNullOrWhiteSpace(sendText))
+        {
+            return false;
+        }
+
+        ScheduleAutoResume(sendText, retryAt, isContinuation, persist: true);
+        return true;
+    }
+
+    private void ScheduleAutoResume(string sendText, DateTimeOffset retryAt, bool isContinuation, bool persist)
+    {
+        _autoResumeSendText = sendText;
         _autoResumeAt = retryAt;
+        _autoResumeIsContinuation = isContinuation;
         _autoResumeArmed = true;
+
+        if (persist)
+        {
+            _settings.PendingResume = new CodexBar.Core.PendingResume
+            {
+                Prompt = sendText,
+                RetryAt = retryAt,
+                IsContinuation = isContinuation,
+                ThreadId = _controller.ThreadId
+            };
+            _ = SaveSettingsSafeAsync();
+        }
+
         if (_autoResumeTimer is null)
         {
             _autoResumeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -974,7 +1012,45 @@ public partial class MainWindow : Window
 
         _autoResumeTimer.Start();
         UpdateAutoResumeStatus();
-        return true;
+    }
+
+    // Re-arm (or fire immediately) a resume persisted from a previous run. Runs once at startup.
+    private void RestorePendingResume()
+    {
+        if (_pendingResumeChecked)
+        {
+            return;
+        }
+
+        _pendingResumeChecked = true;
+        if (_settings.PendingResume is not { } pending || string.IsNullOrWhiteSpace(pending.Prompt))
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.Now;
+        if (pending.RetryAt > now.AddHours(24))
+        {
+            ClearPendingResume();
+            return;
+        }
+
+        _lastPrompt = pending.Prompt;
+        if (pending.RetryAt <= now)
+        {
+            // Reset moment already passed while the app was closed: resume now.
+            ClearPendingResume();
+            if (!_controller.IsBusy)
+            {
+                SetStatus(L("autoResume.resuming"), StatusBusyBrush);
+                PromptBox.Text = pending.Prompt;
+                _ = SendPromptAsync();
+            }
+
+            return;
+        }
+
+        ScheduleAutoResume(pending.Prompt, pending.RetryAt, pending.IsContinuation, persist: false);
     }
 
     private void AutoResumeTick(object? sender, EventArgs e)
@@ -994,13 +1070,14 @@ public partial class MainWindow : Window
         _autoResumeTimer?.Stop();
         _autoResumeArmed = false;
         AutoResumeBar.Visibility = Visibility.Collapsed;
-        if (_controller.IsBusy || _lastPrompt is not { Length: > 0 } prompt)
+        ClearPendingResume();
+        if (_controller.IsBusy || string.IsNullOrWhiteSpace(_autoResumeSendText))
         {
             return;
         }
 
         SetStatus(L("autoResume.resuming"), StatusBusyBrush);
-        PromptBox.Text = prompt;
+        PromptBox.Text = _autoResumeSendText;
         _ = SendPromptAsync();
     }
 
@@ -1008,7 +1085,8 @@ public partial class MainWindow : Window
     {
         if (_autoResumeAt is { } retryAt)
         {
-            var text = LF("autoResume.scheduled", retryAt.ToLocalTime().ToString("HH:mm"));
+            var key = _autoResumeIsContinuation ? "autoResume.scheduledContinue" : "autoResume.scheduled";
+            var text = LF(key, retryAt.ToLocalTime().ToString("HH:mm"));
             SetStatus(text, StatusBusyBrush);
             AutoResumeText.Text = text;
             AutoResumeBar.Visibility = Visibility.Visible;
@@ -1032,6 +1110,16 @@ public partial class MainWindow : Window
         _autoResumeAt = null;
         _autoResumeTimer?.Stop();
         AutoResumeBar.Visibility = Visibility.Collapsed;
+        ClearPendingResume();
+    }
+
+    private void ClearPendingResume()
+    {
+        if (_settings.PendingResume is not null)
+        {
+            _settings.PendingResume = null;
+            _ = SaveSettingsSafeAsync();
+        }
     }
 
     private bool TryRecallPrompt(bool previous)

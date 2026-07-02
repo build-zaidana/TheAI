@@ -275,7 +275,7 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 8, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 9, "Settings rusak harus dipulihkan ke schema terbaru.");
         Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");
@@ -320,6 +320,15 @@ static async Task<int> RunDeterministicTestsAsync()
         await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "Anthropic" }""");
         Assert((await store.LoadAsync()).Provider == "anthropic",
             "Provider anthropic harus dipertahankan (case-insensitive), yang tak dikenal jatuh ke codex.");
+
+        await File.WriteAllTextAsync(store.SettingsPath,
+            """{ "pendingResume": { "prompt": "   ", "retryAt": "2030-01-01T00:00:00+00:00" } }""");
+        Assert((await store.LoadAsync()).PendingResume is null,
+            "PendingResume dengan prompt kosong harus dinormalisasi ke null.");
+        await File.WriteAllTextAsync(store.SettingsPath,
+            """{ "pendingResume": { "prompt": "lanjut", "retryAt": "2030-01-01T00:00:00+00:00", "isContinuation": true } }""");
+        Assert((await store.LoadAsync()).PendingResume is { Prompt: "lanjut", IsContinuation: true },
+            "PendingResume valid harus dipertahankan lintas load (persist across restart).");
 
         var history = new PromptHistory(capacity: 2);
         history.Add("  pertama  ");

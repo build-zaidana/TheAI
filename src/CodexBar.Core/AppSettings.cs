@@ -2,7 +2,7 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 8;
+    public int SchemaVersion { get; set; } = 9;
     public string Provider { get; set; } = "codex";
 
     /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
@@ -36,6 +36,9 @@ public sealed class AppSettings
 
     /// <summary>Aktifkan diagnostics logging opt-in ke file (untuk pelaporan bug). Default mati.</summary>
     public bool EnableDiagnosticsLogging { get; set; }
+
+    /// <summary>Prompt yang menunggu dikirim ulang saat kuota reset (auto-resume). Null bila tak ada. Bertahan lintas restart.</summary>
+    public PendingResume? PendingResume { get; set; }
 
     /// <summary>Template prompt tersimpan untuk quick-insert. Di-seed dengan contoh pada instal baru.</summary>
     public List<PromptTemplate> PromptTemplates { get; set; } = PromptTemplate.CreateDefaults();
@@ -175,4 +178,18 @@ public sealed class PromptTemplate
         (content ?? string.Empty)
             .Replace("{selection}", selection ?? string.Empty, StringComparison.OrdinalIgnoreCase)
             .Replace("{clipboard}", clipboard ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>
+/// A prompt queued for auto-resend once the provider's usage limit resets. Persisted in
+/// settings so it survives an app restart. <see cref="IsContinuation"/> means the previous
+/// response was cut off mid-stream, so on resume we ask the model to continue rather than
+/// resending the original prompt.
+/// </summary>
+public sealed class PendingResume
+{
+    public string Prompt { get; set; } = string.Empty;
+    public DateTimeOffset RetryAt { get; set; }
+    public bool IsContinuation { get; set; }
+    public string? ThreadId { get; set; }
 }
