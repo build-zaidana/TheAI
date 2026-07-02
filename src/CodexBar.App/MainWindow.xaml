@@ -417,6 +417,8 @@
                         <CheckBox x:Name="WordWrapCheckBox" Content="Wrap kode" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="ShowReasoningCheck" Content="Tampilkan thinking" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="PinCheckBox" Content="Pin" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
+                        <CheckBox x:Name="AutoCopyResponseCheck" Content="Auto-salin respons" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
+                                  ToolTip="Salin otomatis respons ke clipboard saat selesai." />
                         <CheckBox x:Name="DiagnosticsLoggingCheck" Content="Log diagnostik" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Simpan log ke %LOCALAPPDATA%\CodexBar\logs untuk pelaporan bug. Default mati." />
                     </WrapPanel>
@@ -431,6 +433,8 @@
                                 ToolTip="Salin respons terakhir" AutomationProperties.Name="Salin respons terakhir" />
                         <Button x:Name="EditLastButton" Content="Edit terakhir" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="EditLastButton_Click"
                                 ToolTip="Muat prompt terakhir ke input untuk diedit" AutomationProperties.Name="Edit prompt terakhir" />
+                        <Button x:Name="OpenInEditorButton" Content="Buka di editor" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="OpenInEditorButton_Click"
+                                ToolTip="Buka respons terakhir di editor default (.md)" AutomationProperties.Name="Buka respons di editor" />
                         <Button x:Name="CopyConversationButton" Content="Salin percakapan" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CopyResponseButton_Click" />
                         <Button x:Name="ManageTemplatesButton" Content="Kelola template" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ManageTemplatesButton_Click" />
                         <Button x:Name="ExportSettingsButton" Content="Ekspor settings" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportSettingsButton_Click" />

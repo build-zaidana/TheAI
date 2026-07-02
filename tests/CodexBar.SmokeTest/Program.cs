@@ -275,7 +275,7 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 9, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 10, "Settings rusak harus dipulihkan ke schema terbaru.");
         Assert(!recovered.EnableDiagnosticsLogging, "Diagnostics logging harus mati secara default (opt-in).");
         Assert(Directory.GetFiles(settingsRoot, "settings.json.invalid-*").Length == 1,
             "Settings rusak harus dibackup satu kali.");

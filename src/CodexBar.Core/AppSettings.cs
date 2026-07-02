@@ -2,7 +2,7 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 9;
+    public int SchemaVersion { get; set; } = 10;
     public string Provider { get; set; } = "codex";
 
     /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
@@ -33,6 +33,9 @@ public sealed class AppSettings
 
     /// <summary>Codex menu (riwayat) menyatu menempel pada input bar, bukan window terpisah.</summary>
     public bool MenuDocked { get; set; } = true;
+
+    /// <summary>Salin otomatis respons ke clipboard saat selesai. Default mati.</summary>
+    public bool AutoCopyResponse { get; set; }
 
     /// <summary>Aktifkan diagnostics logging opt-in ke file (untuk pelaporan bug). Default mati.</summary>
     public bool EnableDiagnosticsLogging { get; set; }
@@ -70,6 +73,7 @@ public sealed class AppSettings
         OutputPosition = source.OutputPosition;
         ShowReasoning = source.ShowReasoning;
         MenuDocked = source.MenuDocked;
+        AutoCopyResponse = source.AutoCopyResponse;
         EnableDiagnosticsLogging = source.EnableDiagnosticsLogging;
         PromptTemplates = PromptTemplate.Normalize(source.PromptTemplates);
         Appearance = new AppearanceSettings

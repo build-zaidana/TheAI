@@ -1419,6 +1419,14 @@ public partial class MainWindow : Window
                         ActiveConversation.UpdateLast(_streamingAgent);
                         _streamingAgent = null;
                     }
+                    if (completedNormally && _settings.AutoCopyResponse)
+                    {
+                        var done = _messages.LastOrDefault(message => !message.IsUser);
+                        if (done is { } && !string.IsNullOrWhiteSpace(done.Markdown))
+                        {
+                            try { System.Windows.Clipboard.SetText(done.Markdown); } catch { /* best-effort */ }
+                        }
+                    }
                     if (!IsVisible || !IsActive)
                     {
                         _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
@@ -1691,6 +1699,7 @@ public partial class MainWindow : Window
             _ => 0
         };
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
+        AutoCopyResponseCheck.IsChecked = _settings.AutoCopyResponse;
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
         ProviderCombo.SelectedIndex = _settings.Provider == "anthropic" ? 1 : 0;
@@ -1848,6 +1857,7 @@ public partial class MainWindow : Window
         _settings.ApprovalPolicy = (ApprovalCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "on-request";
         _settings.ReasoningEffort = (EffortCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? string.Empty;
         _settings.MenuDocked = MenuDockedCheck.IsChecked == true;
+        _settings.AutoCopyResponse = AutoCopyResponseCheck.IsChecked == true;
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
         _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
@@ -2790,6 +2800,27 @@ public partial class MainWindow : Window
         PromptBox.Focus();
     }
 
+    private void OpenInEditorButton_Click(object sender, RoutedEventArgs e)
+    {
+        var last = _messages.LastOrDefault(message => !message.IsUser);
+        if (last is null || string.IsNullOrWhiteSpace(last.Markdown))
+        {
+            SetStatus(L("response.noneToCopy"), StatusBusyBrush);
+            return;
+        }
+
+        try
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"codexbar-response-{DateTime.Now:yyyyMMdd-HHmmss}.md");
+            File.WriteAllText(path, last.Markdown);
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
+    }
+
     private void ReportBugButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -3122,6 +3153,8 @@ public partial class MainWindow : Window
         RegenerateButton.Content = loc["response.regenerate"];
         CopyLastResponseButton.Content = loc["response.copy"];
         EditLastButton.Content = loc["response.editLast"];
+        OpenInEditorButton.Content = loc["response.openInEditor"];
+        AutoCopyResponseCheck.Content = loc["settings.autoCopy"];
         CopyConversationButton.Content = loc["settings.copyConversation"];
         ManageTemplatesButton.Content = loc["templates.manage"];
         ExportSettingsButton.Content = loc["settings.export"];

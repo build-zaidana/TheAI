@@ -131,7 +131,7 @@ public sealed class JsonSettingsStore
 
     private static AppSettings Normalize(AppSettings settings)
     {
-        settings.SchemaVersion = 9;
+        settings.SchemaVersion = 10;
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;

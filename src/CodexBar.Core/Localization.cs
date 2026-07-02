@@ -84,6 +84,8 @@ public static class Strings
         ["response.copied"] = ("Respons disalin.", "Response copied."),
         ["response.noneToCopy"] = ("Belum ada respons untuk disalin.", "No response to copy yet."),
         ["response.nothingToRegenerate"] = ("Belum ada prompt untuk diulang.", "No prompt to regenerate yet."),
+        ["response.openInEditor"] = ("Buka di editor", "Open in editor"),
+        ["settings.autoCopy"] = ("Auto-salin respons", "Auto-copy response"),
         ["autoResume.scheduled"] = ("Kuota habis. Lanjut otomatis ~{0} (kirim manual untuk batal).", "Usage limit reached. Auto-resuming ~{0} (send manually to cancel)."),
         ["autoResume.scheduledContinue"] = ("Kuota habis di tengah respons. Lanjutkan sisanya otomatis ~{0}.", "Usage limit hit mid-response. Auto-continuing the rest ~{0}."),
         ["autoResume.continueInstruction"] = ("Lanjutkan respons kamu sebelumnya yang terpotong karena batas kuota. Jangan ulangi bagian yang sudah ditulis.", "Continue your previous response that was cut off by the usage limit. Do not repeat what you already wrote."),
