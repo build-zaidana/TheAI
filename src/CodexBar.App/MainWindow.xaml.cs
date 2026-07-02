@@ -2329,7 +2329,12 @@ public partial class MainWindow : Window
         }
 
         var modifiers = Keyboard.Modifiers;
-        if (modifiers == ModifierKeys.Control && e.Key is Key.Add or Key.OemPlus)
+        if (modifiers == ModifierKeys.Control && e.Key == Key.R)
+        {
+            e.Handled = true;
+            Regenerate();
+        }
+        else if (modifiers == ModifierKeys.Control && e.Key is Key.Add or Key.OemPlus)
         {
             e.Handled = true;
             AdjustZoom(1);
@@ -2728,6 +2733,63 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RegenerateButton_Click(object sender, RoutedEventArgs e) => Regenerate();
+
+    private void Regenerate()
+    {
+        if (_controller.IsBusy)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_lastPrompt))
+        {
+            SetStatus(L("response.nothingToRegenerate"), StatusBusyBrush);
+            return;
+        }
+
+        PromptBox.Text = _lastPrompt;
+        _ = SendPromptAsync();
+    }
+
+    private void CopyLastResponseButton_Click(object sender, RoutedEventArgs e)
+    {
+        var last = _messages.LastOrDefault(message => !message.IsUser);
+        if (last is null || string.IsNullOrWhiteSpace(last.Markdown))
+        {
+            SetStatus(L("response.noneToCopy"), StatusBusyBrush);
+            return;
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(last.Markdown);
+            SetStatus(L("response.copied"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(LF("status.clipboardUnavailable", exception.Message));
+        }
+    }
+
+    private void EditLastButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_lastPrompt))
+        {
+            SetStatus(L("response.nothingToRegenerate"), StatusBusyBrush);
+            return;
+        }
+
+        if (SettingsPanel.Visibility == Visibility.Visible)
+        {
+            SetSettingsVisible(false);
+        }
+
+        PromptBox.Text = _lastPrompt;
+        PromptBox.CaretIndex = PromptBox.Text.Length;
+        PromptBox.Focus();
+    }
+
     private void ReportBugButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -3057,6 +3119,9 @@ public partial class MainWindow : Window
         // Settings action buttons.
         OutputButton.Content = loc["settings.showOutput"];
         CompactButton.Content = loc["settings.compact"];
+        RegenerateButton.Content = loc["response.regenerate"];
+        CopyLastResponseButton.Content = loc["response.copy"];
+        EditLastButton.Content = loc["response.editLast"];
         CopyConversationButton.Content = loc["settings.copyConversation"];
         ManageTemplatesButton.Content = loc["templates.manage"];
         ExportSettingsButton.Content = loc["settings.export"];

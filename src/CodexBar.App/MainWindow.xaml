@@ -425,6 +425,12 @@
                         <Button x:Name="OutputButton" Content="Tampilkan output" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Visibility="Collapsed" Click="OutputButton_Click" />
                         <Button x:Name="CompactButton" Content="Padatkan konteks" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CompactButton_Click"
                                 ToolTip="Ringkas riwayat agar konteks tidak penuh (thread/compact)" />
+                        <Button x:Name="RegenerateButton" Content="Regenerate" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="RegenerateButton_Click"
+                                ToolTip="Ulangi prompt terakhir untuk jawaban baru (Ctrl+R)" AutomationProperties.Name="Regenerate jawaban" />
+                        <Button x:Name="CopyLastResponseButton" Content="Salin respons" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CopyLastResponseButton_Click"
+                                ToolTip="Salin respons terakhir" AutomationProperties.Name="Salin respons terakhir" />
+                        <Button x:Name="EditLastButton" Content="Edit terakhir" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="EditLastButton_Click"
+                                ToolTip="Muat prompt terakhir ke input untuk diedit" AutomationProperties.Name="Edit prompt terakhir" />
                         <Button x:Name="CopyConversationButton" Content="Salin percakapan" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="CopyResponseButton_Click" />
                         <Button x:Name="ManageTemplatesButton" Content="Kelola template" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ManageTemplatesButton_Click" />
                         <Button x:Name="ExportSettingsButton" Content="Ekspor settings" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportSettingsButton_Click" />
