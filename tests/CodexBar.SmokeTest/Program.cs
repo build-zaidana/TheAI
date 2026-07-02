@@ -50,6 +50,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return bugReport;
     }
 
+    var rateLimit = RunRateLimitTests();
+    if (rateLimit != 0)
+    {
+        return rateLimit;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -819,6 +825,53 @@ static async Task<int> RunAnthropicProviderTestsAsync()
         Assert(errored, "Tanpa API key harus memunculkan error, bukan crash.");
 
         Console.WriteLine("PASS anthropic provider tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunRateLimitTests()
+{
+    try
+    {
+        Assert(RateLimit.IsRateLimited("You've hit your usage limit. Try again at 3:23 AM."),
+            "'usage limit' harus terdeteksi rate-limited.");
+        Assert(RateLimit.IsRateLimited("429 Too Many Requests"), "'429' harus terdeteksi.");
+        Assert(!RateLimit.IsRateLimited("Koneksi terputus"), "Error biasa tidak boleh dianggap rate-limit.");
+        Assert(!RateLimit.IsRateLimited(null), "Null aman.");
+
+        // "try again at 3:23 AM" — sebelum jam itu hari ini → hari ini.
+        var early = new DateTimeOffset(2026, 7, 2, 0, 42, 0, TimeSpan.FromHours(7));
+        var atEarly = RateLimit.ParseRetryAt("hit your usage limit. try again at 3:23 AM.", early);
+        Assert(atEarly is { } e && e.Day == 2 && e.Hour == 3 && e.Minute == 23,
+            "Sebelum jam reset → jadwal hari ini pada jam tersebut.");
+
+        // Sesudah jam itu → besok.
+        var late = new DateTimeOffset(2026, 7, 2, 5, 0, 0, TimeSpan.FromHours(7));
+        var atLate = RateLimit.ParseRetryAt("try again at 3:23 AM", late);
+        Assert(atLate is { } l && l.Day == 3 && l.Hour == 3 && l.Minute == 23,
+            "Setelah jam reset lewat → jadwal besok.");
+
+        // PM konversi.
+        var pm = RateLimit.ParseRetryAt("try again at 1:00 PM", early);
+        Assert(pm is { } p && p.Hour == 13, "PM harus dikonversi ke 24 jam.");
+
+        // Durasi relatif.
+        var inHours = RateLimit.ParseRetryAt("try again in 2 hours", early);
+        Assert(inHours == early.AddHours(2), "'in 2 hours' harus now + 2 jam.");
+        var inMin = RateLimit.ParseRetryAt("try again in 30 minutes", early);
+        Assert(inMin == early.AddMinutes(30), "'in 30 minutes' harus now + 30 menit.");
+
+        Assert(RateLimit.ParseRetryAt("tidak ada waktu di sini", early) is null,
+            "Tanpa info waktu harus null.");
+        Assert(RateLimit.FromRetryAfterSeconds(60, early) == early.AddSeconds(60),
+            "Retry-After detik harus now + detik.");
+
+        Console.WriteLine("PASS rate limit tests");
         return 0;
     }
     catch (Exception exception)
