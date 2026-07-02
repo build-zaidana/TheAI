@@ -6,6 +6,7 @@ using System.Windows.Media;
 using CodexBar.App;
 using CodexBar.Core;
 using CodexBar.Providers;
+using CodexBar.Windows;
 using AppLocalization = CodexBar.Core.Localization;
 
 namespace CodexBar.UiSmokeTest;
@@ -27,7 +28,8 @@ internal static class Program
             TestStructuredInputForm();
             TestUrlElicitation();
             TestTemplateManagerDialog();
-            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true templates=true");
+            TestQuickCaptureClipboardGuard();
+            Console.WriteLine("PASS WPF approval=4 request-user-input=true mcp-form=true mcp-url=true templates=true quick-capture=true");
             return 0;
         }
         catch (Exception exception)
@@ -35,6 +37,16 @@ internal static class Program
             Console.Error.WriteLine($"FAIL {exception}");
             return 1;
         }
+    }
+
+    private static void TestQuickCaptureClipboardGuard()
+    {
+        Assert(SelectionCapture.NormalizeCapturedText(10, 10, "teks lama") is null,
+            "Quick capture tidak boleh memakai isi clipboard lama jika sequence tidak berubah.");
+        Assert(SelectionCapture.NormalizeCapturedText(10, 11, "  teks terpilih  ") == "teks terpilih",
+            "Quick capture harus menerima dan merapikan selection baru.");
+        Assert(SelectionCapture.NormalizeCapturedText(10, 11, "   ") is null,
+            "Quick capture harus mengabaikan selection kosong.");
     }
 
     private static void TestOutputWindowLocalization()

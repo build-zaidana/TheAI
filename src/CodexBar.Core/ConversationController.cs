@@ -2,14 +2,20 @@ using CodexBar.Providers;
 
 namespace CodexBar.Core;
 
-public sealed class ConversationController(IAgentProvider provider)
+public sealed class ConversationController
 {
-    private readonly IAgentProvider _provider = provider;
+    private IAgentProvider _provider;
     private readonly SemaphoreSlim _reconnectGate = new(1, 1);
+    private readonly SemaphoreSlim _providerSwitchGate = new(1, 1);
     private bool _eventSubscribed;
     private Task? _recoveryTask;
     private string _sandboxMode = "workspace-write";
     private string _approvalPolicy = "on-request";
+
+    public ConversationController(IAgentProvider provider)
+    {
+        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+    }
 
     public string? ThreadId { get; private set; }
     public string? WorkspacePath { get; private set; }
@@ -32,6 +38,68 @@ public sealed class ConversationController(IAgentProvider provider)
         }
 
         await _provider.InitializeAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Initializes a replacement before committing the swap. The active provider remains usable
+    /// if initialization fails. Switching is intentionally blocked while a turn is active.
+    /// </summary>
+    public async Task SwitchProviderAsync(
+        IAgentProvider replacement,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(replacement);
+        if (IsBusy)
+        {
+            await replacement.DisposeAsync();
+            throw new InvalidOperationException(
+                Localization.Instance["provider.switch.busy"]);
+        }
+
+        await _providerSwitchGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (string.Equals(_provider.Id, replacement.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                await replacement.DisposeAsync();
+                return;
+            }
+
+            try
+            {
+                await replacement.InitializeAsync(cancellationToken);
+            }
+            catch
+            {
+                await replacement.DisposeAsync();
+                throw;
+            }
+
+            var previous = _provider;
+            if (_eventSubscribed)
+            {
+                previous.EventReceived -= ForwardEvent;
+                replacement.EventReceived += ForwardEvent;
+            }
+
+            _provider = replacement;
+            WorkspacePath = null;
+            ThreadId = null;
+            _recoveryTask = null;
+
+            try
+            {
+                await previous.DisposeAsync();
+            }
+            catch
+            {
+                // The replacement is already active; disposal failure must not roll it back.
+            }
+        }
+        finally
+        {
+            _providerSwitchGate.Release();
+        }
     }
 
     public async Task OpenWorkspaceAsync(
@@ -215,6 +283,11 @@ public sealed class ConversationController(IAgentProvider provider)
 
     private void ForwardEvent(object? sender, ProviderEvent providerEvent)
     {
+        if (!ReferenceEquals(sender, _provider))
+        {
+            return;
+        }
+
         if (providerEvent is ProviderErrorEvent { WillRetry: false } error && !_provider.IsInitialized)
         {
             var interruptedTurn = IsBusy;

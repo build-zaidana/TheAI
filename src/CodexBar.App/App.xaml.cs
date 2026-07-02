@@ -72,7 +72,8 @@ public partial class App : System.Windows.Application
                 $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
             _provider = CreateProvider(settings.Provider);
 
-            var window = new MainWindow(settings, settingsStore, _provider);
+            var window = new MainWindow(settings, settingsStore, _provider, CreateProvider);
+            window.ActiveProviderChanged += provider => _provider = provider;
             MainWindow = window;
             window.Show();
             _activationLoop = Task.Run(() => WaitForActivation(window, _activationCancellation.Token));
@@ -95,7 +96,7 @@ public partial class App : System.Windows.Application
     // Selects the provider implementation from settings. Codex is the default; "anthropic"
     // uses the Claude Messages API. The key is read from Windows Credential Manager (set via
     // Settings), falling back to the ANTHROPIC_API_KEY environment variable for advanced/dev use.
-    private static IAgentProvider CreateProvider(string providerId)
+    internal static IAgentProvider CreateProvider(string providerId)
     {
         Func<string, string> localize = key => CodexBar.Core.Localization.Instance[key];
         return providerId switch

@@ -241,6 +241,23 @@ static async Task<int> RunDeterministicTestsAsync()
             "Send setelah disconnect harus menginisialisasi ulang provider dan melanjutkan thread.");
         provider.Emit(new ProviderCompletedEvent("completed"));
 
+        var failedReplacement = new FakeProvider { ProviderId = "failed", FailInitialize = true };
+        await AssertThrowsAsync<InvalidOperationException>(
+            () => controller.SwitchProviderAsync(failedReplacement));
+        Assert(controller.ProviderId == "fake" && !provider.Disposed && failedReplacement.Disposed,
+            "Live provider switch yang gagal harus mempertahankan provider lama dan membersihkan kandidat.");
+
+        var replacement = new FakeProvider { ProviderId = "replacement" };
+        await controller.SwitchProviderAsync(replacement);
+        Assert(controller.ProviderId == "replacement" && replacement.IsInitialized && provider.Disposed &&
+               controller.ThreadId is null && controller.WorkspacePath is null,
+            "Live provider switch harus mengaktifkan provider baru dan mereset konteks provider lama.");
+        var forwardedAfterSwitch = forwardedEvents;
+        provider.Emit(new ProviderStatusEvent("stale"));
+        replacement.Emit(new ProviderStatusEvent("active"));
+        Assert(forwardedEvents == forwardedAfterSwitch + 1,
+            "Setelah live switch hanya event provider aktif yang boleh diteruskan.");
+
         var settingsRoot = Path.Combine(temporaryRoot, "settings");
         Directory.CreateDirectory(settingsRoot);
         var store = new JsonSettingsStore(settingsRoot);
@@ -1040,12 +1057,15 @@ sealed class CannedSseHandler(string sse) : HttpMessageHandler
 
 sealed class FakeProvider : IAgentProvider
 {
-    public string Id => "fake";
+    public string Id => ProviderId;
     public string DisplayName => "Fake";
     public ProviderCapabilities Capabilities { get; } = new(true, true, true, true, false, true);
     public bool IsInitialized { get; private set; }
     public bool FailStart { get; set; }
     public bool FailSend { get; set; }
+    public bool FailInitialize { get; set; }
+    public bool Disposed { get; private set; }
+    public string ProviderId { get; init; } = "fake";
     public int InitializeCount { get; private set; }
     public int StartCount { get; private set; }
 
@@ -1053,6 +1073,11 @@ sealed class FakeProvider : IAgentProvider
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        if (FailInitialize)
+        {
+            return Task.FromException(new InvalidOperationException("initialize gagal"));
+        }
+
         IsInitialized = true;
         InitializeCount++;
         return Task.CompletedTask;
@@ -1107,7 +1132,12 @@ sealed class FakeProvider : IAgentProvider
 
     public Task CancelAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        Disposed = true;
+        IsInitialized = false;
+        return ValueTask.CompletedTask;
+    }
 
     public void Emit(ProviderEvent providerEvent) => EventReceived?.Invoke(this, providerEvent);
 

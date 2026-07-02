@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     private readonly AppSettings _settings;
     private readonly JsonSettingsStore _settingsStore;
     private readonly ConversationController _controller;
+    private readonly Func<string, IAgentProvider> _providerFactory;
     private OutputWindow? _outputWindow;
     private readonly GlobalHotKey _hotKey = new();
     private readonly Forms.NotifyIcon _trayIcon;
@@ -80,6 +81,7 @@ public partial class MainWindow : Window
     private bool _suppressSizeSave;
     private bool _permissionChangePending;
     private bool _contextWarningShown;
+    private bool _quickCaptureActive;
     private int? _lastContextPercent;
     private double _responseZoomDelta;
     private OnboardingKind _onboardingKind;
@@ -94,10 +96,12 @@ public partial class MainWindow : Window
     public MainWindow(
         AppSettings settings,
         JsonSettingsStore settingsStore,
-        IAgentProvider provider)
+        IAgentProvider provider,
+        Func<string, IAgentProvider> providerFactory)
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _providerFactory = providerFactory;
         _controller = new ConversationController(provider);
         _controller.EventReceived += Controller_EventReceived;
 
@@ -141,6 +145,8 @@ public partial class MainWindow : Window
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ToggleOverlay);
         _trayIcon.BalloonTipClicked += (_, _) => Dispatcher.Invoke(ShowFromExternalActivation);
     }
+
+    public event Action<IAgentProvider>? ActiveProviderChanged;
 
     private static Drawing.Icon LoadAppIcon()
     {
@@ -609,8 +615,52 @@ public partial class MainWindow : Window
         }
     }
 
-    private void GlobalHotKey_Pressed(object? sender, EventArgs e) =>
-        Dispatcher.Invoke(ToggleOverlay);
+    private async void GlobalHotKey_Pressed(object? sender, EventArgs e)
+    {
+        if (_quickCaptureActive)
+        {
+            return;
+        }
+
+        if (IsVisible && IsActive)
+        {
+            ToggleOverlay();
+            return;
+        }
+
+        _quickCaptureActive = true;
+        try
+        {
+            var selection = await SelectionCapture.TryCaptureTextAsync();
+            if (string.IsNullOrWhiteSpace(selection))
+            {
+                ToggleOverlay();
+                return;
+            }
+
+            ShowFromExternalActivation();
+            PromptBox.Text = selection;
+            PromptBox.CaretIndex = PromptBox.Text.Length;
+            SetStatus(L("quickCapture.sending"), StatusBusyBrush);
+
+            if (_controller.ThreadId is null || _controller.IsBusy)
+            {
+                SetStatus(L(_controller.IsBusy ? "quickCapture.busy" : "quickCapture.notReady"), StatusBusyBrush);
+                return;
+            }
+
+            await SendPromptAsync();
+        }
+        catch (Exception exception)
+        {
+            ShowFromExternalActivation();
+            ShowError(LF("quickCapture.failed", exception.Message));
+        }
+        finally
+        {
+            _quickCaptureActive = false;
+        }
+    }
 
     private void ApplyBackdrop()
     {
@@ -696,7 +746,10 @@ public partial class MainWindow : Window
             : requestedThreadId ?? (_settings.ThreadIds.TryGetValue(threadKey, out var stored) ? stored : null);
 
         await _controller.OpenWorkspaceAsync(normalizedPath, previousThread, _settings.SandboxMode, _settings.ApprovalPolicy);
-        _settings.WorkspacePath = normalizedPath;
+        if (_controller.Capabilities.SupportsWorkspace)
+        {
+            _settings.WorkspacePath = normalizedPath;
+        }
         _workspaceLabel = new DirectoryInfo(normalizedPath).Name;
         WorkspacePathText.Text = FormatWorkspaceDisplay(normalizedPath);
         WorkspaceButton.ToolTip = normalizedPath;
@@ -2488,7 +2541,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_settingsReady)
         {
@@ -2505,9 +2558,43 @@ public partial class MainWindow : Window
             return;
         }
 
-        _settings.Provider = providerId;
-        _ = SaveSettingsSafeAsync();
-        SetStatus(L("provider.section.restartNote"), StatusBusyBrush);
+        var previousProviderId = _settings.Provider;
+        ProviderCombo.IsEnabled = false;
+        SetStatus(L("provider.switch.switching"), StatusBusyBrush);
+        try
+        {
+            var replacement = _providerFactory(providerId);
+            await _controller.SwitchProviderAsync(replacement);
+
+            _settings.Provider = providerId;
+            ActiveProviderChanged?.Invoke(replacement);
+            _modelsReady = false;
+            ModelCombo.ItemsSource = null;
+            ModelRow.Visibility = Visibility.Collapsed;
+            _threadStatuses.Clear();
+            _messages.Clear();
+            _streamingAgent = null;
+            _historyLoadedThreadId = null;
+            RenderConversation();
+            await SaveSettingsSafeAsync();
+            await StartupAsync();
+            if (_controller.ThreadId is not null)
+            {
+                SetStatus(LF("provider.switch.ready", replacement.DisplayName), StatusReadyBrush);
+            }
+        }
+        catch (Exception exception)
+        {
+            _settingsReady = false;
+            ProviderCombo.SelectedIndex = previousProviderId == "anthropic" ? 1 : 0;
+            ApiKeyPanel.Visibility = previousProviderId == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
+            _settingsReady = true;
+            ShowError(LF("provider.switch.failed", exception.Message));
+        }
+        finally
+        {
+            ProviderCombo.IsEnabled = true;
+        }
     }
 
     private void SaveApiKeyButton_Click(object sender, RoutedEventArgs e)
