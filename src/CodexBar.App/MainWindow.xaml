@@ -55,6 +55,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Launcher satu baris: menu · direktori · field(input + kirim) · settings -->
@@ -481,6 +482,24 @@
                                        FontSize="11" Foreground="{DynamicResource TextMuted}" />
                         </StackPanel>
                     </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Banner auto-resume: muncul saat kuota habis & resume terjadwal -->
+            <Border x:Name="AutoResumeBar" Grid.Row="3" Visibility="Collapsed"
+                    Margin="11,0,12,10" Padding="12,7" CornerRadius="10"
+                    Background="{DynamicResource GlassTrack}"
+                    BorderBrush="{DynamicResource GlassStroke}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="AutoResumeText" VerticalAlignment="Center" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12.5" />
+                    <Button x:Name="CancelAutoResumeButton" Grid.Column="1" Content="Batal" Margin="10,0,0,0"
+                            Style="{StaticResource GlassPillButton}" Click="CancelAutoResumeButton_Click"
+                            AutomationProperties.Name="Batalkan lanjut otomatis" />
                 </Grid>
             </Border>
         </Grid>

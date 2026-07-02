@@ -993,6 +993,7 @@ public partial class MainWindow : Window
 
         _autoResumeTimer?.Stop();
         _autoResumeArmed = false;
+        AutoResumeBar.Visibility = Visibility.Collapsed;
         if (_controller.IsBusy || _lastPrompt is not { Length: > 0 } prompt)
         {
             return;
@@ -1007,8 +1008,17 @@ public partial class MainWindow : Window
     {
         if (_autoResumeAt is { } retryAt)
         {
-            SetStatus(LF("autoResume.scheduled", retryAt.ToLocalTime().ToString("HH:mm")), StatusBusyBrush);
+            var text = LF("autoResume.scheduled", retryAt.ToLocalTime().ToString("HH:mm"));
+            SetStatus(text, StatusBusyBrush);
+            AutoResumeText.Text = text;
+            AutoResumeBar.Visibility = Visibility.Visible;
         }
+    }
+
+    private void CancelAutoResumeButton_Click(object sender, RoutedEventArgs e)
+    {
+        DisarmAutoResume();
+        SetStatus(L("autoResume.cancelled"), StatusReadyBrush);
     }
 
     private void DisarmAutoResume()
@@ -1021,6 +1031,7 @@ public partial class MainWindow : Window
         _autoResumeArmed = false;
         _autoResumeAt = null;
         _autoResumeTimer?.Stop();
+        AutoResumeBar.Visibility = Visibility.Collapsed;
     }
 
     private bool TryRecallPrompt(bool previous)
@@ -2965,6 +2976,7 @@ public partial class MainWindow : Window
         ExportCheckpointButton.Content = loc["settings.exportCheckpoint"];
         OpenLogsButton.Content = loc["settings.openLogs"];
         ReportBugButton.Content = loc["settings.reportBug"];
+        CancelAutoResumeButton.Content = loc["autoResume.cancel"];
         ResetLayoutButton.Content = loc["settings.resetLayout"];
         CloseSettingsButton.Content = loc["settings.close"];
 

@@ -78,6 +78,8 @@ public static class Strings
         ["settings.reportBug"] = ("Laporkan bug", "Report a bug"),
         ["autoResume.scheduled"] = ("Kuota habis. Lanjut otomatis ~{0} (kirim manual untuk batal).", "Usage limit reached. Auto-resuming ~{0} (send manually to cancel)."),
         ["autoResume.resuming"] = ("Melanjutkan otomatis…", "Auto-resuming…"),
+        ["autoResume.cancel"] = ("Batal", "Cancel"),
+        ["autoResume.cancelled"] = ("Lanjut-otomatis dibatalkan.", "Auto-resume cancelled."),
         ["bugReport.created"] = ("Laporan bug dibuat.", "Bug report created."),
         ["bugReport.failed"] = ("Gagal membuat laporan bug: {0}", "Failed to create bug report: {0}"),
         ["settings.close"] = ("Tutup", "Close"),
