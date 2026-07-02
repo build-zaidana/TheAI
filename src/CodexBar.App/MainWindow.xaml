@@ -419,6 +419,8 @@
                         <CheckBox x:Name="PinCheckBox" Content="Pin" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="AutoCopyResponseCheck" Content="Auto-salin respons" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Salin otomatis respons ke clipboard saat selesai." />
+                        <CheckBox x:Name="LaunchAtLoginCheck" Content="Jalan saat login" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
+                                  ToolTip="Otomatis jalan dan standby di tray saat login, agar buka via hotkey selalu instan." />
                         <CheckBox x:Name="DiagnosticsLoggingCheck" Content="Log diagnostik" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Simpan log ke %LOCALAPPDATA%\CodexBar\logs untuk pelaporan bug. Default mati." />
                     </WrapPanel>

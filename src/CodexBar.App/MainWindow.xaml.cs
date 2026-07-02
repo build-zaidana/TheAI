@@ -1750,6 +1750,7 @@ public partial class MainWindow : Window
         };
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
         AutoCopyResponseCheck.IsChecked = _settings.AutoCopyResponse;
+        LaunchAtLoginCheck.IsChecked = _settings.LaunchAtLogin;
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
         ProviderCombo.SelectedIndex = _settings.Provider == "anthropic" ? 1 : 0;
@@ -1908,6 +1909,8 @@ public partial class MainWindow : Window
         _settings.ReasoningEffort = (EffortCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? string.Empty;
         _settings.MenuDocked = MenuDockedCheck.IsChecked == true;
         _settings.AutoCopyResponse = AutoCopyResponseCheck.IsChecked == true;
+        _settings.LaunchAtLogin = LaunchAtLoginCheck.IsChecked == true;
+        StartupRegistration.Apply(_settings.LaunchAtLogin);
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
         _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
@@ -3207,6 +3210,7 @@ public partial class MainWindow : Window
         EditLastButton.Content = loc["response.editLast"];
         OpenInEditorButton.Content = loc["response.openInEditor"];
         AutoCopyResponseCheck.Content = loc["settings.autoCopy"];
+        LaunchAtLoginCheck.Content = loc["settings.launchAtLogin"];
 
         // Controls that were previously left as static XAML text (so they didn't switch language).
         TopmostToggle.Content = loc["settings.alwaysOnTop"];

@@ -70,6 +70,12 @@ public partial class App : System.Windows.Application
             DiagnosticsLog.Configure(settings.EnableDiagnosticsLogging, settingsStore.BaseDirectory);
             DiagnosticsLog.Info("App",
                 $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
+            if (settings.LaunchAtLogin)
+            {
+                // Refresh the Run-key path in case the executable was moved since last run.
+                StartupRegistration.Apply(true);
+            }
+
             _provider = CreateProvider(settings.Provider);
 
             var window = new MainWindow(settings, settingsStore, _provider, CreateProvider);

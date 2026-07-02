@@ -97,6 +97,7 @@ public static class Strings
         ["schedule.emptyPrompt"] = ("Isi prompt dulu sebelum menjadwalkan.", "Enter a prompt before scheduling."),
         ["schedule.invalidMinutes"] = ("Masukkan jumlah menit yang valid (> 0).", "Enter a valid number of minutes (> 0)."),
         ["settings.autoCopy"] = ("Auto-salin respons", "Auto-copy response"),
+        ["settings.launchAtLogin"] = ("Jalan saat login", "Run at login"),
         ["settings.alwaysOnTop"] = ("Selalu di atas", "Always on top"),
         ["settings.modelTooltip"] = ("Pilih model untuk percakapan ini", "Choose the model for this conversation"),
         ["hotkey.apply"] = ("Terapkan", "Apply"),
