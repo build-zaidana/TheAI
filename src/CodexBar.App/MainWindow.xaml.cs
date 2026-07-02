@@ -82,6 +82,10 @@ public partial class MainWindow : Window
     private bool _permissionChangePending;
     private bool _contextWarningShown;
     private bool _quickCaptureActive;
+    private bool _autoResumeArmed;
+    private DateTimeOffset? _autoResumeAt;
+    private string? _lastPrompt;
+    private DispatcherTimer? _autoResumeTimer;
     private int? _lastContextPercent;
     private double _responseZoomDelta;
     private OnboardingKind _onboardingKind;
@@ -903,6 +907,9 @@ public partial class MainWindow : Window
             return;
         }
 
+        DisarmAutoResume();
+        _lastPrompt = prompt;
+
         var pendingAttachments = _attachments.ToArray();
         var attachmentSummary = pendingAttachments.Length == 0
             ? string.Empty
@@ -943,6 +950,77 @@ public partial class MainWindow : Window
             SetBusyUi(false);
             ShowError(exception.Message);
         }
+    }
+
+    // Auto-resume: when a provider reports a usage/rate limit, schedule one resend of the
+    // last prompt at the reset time it names. Transparent (shows a countdown status) and
+    // cancelled the moment the user sends anything manually.
+    private bool TryArmAutoResume(string message)
+    {
+        var now = DateTimeOffset.Now;
+        var retryAt = CodexBar.Core.RateLimit.ParseRetryAt(message, now) ?? now.AddMinutes(5);
+        if (retryAt <= now || retryAt > now.AddHours(24))
+        {
+            return false;
+        }
+
+        _autoResumeAt = retryAt;
+        _autoResumeArmed = true;
+        if (_autoResumeTimer is null)
+        {
+            _autoResumeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _autoResumeTimer.Tick += AutoResumeTick;
+        }
+
+        _autoResumeTimer.Start();
+        UpdateAutoResumeStatus();
+        return true;
+    }
+
+    private void AutoResumeTick(object? sender, EventArgs e)
+    {
+        if (!_autoResumeArmed || _autoResumeAt is not { } retryAt)
+        {
+            _autoResumeTimer?.Stop();
+            return;
+        }
+
+        if (DateTimeOffset.Now < retryAt)
+        {
+            UpdateAutoResumeStatus();
+            return;
+        }
+
+        _autoResumeTimer?.Stop();
+        _autoResumeArmed = false;
+        if (_controller.IsBusy || _lastPrompt is not { Length: > 0 } prompt)
+        {
+            return;
+        }
+
+        SetStatus(L("autoResume.resuming"), StatusBusyBrush);
+        PromptBox.Text = prompt;
+        _ = SendPromptAsync();
+    }
+
+    private void UpdateAutoResumeStatus()
+    {
+        if (_autoResumeAt is { } retryAt)
+        {
+            SetStatus(LF("autoResume.scheduled", retryAt.ToLocalTime().ToString("HH:mm")), StatusBusyBrush);
+        }
+    }
+
+    private void DisarmAutoResume()
+    {
+        if (!_autoResumeArmed)
+        {
+            return;
+        }
+
+        _autoResumeArmed = false;
+        _autoResumeAt = null;
+        _autoResumeTimer?.Stop();
     }
 
     private bool TryRecallPrompt(bool previous)
@@ -1250,6 +1328,16 @@ public partial class MainWindow : Window
                     break;
 
                 case ProviderErrorEvent error:
+                    if (!error.WillRetry && !_autoResumeArmed && _lastPrompt is { Length: > 0 } &&
+                        CodexBar.Core.RateLimit.IsRateLimited(error.Message))
+                    {
+                        SetBusyUi(false);
+                        if (TryArmAutoResume(error.Message))
+                        {
+                            break;
+                        }
+                    }
+
                     SetStatus(error.WillRetry ? L("status.retrying") : L("status.error"),
                         error.WillRetry ? StatusBusyBrush : StatusErrorBrush);
                     if (error.WillRetry)

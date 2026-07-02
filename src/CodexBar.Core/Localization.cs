@@ -76,6 +76,8 @@ public static class Strings
         ["settings.diagnosticsLog"] = ("Log diagnostik", "Diagnostic log"),
         ["settings.openLogs"] = ("Buka folder log", "Open logs folder"),
         ["settings.reportBug"] = ("Laporkan bug", "Report a bug"),
+        ["autoResume.scheduled"] = ("Kuota habis. Lanjut otomatis ~{0} (kirim manual untuk batal).", "Usage limit reached. Auto-resuming ~{0} (send manually to cancel)."),
+        ["autoResume.resuming"] = ("Melanjutkan otomatis…", "Auto-resuming…"),
         ["bugReport.created"] = ("Laporan bug dibuat.", "Bug report created."),
         ["bugReport.failed"] = ("Gagal membuat laporan bug: {0}", "Failed to create bug report: {0}"),
         ["settings.close"] = ("Tutup", "Close"),
