@@ -2881,7 +2881,9 @@ public partial class MainWindow : Window
                 $"Time: {DateTimeOffset.Now:O}");
             var zipPath = CodexBar.Core.BugReport.Create(_settingsStore.BaseDirectory, info);
             Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{zipPath}\"") { UseShellExecute = true });
-            SetStatus(L("bugReport.created"), StatusReadyBrush);
+            SetStatus(
+                _settings.EnableDiagnosticsLogging ? L("bugReport.created") : L("bugReport.createdNoLogs"),
+                StatusReadyBrush);
         }
         catch (Exception exception)
         {

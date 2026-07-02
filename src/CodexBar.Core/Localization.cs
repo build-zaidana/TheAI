@@ -109,6 +109,7 @@ public static class Strings
         ["autoResume.cancel"] = ("Batal", "Cancel"),
         ["autoResume.cancelled"] = ("Lanjut-otomatis dibatalkan.", "Auto-resume cancelled."),
         ["bugReport.created"] = ("Laporan bug dibuat.", "Bug report created."),
+        ["bugReport.createdNoLogs"] = ("Laporan dibuat (tanpa log — nyalakan 'Log diagnostik' lalu reproduksi untuk log detail).", "Report created (no logs — enable 'Diagnostic log' then reproduce for detailed logs)."),
         ["bugReport.failed"] = ("Gagal membuat laporan bug: {0}", "Failed to create bug report: {0}"),
         ["settings.close"] = ("Tutup", "Close"),
         ["settings.outputDocked"] = ("Output menyatu", "Docked output"),

@@ -21,13 +21,12 @@ internal sealed class SchedulePromptDialog : Window
 {
     private readonly ListBox _list = new();
     private readonly TextBox _minutes = new();
+    private readonly TextBox _promptBox = new();
     private readonly List<ScheduledPrompt> _items;
-    private readonly string _prompt;
 
     public SchedulePromptDialog(string prompt, IEnumerable<ScheduledPrompt> existing)
     {
         var loc = CodexBar.Core.Localization.Instance;
-        _prompt = prompt.Trim();
         _items = ScheduledPrompt.Normalize(existing);
 
         Title = loc["schedule.title"];
@@ -47,19 +46,19 @@ internal sealed class SchedulePromptDialog : Window
             Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC)),
             Margin = new Thickness(0, 0, 0, 4)
         });
-        root.Children.Add(new TextBox
-        {
-            Text = _prompt,
-            IsReadOnly = true,
-            TextWrapping = TextWrapping.Wrap,
-            MaxHeight = 90,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Padding = new Thickness(8),
-            Background = new SolidColorBrush(Color.FromRgb(0x17, 0x1A, 0x20)),
-            Foreground = Brushes.White,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x4B, 0x57)),
-            BorderThickness = new Thickness(1)
-        });
+        _promptBox.Text = prompt.Trim();
+        _promptBox.AcceptsReturn = true;
+        _promptBox.TextWrapping = TextWrapping.Wrap;
+        _promptBox.MinHeight = 60;
+        _promptBox.MaxHeight = 120;
+        _promptBox.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        _promptBox.Padding = new Thickness(8);
+        _promptBox.Background = new SolidColorBrush(Color.FromRgb(0x17, 0x1A, 0x20));
+        _promptBox.Foreground = Brushes.White;
+        _promptBox.BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x4B, 0x57));
+        _promptBox.BorderThickness = new Thickness(1);
+        System.Windows.Automation.AutomationProperties.SetName(_promptBox, loc["schedule.promptLabel"]);
+        root.Children.Add(_promptBox);
 
         var addRow = new StackPanel
         {
@@ -117,7 +116,8 @@ internal sealed class SchedulePromptDialog : Window
     private void AddSchedule()
     {
         var loc = CodexBar.Core.Localization.Instance;
-        if (_prompt.Length == 0)
+        var prompt = _promptBox.Text.Trim();
+        if (prompt.Length == 0)
         {
             MessageBox.Show(this, loc["schedule.emptyPrompt"], loc["schedule.title"],
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -132,7 +132,7 @@ internal sealed class SchedulePromptDialog : Window
             return;
         }
 
-        _items.Add(new ScheduledPrompt { Prompt = _prompt, RunAt = DateTimeOffset.Now.AddMinutes(minutes) });
+        _items.Add(new ScheduledPrompt { Prompt = prompt, RunAt = DateTimeOffset.Now.AddMinutes(minutes) });
         RefreshList();
     }
 
