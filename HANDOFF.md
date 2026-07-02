@@ -13,8 +13,17 @@ ke **Codex** tanpa membuka Codex penuh. Hotkey global `Win+Shift+C`.
 
 - **Bukan AI sendiri** — front-end tipis di atas **Codex CLI** (`codex app-server --stdio`,
   protokol JSON-RPC). Pengguna harus sudah `npm install -g @openai/codex` + `codex login`.
-- Tanpa OpenAI API key (pakai login Codex/ChatGPT yang sudah ada).
-- Bahasa UI: Indonesia.
+- Tanpa OpenAI API key untuk Codex (pakai login Codex/ChatGPT yang sudah ada).
+- Bahasa UI: Indonesia + English (toggle di Settings, live-switch via `CodexBar.Core.Localization`).
+
+### Update arsitektur (terbaru — WAJIB dibaca)
+- **Multi-provider** via `IAgentProvider`. Provider dipilih dari `AppSettings.Provider` ("codex"/"anthropic") lewat factory `App.CreateProvider`. UI menyesuaikan `Capabilities` (kontrol workspace/approval disable bila tak didukung).
+  - `CodexBar.Providers.Anthropic.AnthropicProvider` = Claude Messages API (streaming SSE, api-key, tanpa thread/workspace). **Unit-tested, BELUM live** (butuh Anthropic key).
+  - API key disimpan di **Windows Credential Manager** via `CodexBar.Core.CredentialStore` (P/Invoke, bukan NuGet). Provider bisa diganti live: `ConversationController.SwitchProviderAsync` (blokir saat busy, rollback bila init gagal).
+- **Transport seam**: `CodexProvider` menerima `Func<ICodexTransport>`. `TestCodexTransport` di smoke test menguji timeout/RPC-error/disconnect tanpa proses nyata.
+- **Quick-capture**: `CodexBar.Windows.SelectionCapture` (SendInput Ctrl+C + guard sequence-number clipboard) → hotkey menangkap seleksi app lain.
+- Subsistem lain: `PromptTemplate` (+ `Expand` untuk `{selection}`/`{clipboard}`), `PromptHistory`, `DiagnosticsLog`, `BugReport`. SchemaVersion **8**.
+- Gaya kode: WinForms+WPF aktif → kualifikasi penuh tipe ambigu (mis. `CodexBar.Core.Localization` bentrok `System.Windows.Localization`).
 
 ## 2. Struktur direktori (yang perlu dicek)
 ```

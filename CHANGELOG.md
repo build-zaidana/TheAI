@@ -4,16 +4,20 @@
 
 ### Added
 
-- Optional English UI: a Language toggle in Settings with live switching (no restart). The input bar, Settings panel, sidebar, output window, approval/interactive dialogs, and first-run onboarding are localized; remaining dynamic status messages migrate incrementally.
-- Prompt templates: save and quick-insert reusable prompts from an input-bar button; fresh installs are seeded with example templates.
-- Opt-in diagnostics logging to `%LOCALAPPDATA%\CodexBar\logs` with 7-day rotation, an unhandled-exception capture hook, a Settings toggle, and an "open logs folder" button.
-- Helper-level reliability unit tests for `CodexProvider` (sandbox/approval normalization, missing-thread vs not-materialized classification, preview formatting, thread status/summary parsing).
+- Multi-provider support: choose between **Codex** and **Claude** (Anthropic Messages API) from a Settings provider picker. The UI adapts to each provider's capabilities (workspace/approval controls disable when unsupported). API keys are stored in Windows Credential Manager, never in plaintext settings.
+- Global quick-capture: select text in any app, press the hotkey, and CodexBar sends the selection straight to the AI. A clipboard-sequence guard ensures an empty selection never re-sends stale clipboard text, and the prior clipboard is restored.
+- Template variables `{selection}` and `{clipboard}` expanded on insert, a template manager (create/edit/rename/delete), and prompt history recall (Up/Down in the input).
+- Export/import of settings and templates for backup or sharing.
+- "Report a bug" button that bundles diagnostics logs and an info summary into a single zip.
+- Optional English UI: a Language toggle in Settings with live switching (no restart), covering the input bar, Settings, sidebar, output window, dialogs, and onboarding.
+- Opt-in diagnostics logging to `%LOCALAPPDATA%\CodexBar\logs` with 7-day rotation, an unhandled-exception capture hook, and an "open logs folder" button.
+- Reliability unit tests for `CodexProvider` via an injectable transport seam (timeout, JSON-RPC error, and disconnect/EOF) plus helper-level tests; CI now also runs the WPF UI smoke tests.
 - Window-level, conversation-region, and per-thread accessibility names on the output and sidebar windows.
-- CI now also runs the WPF UI smoke tests on every push.
 
 ### Changed
 
-- Settings schema bumped to 7 (diagnostics logging flag and prompt templates), with matching normalization.
+- Providers can be switched live without restarting: the swap is blocked while a turn is active and rolls back to the previous provider if the new one fails to initialize. The saved Codex workspace is preserved across switches.
+- Settings schema bumped to 8 (UI language, provider selection, prompt templates, diagnostics flag), with matching normalization.
 
 ### Removed
 
