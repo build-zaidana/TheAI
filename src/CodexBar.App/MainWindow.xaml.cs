@@ -638,10 +638,16 @@ public partial class MainWindow : Window
             _quickCaptureHotKey.Pressed += QuickCaptureHotKey_Pressed;
             _quickCaptureHotKey.Register(this, _settings.QuickCaptureHotkey);
             _settings.QuickCaptureHotkey = _quickCaptureHotKey.CurrentGesture ?? _settings.QuickCaptureHotkey;
+            DiagnosticsLog.Info("QuickCaptureHotkey", $"registered {_settings.QuickCaptureHotkey}");
         }
-        catch
+        catch (Exception exception)
         {
-            // The quick-capture hotkey is optional; a conflict must not break the main hotkey.
+            // The quick-capture hotkey is optional; a conflict must not break the main hotkey,
+            // but make the failure visible so the user knows the combo didn't register.
+            DiagnosticsLog.Error("QuickCaptureHotkey", exception.Message);
+            SetStatus(LF("quickCapture.registerFailed", _settings.QuickCaptureHotkey), StatusErrorBrush);
+            _trayIcon.ShowBalloonTip(4000, L("notification.hotkeyInactive"),
+                LF("quickCapture.registerFailed", _settings.QuickCaptureHotkey), Forms.ToolTipIcon.Warning);
         }
     }
 
@@ -698,50 +704,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void GlobalHotKey_Pressed(object? sender, EventArgs e)
+    // The main hotkey only toggles the overlay. Capturing a selection is now the dedicated
+    // quick-capture hotkey's job (see QuickCaptureHotKey_Pressed).
+    private void GlobalHotKey_Pressed(object? sender, EventArgs e)
     {
-        if (_quickCaptureActive)
-        {
-            return;
-        }
-
         if (IsVisible && IsActive)
         {
             ToggleOverlay();
-            return;
         }
-
-        _quickCaptureActive = true;
-        try
-        {
-            var selection = await SelectionCapture.TryCaptureTextAsync();
-            if (string.IsNullOrWhiteSpace(selection))
-            {
-                ToggleOverlay();
-                return;
-            }
-
-            ShowFromExternalActivation();
-            PromptBox.Text = selection;
-            PromptBox.CaretIndex = PromptBox.Text.Length;
-            SetStatus(L("quickCapture.sending"), StatusBusyBrush);
-
-            if (_controller.ThreadId is null || _controller.IsBusy)
-            {
-                SetStatus(L(_controller.IsBusy ? "quickCapture.busy" : "quickCapture.notReady"), StatusBusyBrush);
-                return;
-            }
-
-            await SendPromptAsync();
-        }
-        catch (Exception exception)
+        else
         {
             ShowFromExternalActivation();
-            ShowError(LF("quickCapture.failed", exception.Message));
-        }
-        finally
-        {
-            _quickCaptureActive = false;
         }
     }
 

@@ -191,6 +191,7 @@ public static class Strings
         ["quickCapture.notReady"] = ("Teks terpilih sudah dimasukkan; selesaikan setup provider/workspace untuk mengirim.", "Selected text is ready; finish provider/workspace setup before sending."),
         ["quickCapture.failed"] = ("Quick capture gagal: {0}", "Quick capture failed: {0}"),
         ["quickCapture.noSelection"] = ("Tidak ada teks terseleksi untuk dikirim.", "No text selected to send."),
+        ["quickCapture.registerFailed"] = ("Hotkey quick-capture {0} tak dapat didaftarkan (mungkin bentrok dengan app lain).", "Quick-capture hotkey {0} couldn't be registered (may conflict with another app)."),
         ["quickCapture.done"] = ("Jawaban quick-capture selesai.", "Quick-capture answer ready."),
         ["quickCapture.label"] = ("Quick-capture", "Quick-capture"),
         ["quickCapture.hotkeyLabel"] = ("QC hotkey", "QC hotkey"),
