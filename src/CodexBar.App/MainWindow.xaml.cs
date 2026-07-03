@@ -1804,8 +1804,8 @@ public partial class MainWindow : Window
         };
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
-        ProviderCombo.SelectedIndex = _settings.Provider == "anthropic" ? 1 : 0;
-        ApiKeyPanel.Visibility = _settings.Provider == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
+        SelectProviderComboItem(_settings.Provider);
+        ApiKeyPanel.Visibility = IsApiKeyProvider(_settings.Provider) ? Visibility.Visible : Visibility.Collapsed;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
         {
             "light" => 1,
@@ -2978,10 +2978,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var providerId = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "anthropic"
-            ? "anthropic"
-            : "codex";
-        ApiKeyPanel.Visibility = providerId == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
+        var providerId = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "codex";
+        ApiKeyPanel.Visibility = IsApiKeyProvider(providerId) ? Visibility.Visible : Visibility.Collapsed;
 
         if (providerId == _settings.Provider)
         {
@@ -3016,8 +3014,8 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _settingsReady = false;
-            ProviderCombo.SelectedIndex = previousProviderId == "anthropic" ? 1 : 0;
-            ApiKeyPanel.Visibility = previousProviderId == "anthropic" ? Visibility.Visible : Visibility.Collapsed;
+            SelectProviderComboItem(previousProviderId);
+            ApiKeyPanel.Visibility = IsApiKeyProvider(previousProviderId) ? Visibility.Visible : Visibility.Collapsed;
             _settingsReady = true;
             ShowError(LF("provider.switch.failed", exception.Message));
         }
@@ -3027,8 +3025,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private static readonly string[] ApiKeyProviderIds = ["anthropic", "openai", "openrouter"];
+
+    private static bool IsApiKeyProvider(string providerId) => ApiKeyProviderIds.Contains(providerId);
+
+    private void SelectProviderComboItem(string providerId)
+    {
+        var item = ProviderCombo.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(i => (string?)i.Tag == providerId);
+        ProviderCombo.SelectedItem = item ?? ProviderCombo.Items.OfType<ComboBoxItem>().First();
+    }
+
     private void SaveApiKeyButton_Click(object sender, RoutedEventArgs e)
     {
+        var providerId = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "codex";
         var key = ApiKeyBox.Password;
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -3036,7 +3046,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (CodexBar.Core.CredentialStore.Save(App.ApiKeyCredentialTarget("anthropic"), key.Trim()))
+        if (CodexBar.Core.CredentialStore.Save(App.ApiKeyCredentialTarget(providerId), key.Trim()))
         {
             ApiKeyBox.Clear();
             ApiKeyStatusText.Text = L("provider.apiKey.saved");
@@ -3049,7 +3059,8 @@ public partial class MainWindow : Window
 
     private void ClearApiKeyButton_Click(object sender, RoutedEventArgs e)
     {
-        CodexBar.Core.CredentialStore.Delete(App.ApiKeyCredentialTarget("anthropic"));
+        var providerId = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "codex";
+        CodexBar.Core.CredentialStore.Delete(App.ApiKeyCredentialTarget(providerId));
         ApiKeyBox.Clear();
         ApiKeyStatusText.Text = L("provider.apiKey.cleared");
     }

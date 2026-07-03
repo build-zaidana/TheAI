@@ -4,6 +4,8 @@ using CodexBar.Persistence;
 using CodexBar.Providers;
 using CodexBar.Providers.Anthropic;
 using CodexBar.Providers.Codex;
+using CodexBar.Providers.OpenAI;
+using CodexBar.Providers.OpenRouter;
 
 namespace CodexBar.App;
 
@@ -99,9 +101,9 @@ public partial class App : System.Windows.Application
     /// <summary>Credential Manager target name for a provider's API key.</summary>
     public static string ApiKeyCredentialTarget(string providerId) => $"CodexBar/apiKey/{providerId}";
 
-    // Selects the provider implementation from settings. Codex is the default; "anthropic"
-    // uses the Claude Messages API. The key is read from Windows Credential Manager (set via
-    // Settings), falling back to the ANTHROPIC_API_KEY environment variable for advanced/dev use.
+    // Selects the provider implementation from settings. Codex is the default. Each API-key
+    // provider reads its key from Windows Credential Manager (set via Settings), falling back
+    // to a well-known environment variable for advanced/dev use.
     internal static IAgentProvider CreateProvider(string providerId)
     {
         Func<string, string> localize = key => CodexBar.Core.Localization.Instance[key];
@@ -111,6 +113,16 @@ public partial class App : System.Windows.Application
                 SharedHttp,
                 () => CodexBar.Core.CredentialStore.TryRead(ApiKeyCredentialTarget("anthropic"))
                     ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"),
+                localize),
+            "openai" => new OpenAIProvider(
+                SharedHttp,
+                () => CodexBar.Core.CredentialStore.TryRead(ApiKeyCredentialTarget("openai"))
+                    ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY"),
+                localize),
+            "openrouter" => new OpenRouterProvider(
+                SharedHttp,
+                () => CodexBar.Core.CredentialStore.TryRead(ApiKeyCredentialTarget("openrouter"))
+                    ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"),
                 localize),
             _ => new CodexProvider(localize)
         };

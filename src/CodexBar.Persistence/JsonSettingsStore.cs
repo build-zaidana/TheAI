@@ -150,6 +150,8 @@ public sealed class JsonSettingsStore
         settings.Provider = settings.Provider?.ToLowerInvariant() switch
         {
             "anthropic" => "anthropic",
+            "openai" => "openai",
+            "openrouter" => "openrouter",
             _ => "codex"
         };
         settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";

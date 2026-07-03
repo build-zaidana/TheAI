@@ -8,6 +8,9 @@ using CodexBar.Persistence;
 using CodexBar.Providers;
 using CodexBar.Providers.Anthropic;
 using CodexBar.Providers.Codex;
+using CodexBar.Providers.OpenAI;
+using CodexBar.Providers.OpenAiCompatible;
+using CodexBar.Providers.OpenRouter;
 
 var metadataOnly = args.Contains("--metadata", StringComparer.OrdinalIgnoreCase);
 var resumeCheck = args.Contains("--resume-check", StringComparer.OrdinalIgnoreCase);
@@ -36,6 +39,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
     if (anthropic != 0)
     {
         return anthropic;
+    }
+
+    var openAiCompatible = await RunOpenAiCompatibleProviderTestsAsync();
+    if (openAiCompatible != 0)
+    {
+        return openAiCompatible;
     }
 
     var credentials = RunCredentialStoreTests();
@@ -341,6 +350,14 @@ static async Task<int> RunDeterministicTestsAsync()
         await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "Anthropic" }""");
         Assert((await store.LoadAsync()).Provider == "anthropic",
             "Provider anthropic harus dipertahankan (case-insensitive), yang tak dikenal jatuh ke codex.");
+
+        await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "OpenAI" }""");
+        Assert((await store.LoadAsync()).Provider == "openai",
+            "Provider openai harus dipertahankan (case-insensitive).");
+
+        await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "OpenRouter" }""");
+        Assert((await store.LoadAsync()).Provider == "openrouter",
+            "Provider openrouter harus dipertahankan (case-insensitive).");
 
         await File.WriteAllTextAsync(store.SettingsPath,
             """{ "pendingResume": { "prompt": "   ", "retryAt": "2030-01-01T00:00:00+00:00" } }""");
@@ -854,6 +871,10 @@ static async Task<int> RunAnthropicProviderTestsAsync()
         await noKey.SendPromptAsync("t", "hi");
         Assert(errored, "Tanpa API key harus memunculkan error, bukan crash.");
 
+        await AssertLocalConversationPersistsAsync(
+            "anthropic",
+            () => new AnthropicProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key"));
+
         Console.WriteLine("PASS anthropic provider tests");
         return 0;
     }
@@ -861,6 +882,139 @@ static async Task<int> RunAnthropicProviderTestsAsync()
     {
         Console.Error.WriteLine($"FAIL {exception.Message}");
         return 1;
+    }
+}
+
+static async Task<int> RunOpenAiCompatibleProviderTestsAsync()
+{
+    try
+    {
+        var openAiModels = OpenAIProvider.KnownModels();
+        Assert(openAiModels.Count >= 1 && openAiModels.Count(m => m.IsDefault) == 1,
+            "Harus ada tepat satu model OpenAI default.");
+        Assert(openAiModels.Single(m => m.IsDefault).Model == OpenAIProvider.DefaultModel,
+            "Model default OpenAI harus konsisten dengan DefaultModel.");
+
+        var openRouterModels = OpenRouterProvider.KnownModels();
+        Assert(openRouterModels.Count >= 1 && openRouterModels.Count(m => m.IsDefault) == 1,
+            "Harus ada tepat satu model OpenRouter default.");
+        Assert(openRouterModels.Single(m => m.IsDefault).Model == OpenRouterProvider.DefaultModel,
+            "Model default OpenRouter harus konsisten dengan DefaultModel.");
+
+        var requestJson = OpenAiCompatibleProvider.BuildRequestJson(
+            "gpt-4.1",
+            [new OpenAiCompatibleProvider.ChatTurn("user", "hai")]);
+        using (var doc = JsonDocument.Parse(requestJson))
+        {
+            var root = doc.RootElement;
+            Assert(root.GetProperty("model").GetString() == "gpt-4.1", "Model harus masuk request.");
+            Assert(root.GetProperty("stream").GetBoolean(), "stream harus true.");
+            Assert(root.GetProperty("stream_options").GetProperty("include_usage").GetBoolean(),
+                "stream_options.include_usage harus true.");
+            var first = root.GetProperty("messages")[0];
+            Assert(first.GetProperty("role").GetString() == "user" && first.GetProperty("content").GetString() == "hai",
+                "Pesan user harus masuk request dengan benar.");
+        }
+
+        Assert(OpenAiCompatibleProvider.ParseSseData("""{"choices":[{"delta":{"content":"Halo"}}]}""").TextDelta == "Halo",
+            "delta.content harus terbaca.");
+        Assert(OpenAiCompatibleProvider.ParseSseData("""{"choices":[],"usage":{"prompt_tokens":12,"completion_tokens":7}}""") is
+            { InputTokens: 12, OutputTokens: 7 },
+            "usage.prompt_tokens/completion_tokens harus terbaca.");
+        Assert(OpenAiCompatibleProvider.ParseSseData("""{"error":{"message":"boom"}}""").Error == "boom",
+            "Event error harus terbaca.");
+        Assert(OpenAiCompatibleProvider.ParseSseData("bukan json").TextDelta is null, "JSON rusak harus aman (default).");
+
+        const string sse =
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n" +
+            "data: {\"choices\":[{\"delta\":{\"content\":\" world\"}}]}\n\n" +
+            "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5}}\n\n" +
+            "data: [DONE]\n\n";
+
+        await using var provider = new OpenAIProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key");
+        var text = new StringBuilder();
+        var done = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        long totalTokens = 0;
+        provider.EventReceived += (_, ev) =>
+        {
+            switch (ev)
+            {
+                case ProviderTextDeltaEvent d: text.Append(d.Delta); break;
+                case ProviderTokenUsageEvent u: totalTokens = u.TotalTokens; break;
+                case ProviderCompletedEvent c: done.TrySetResult(c.Status); break;
+                case ProviderErrorEvent e: done.TrySetException(new InvalidOperationException(e.Message)); break;
+            }
+        };
+
+        await provider.InitializeAsync();
+        var account = await provider.GetAccountAsync();
+        Assert(account.IsAuthenticated && account.AuthenticationMethod == "api-key",
+            "Akun API-key harus terautentikasi saat key tersedia.");
+        var threadId = await provider.StartOrResumeThreadAsync("", null, "read-only", "never");
+        await provider.SendPromptAsync(threadId, "hi");
+        var status = await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert(status == "completed" && text.ToString() == "Hello world",
+            "Streaming OpenAI harus merakit teks penuh lalu selesai.");
+        Assert(totalTokens == 15, "Token usage total harus input+output.");
+
+        await using var noKey = new OpenAIProvider(new HttpClient(new CannedSseHandler(sse)), () => null);
+        var errored = false;
+        noKey.EventReceived += (_, ev) => { if (ev is ProviderErrorEvent) { errored = true; } };
+        await noKey.SendPromptAsync("t", "hi");
+        Assert(errored, "Tanpa API key harus memunculkan error, bukan crash.");
+
+        await using var openRouterProvider = new OpenRouterProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key");
+        await openRouterProvider.InitializeAsync();
+        Assert(openRouterProvider.Id == "openrouter" && openRouterProvider.DisplayName == "OpenRouter",
+            "OpenRouterProvider harus melapor Id/DisplayName yang benar.");
+
+        await AssertLocalConversationPersistsAsync(
+            "openai",
+            () => new OpenAIProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key"));
+
+        Console.WriteLine("PASS openai-compatible provider tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+/// <summary>
+/// Sends one turn on a fresh provider instance under a throwaway thread id, then opens that
+/// same thread id on a second fresh instance and asserts the conversation comes back from
+/// disk (CodexBar.Providers.LocalConversationStore) instead of being empty.
+/// </summary>
+static async Task AssertLocalConversationPersistsAsync(string providerId, Func<IAgentProvider> factory)
+{
+    var threadId = $"test-persist-{Guid.NewGuid():N}";
+    try
+    {
+        await using (var writer = factory())
+        {
+            await writer.StartOrResumeThreadAsync("", threadId, "read-only", "never");
+            await writer.SendPromptAsync(threadId, "hi");
+        }
+
+        await using (var reader = factory())
+        {
+            await reader.StartOrResumeThreadAsync("", threadId, "read-only", "never");
+            var history = await reader.ReadThreadAsync(threadId);
+            Assert(history.Count == 2 && history[0].Text == "hi" && history[1].Text == "Hello world",
+                $"Percakapan lokal {providerId} harus dipulihkan dari disk saat thread id yang sama dibuka lagi.");
+        }
+    }
+    finally
+    {
+        var path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CodexBar", "conversations", providerId, $"{threadId}.json");
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
     }
 }
 

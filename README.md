@@ -1,6 +1,6 @@
 # CodexBar
 
-CodexBar adalah companion Windows ringan untuk mengirim prompt ke AI dari launcher yang mengambang di atas taskbar. Default-nya memakai **Codex** (login Codex/ChatGPT yang sudah aktif, tanpa OpenAI API key), dan kini mendukung **multi-provider** — kamu dapat beralih ke **Claude** (Anthropic API) dari Settings; API key disimpan aman di Windows Credential Manager.
+CodexBar adalah companion Windows ringan untuk mengirim prompt ke AI dari launcher yang mengambang di atas taskbar. Default-nya memakai **Codex** (login Codex/ChatGPT yang sudah aktif, tanpa OpenAI API key), dan kini mendukung **multi-provider** — kamu dapat beralih ke **Claude** (Anthropic API), **OpenAI**, atau **OpenRouter** dari Settings; API key disimpan aman di Windows Credential Manager.
 
 CodexBar adalah aplikasi komunitas tidak resmi, bukan produk OpenAI dan tidak berafiliasi dengan atau didukung oleh OpenAI. Penggunaan Codex dan layanan OpenAI tetap mengikuti ketentuan serta kebijakan akun pengguna.
 
@@ -100,7 +100,7 @@ Lihat [DPPL](../DPPL-CodexBar.md) untuk rancangan lengkap.
 
 ## Progress terbaru
 
-- **Multi-provider**: pilih **Codex** atau **Claude** (Anthropic) dari Settings; provider bisa diganti tanpa restart (rollback bila gagal, terblokir saat agent sibuk), dan UI menyesuaikan kapabilitas tiap provider. API key tersimpan di Windows Credential Manager.
+- **Multi-provider**: pilih **Codex**, **Claude** (Anthropic), **OpenAI**, atau **OpenRouter** dari Settings; provider bisa diganti tanpa restart (rollback bila gagal, terblokir saat agent sibuk), dan UI menyesuaikan kapabilitas tiap provider. API key tersimpan di Windows Credential Manager. OpenRouter menampilkan daftar model yang diambil langsung dari katalognya (bukan daftar statis).
 - **Quick-capture global**: seleksi teks di aplikasi mana pun → tekan hotkey → langsung terkirim ke AI. Ada proteksi agar clipboard lama tidak salah terkirim.
 - **Variabel template `{selection}`/`{clipboard}`**, kelola template (edit/rename/hapus), riwayat prompt (↑/↓), serta ekspor/impor settings & template.
 - **Laporkan bug**: bundel log diagnostik jadi satu zip untuk dilampirkan.

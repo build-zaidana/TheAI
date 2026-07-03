@@ -80,6 +80,14 @@ public sealed class AnthropicProvider : IAgentProvider
             _messages.Clear();
             threadId = $"local-{Guid.NewGuid():N}";
         }
+        else if (_messages.Count == 0)
+        {
+            // Resuming a thread id from a previous session: repopulate from disk (no-op if
+            // nothing was ever saved under it, e.g. a thread that never got a first turn).
+            _messages.AddRange(LocalConversationStore
+                .Load(Id, threadId)
+                .Select(m => new ChatTurn(m.Role, m.Text)));
+        }
 
         return Task.FromResult(threadId);
     }
@@ -133,6 +141,7 @@ public sealed class AnthropicProvider : IAgentProvider
 
         _selectedModel = model ?? _selectedModel ?? DefaultModel;
         _messages.Add(new ChatTurn("user", prompt));
+        SaveConversation(threadId);
 
         _turnCts?.Dispose();
         _turnCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -216,6 +225,7 @@ public sealed class AnthropicProvider : IAgentProvider
             }
 
             _messages.Add(new ChatTurn("assistant", assistant.ToString()));
+            SaveConversation(threadId);
             if (inputTokens + outputTokens > 0)
             {
                 Emit(new ProviderTokenUsageEvent(inputTokens + outputTokens, outputTokens, null));
@@ -251,6 +261,9 @@ public sealed class AnthropicProvider : IAgentProvider
     }
 
     private void Emit(ProviderEvent providerEvent) => EventReceived?.Invoke(this, providerEvent);
+
+    private void SaveConversation(string threadId) => LocalConversationStore.Save(
+        Id, threadId, _messages.Select(m => new ProviderThreadMessage(m.Role, m.Text)).ToArray());
 
     private string L(string key, string fallback)
     {

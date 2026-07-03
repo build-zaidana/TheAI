@@ -17,9 +17,13 @@ ke **Codex** tanpa membuka Codex penuh. Hotkey global `Win+Shift+C`.
 - Bahasa UI: Indonesia + English (toggle di Settings, live-switch via `CodexBar.Core.Localization`).
 
 ### Update arsitektur (terbaru — WAJIB dibaca)
-- **Multi-provider** via `IAgentProvider`. Provider dipilih dari `AppSettings.Provider` ("codex"/"anthropic") lewat factory `App.CreateProvider`. UI menyesuaikan `Capabilities` (kontrol workspace/approval disable bila tak didukung).
+- **Multi-provider** via `IAgentProvider`. Provider dipilih dari `AppSettings.Provider` ("codex"/"anthropic"/"openai"/"openrouter") lewat factory `App.CreateProvider`. UI menyesuaikan `Capabilities` (kontrol workspace/approval disable bila tak didukung).
   - `CodexBar.Providers.Anthropic.AnthropicProvider` = Claude Messages API (streaming SSE, api-key, tanpa thread/workspace). **Unit-tested, BELUM live** (butuh Anthropic key).
-  - API key disimpan di **Windows Credential Manager** via `CodexBar.Core.CredentialStore` (P/Invoke, bukan NuGet). Provider bisa diganti live: `ConversationController.SwitchProviderAsync` (blokir saat busy, rollback bila init gagal).
+  - `CodexBar.Providers.OpenAiCompatible.OpenAiCompatibleProvider` = base bersama untuk provider berformat OpenAI chat-completions streaming (dipakai oleh OpenAI & OpenRouter). Request pakai absolute URI (bukan `HttpClient.BaseAddress`) karena `HttpClient` di-share lintas provider (`App.SharedHttp`).
+  - `CodexBar.Providers.OpenAI.OpenAIProvider` = OpenAI Chat Completions API, daftar model statis (`OpenAIProvider.KnownModels()`). **Unit-tested, BELUM live** (butuh OpenAI key).
+  - `CodexBar.Providers.OpenRouter.OpenRouterProvider` = OpenRouter (gateway OpenAI-compatible ke banyak model); `ListModelsAsync` mengambil katalog live dari `GET /models` OpenRouter, fallback ke daftar statis bila gagal. **Unit-tested, BELUM live** (butuh OpenRouter key).
+  - API key disimpan di **Windows Credential Manager** via `CodexBar.Core.CredentialStore` (P/Invoke, bukan NuGet), keyed per provider id (`CodexBar/apiKey/{providerId}`). Provider bisa diganti live: `ConversationController.SwitchProviderAsync` (blokir saat busy, rollback bila init gagal).
+  - `CodexBar.Providers.LocalConversationStore`: persist percakapan provider tanpa thread server-side (Anthropic/OpenAI/OpenRouter) ke `%LOCALAPPDATA%\CodexBar\conversations\{providerId}\{threadId}.json`. `StartOrResumeThreadAsync` memuat ulang dari disk saat thread id lama dibuka kembali (mis. setelah restart app, karena `settings.ThreadIds` sudah menyimpan id-nya); `SendPromptAsync` menyimpan setelah tiap giliran user & assistant.
 - **Transport seam**: `CodexProvider` menerima `Func<ICodexTransport>`. `TestCodexTransport` di smoke test menguji timeout/RPC-error/disconnect tanpa proses nyata.
 - **Quick-capture**: `CodexBar.Windows.SelectionCapture` (SendInput Ctrl+C + guard sequence-number clipboard) → hotkey menangkap seleksi app lain.
 - Subsistem lain: `PromptTemplate` (+ `Expand` untuk `{selection}`/`{clipboard}`), `PromptHistory`, `DiagnosticsLog`, `BugReport`. SchemaVersion **8**.

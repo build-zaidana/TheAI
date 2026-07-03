@@ -4,7 +4,8 @@
 
 ### Added
 
-- Multi-provider support: choose between **Codex** and **Claude** (Anthropic Messages API) from a Settings provider picker. The UI adapts to each provider's capabilities (workspace/approval controls disable when unsupported). API keys are stored in Windows Credential Manager, never in plaintext settings.
+- Multi-provider support: choose between **Codex**, **Claude** (Anthropic Messages API), **OpenAI**, and **OpenRouter** from a Settings provider picker. The UI adapts to each provider's capabilities (workspace/approval controls disable when unsupported). API keys are stored in Windows Credential Manager, never in plaintext settings. OpenAI and OpenRouter share an OpenAI-compatible chat-completions provider base; OpenRouter's model list is fetched live from its catalog instead of hardcoded.
+- Local conversation persistence for the API-key providers (Claude, OpenAI, OpenRouter): since they have no server-side thread storage, each thread's messages are now saved to `%LOCALAPPDATA%\CodexBar\conversations\{provider}\{threadId}.json` and reloaded when that thread id is resumed, so history survives an app restart instead of only living in memory.
 - Global quick-capture: select text in any app, press the hotkey, and CodexBar sends the selection straight to the AI. A clipboard-sequence guard ensures an empty selection never re-sends stale clipboard text, and the prior clipboard is restored.
 - Template variables `{selection}` and `{clipboard}` expanded on insert, a template manager (create/edit/rename/delete), and prompt history recall (Up/Down in the input).
 - Export/import of settings and templates for backup or sharing.

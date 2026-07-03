@@ -5,6 +5,9 @@
     <Project Path="src/CodexBar.Persistence/CodexBar.Persistence.csproj" />
     <Project Path="src/CodexBar.Providers.Anthropic/CodexBar.Providers.Anthropic.csproj" />
     <Project Path="src/CodexBar.Providers.Codex/CodexBar.Providers.Codex.csproj" />
+    <Project Path="src/CodexBar.Providers.OpenAI/CodexBar.Providers.OpenAI.csproj" />
+    <Project Path="src/CodexBar.Providers.OpenAiCompatible/CodexBar.Providers.OpenAiCompatible.csproj" />
+    <Project Path="src/CodexBar.Providers.OpenRouter/CodexBar.Providers.OpenRouter.csproj" />
     <Project Path="src/CodexBar.Providers/CodexBar.Providers.csproj" />
     <Project Path="src/CodexBar.Windows/CodexBar.Windows.csproj" />
   </Folder>

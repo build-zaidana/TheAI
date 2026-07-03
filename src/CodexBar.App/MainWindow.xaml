@@ -490,6 +490,8 @@
                                           AutomationProperties.Name="Pilih provider AI">
                                     <ComboBoxItem Content="Codex" Tag="codex" />
                                     <ComboBoxItem Content="Claude" Tag="anthropic" />
+                                    <ComboBoxItem Content="OpenAI" Tag="openai" />
+                                    <ComboBoxItem Content="OpenRouter" Tag="openrouter" />
                                 </ComboBox>
                             </StackPanel>
                             <TextBlock x:Name="ProviderRestartNote" VerticalAlignment="Center"
@@ -504,7 +506,7 @@
                                          Background="{DynamicResource GlassTrack}"
                                          Foreground="{DynamicResource TextPrimary}"
                                          BorderBrush="{DynamicResource GlassStroke}" BorderThickness="1"
-                                         AutomationProperties.Name="API key Claude" />
+                                         AutomationProperties.Name="API key provider" />
                             <Button x:Name="SaveApiKeyButton" Content="Simpan" Margin="8,0,0,0"
                                     Style="{StaticResource GlassPillButton}" Click="SaveApiKeyButton_Click" />
                             <Button x:Name="ClearApiKeyButton" Content="Hapus" Margin="6,0,0,0"
