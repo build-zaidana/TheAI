@@ -56,6 +56,8 @@ public partial class MainWindow : Window
     private readonly Func<string, IAgentProvider> _providerFactory;
     private OutputWindow? _outputWindow;
     private readonly GlobalHotKey _hotKey = new();
+    private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
+    private string? _pendingQuickCaptureReveal;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly DispatcherTimer _renderTimer;
     private readonly SemaphoreSlim _approvalGate = new(1, 1);
@@ -629,6 +631,70 @@ public partial class MainWindow : Window
                 L("notification.hotkeyInactive"),
                 exception.Message,
                 Forms.ToolTipIcon.Warning);
+        }
+
+        try
+        {
+            _quickCaptureHotKey.Pressed += QuickCaptureHotKey_Pressed;
+            _quickCaptureHotKey.Register(this, _settings.QuickCaptureHotkey);
+            _settings.QuickCaptureHotkey = _quickCaptureHotKey.CurrentGesture ?? _settings.QuickCaptureHotkey;
+        }
+        catch
+        {
+            // The quick-capture hotkey is optional; a conflict must not break the main hotkey.
+        }
+    }
+
+    // Dedicated hotkey: capture the foreground selection and send it straight to the AI without
+    // necessarily opening the window. What happens on completion is driven by QuickCaptureReveal.
+    private async void QuickCaptureHotKey_Pressed(object? sender, EventArgs e)
+    {
+        if (_quickCaptureActive)
+        {
+            return;
+        }
+
+        if (_controller.IsBusy || _controller.ThreadId is null)
+        {
+            if (_settings.QuickCaptureNotify)
+            {
+                _trayIcon.ShowBalloonTip(2000, "CodexBar", L("quickCapture.busy"), Forms.ToolTipIcon.Info);
+            }
+
+            return;
+        }
+
+        _quickCaptureActive = true;
+        try
+        {
+            var selection = await SelectionCapture.TryCaptureTextAsync();
+            if (string.IsNullOrWhiteSpace(selection))
+            {
+                if (_settings.QuickCaptureNotify)
+                {
+                    _trayIcon.ShowBalloonTip(2000, "CodexBar", L("quickCapture.noSelection"), Forms.ToolTipIcon.Info);
+                }
+
+                return;
+            }
+
+            _pendingQuickCaptureReveal = _settings.QuickCaptureReveal;
+            if (_settings.QuickCaptureReveal == "capture")
+            {
+                ShowFromExternalActivation();
+            }
+
+            PromptBox.Text = selection;
+            await SendPromptAsync();
+        }
+        catch (Exception exception)
+        {
+            _pendingQuickCaptureReveal = null;
+            DiagnosticsLog.Error("QuickCapture", exception.Message);
+        }
+        finally
+        {
+            _quickCaptureActive = false;
         }
     }
 
@@ -1476,7 +1542,31 @@ public partial class MainWindow : Window
                             try { System.Windows.Clipboard.SetText(done.Markdown); } catch { /* best-effort */ }
                         }
                     }
-                    if (!IsVisible || !IsActive)
+
+                    if (_pendingQuickCaptureReveal is { } qcReveal)
+                    {
+                        _pendingQuickCaptureReveal = null;
+                        if (completedNormally && qcReveal == "clipboard")
+                        {
+                            var qcResponse = _messages.LastOrDefault(message => !message.IsUser);
+                            if (qcResponse is { } && !string.IsNullOrWhiteSpace(qcResponse.Markdown))
+                            {
+                                try { System.Windows.Clipboard.SetText(qcResponse.Markdown); } catch { /* best-effort */ }
+                            }
+                        }
+                        else if (completedNormally && qcReveal == "done")
+                        {
+                            ShowFromExternalActivation();
+                        }
+
+                        if (_settings.QuickCaptureNotify)
+                        {
+                            _trayIcon.ShowBalloonTip(2500, "CodexBar",
+                                L(completedNormally ? "quickCapture.done" : "status.error"),
+                                Forms.ToolTipIcon.Info);
+                        }
+                    }
+                    else if (!IsVisible || !IsActive)
                     {
                         _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
                             Forms.ToolTipIcon.Info);
@@ -3505,6 +3595,7 @@ public partial class MainWindow : Window
         }
         SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
         _hotKey.Dispose();
+        _quickCaptureHotKey.Dispose();
         _approvalGate.Dispose();
         CleanupTemporaryAttachments(_temporaryAttachmentPaths.ToArray());
         _trayIcon.Visible = false;

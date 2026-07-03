@@ -190,6 +190,8 @@ public static class Strings
         ["quickCapture.busy"] = ("Teks terpilih sudah dimasukkan; tunggu pekerjaan aktif selesai untuk mengirim.", "Selected text is ready; wait for the active task to finish before sending."),
         ["quickCapture.notReady"] = ("Teks terpilih sudah dimasukkan; selesaikan setup provider/workspace untuk mengirim.", "Selected text is ready; finish provider/workspace setup before sending."),
         ["quickCapture.failed"] = ("Quick capture gagal: {0}", "Quick capture failed: {0}"),
+        ["quickCapture.noSelection"] = ("Tidak ada teks terseleksi untuk dikirim.", "No text selected to send."),
+        ["quickCapture.done"] = ("Jawaban quick-capture selesai.", "Quick-capture answer ready."),
         ["sandbox.applying"] = ("Menerapkan permission…", "Applying permission…"),
         ["sandbox.failed"] = ("Permission gagal diubah: {0}", "Failed to change permission: {0}"),
         ["sandbox.readOnly"] = ("read-only: Codex hanya membaca; perubahan/perintah yang butuh akses lebih akan meminta approval.", "read-only: Codex can only read; changes or commands needing more access will request approval."),
