@@ -131,8 +131,18 @@ public sealed class JsonSettingsStore
 
     private static AppSettings Normalize(AppSettings settings)
     {
-        settings.SchemaVersion = 11;
+        settings.SchemaVersion = 12;
         settings.ScheduledPrompts = ScheduledPrompt.Normalize(settings.ScheduledPrompts);
+        settings.QuickCaptureReveal = settings.QuickCaptureReveal?.ToLowerInvariant() switch
+        {
+            "capture" => "capture",
+            "clipboard" => "clipboard",
+            _ => "done"
+        };
+        if (string.IsNullOrWhiteSpace(settings.QuickCaptureHotkey))
+        {
+            settings.QuickCaptureHotkey = "Win+Shift+X";
+        }
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;

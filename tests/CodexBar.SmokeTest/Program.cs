@@ -275,7 +275,15 @@ static async Task<int> RunDeterministicTestsAsync()
         var store = new JsonSettingsStore(settingsRoot);
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
-        Assert(recovered.SchemaVersion == 11, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.SchemaVersion == 12, "Settings rusak harus dipulihkan ke schema terbaru.");
+        Assert(recovered.QuickCaptureReveal == "done" && recovered.QuickCaptureHotkey.Length > 0,
+            "Default quick-capture harus reveal=done + hotkey terisi.");
+
+        await File.WriteAllTextAsync(store.SettingsPath,
+            """{ "quickCaptureReveal": "CLIPBOARD", "quickCaptureHotkey": "" }""");
+        var qc = await store.LoadAsync();
+        Assert(qc.QuickCaptureReveal == "clipboard" && qc.QuickCaptureHotkey == "Win+Shift+X",
+            "Reveal harus dinormalisasi (case-insensitive) & hotkey kosong jatuh ke default.");
 
         var scheduledNow = new DateTimeOffset(2026, 7, 2, 10, 0, 0, TimeSpan.Zero);
         var scheduled = ScheduledPrompt.Normalize(new[]

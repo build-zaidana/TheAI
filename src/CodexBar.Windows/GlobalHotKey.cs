@@ -7,7 +7,7 @@ namespace CodexBar.Windows;
 
 public sealed class GlobalHotKey : IDisposable
 {
-    private const int HotKeyId = 0x4342;
+    private readonly int _hotKeyId;
     private const int WmHotKey = 0x0312;
     private const uint ModAlt = 0x0001;
     private const uint ModControl = 0x0002;
@@ -21,6 +21,9 @@ public sealed class GlobalHotKey : IDisposable
 
     public event EventHandler? Pressed;
     public string? CurrentGesture { get; private set; }
+
+    /// <summary>Distinct id per hotkey so multiple hotkeys can coexist on one window.</summary>
+    public GlobalHotKey(int hotKeyId = 0x4342) => _hotKeyId = hotKeyId;
 
     public void Register(Window window, string gesture)
     {
@@ -63,13 +66,13 @@ public sealed class GlobalHotKey : IDisposable
             ? Parse(current)
             : null;
 
-        if (_registered && !UnregisterHotKey(_handle, HotKeyId))
+        if (_registered && !UnregisterHotKey(_handle, _hotKeyId))
         {
             throw new InvalidOperationException("Hotkey lama tidak dapat dilepas. Coba tutup lalu buka kembali CodexBar.");
         }
 
         _registered = false;
-        if (RegisterHotKey(_handle, HotKeyId, requested.Modifiers | ModNoRepeat, requested.VirtualKey))
+        if (RegisterHotKey(_handle, _hotKeyId, requested.Modifiers | ModNoRepeat, requested.VirtualKey))
         {
             _registered = true;
             CurrentGesture = requested.DisplayName;
@@ -78,7 +81,7 @@ public sealed class GlobalHotKey : IDisposable
 
         var errorCode = Marshal.GetLastWin32Error();
         if (previous is not null &&
-            RegisterHotKey(_handle, HotKeyId, previous.Modifiers | ModNoRepeat, previous.VirtualKey))
+            RegisterHotKey(_handle, _hotKeyId, previous.Modifiers | ModNoRepeat, previous.VirtualKey))
         {
             _registered = true;
             CurrentGesture = previous.DisplayName;
@@ -194,7 +197,7 @@ public sealed class GlobalHotKey : IDisposable
     {
         if (_handle != 0 && _registered)
         {
-            UnregisterHotKey(_handle, HotKeyId);
+            UnregisterHotKey(_handle, _hotKeyId);
         }
 
         _source?.RemoveHook(WindowProc);
@@ -206,7 +209,7 @@ public sealed class GlobalHotKey : IDisposable
 
     private nint WindowProc(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
-        if (message == WmHotKey && wParam == HotKeyId)
+        if (message == WmHotKey && wParam == _hotKeyId)
         {
             handled = true;
             Pressed?.Invoke(this, EventArgs.Empty);

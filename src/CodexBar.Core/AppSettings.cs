@@ -2,12 +2,21 @@ namespace CodexBar.Core;
 
 public sealed class AppSettings
 {
-    public int SchemaVersion { get; set; } = 11;
+    public int SchemaVersion { get; set; } = 12;
     public string Provider { get; set; } = "codex";
 
     /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
     public string Language { get; set; } = "id";
     public string Hotkey { get; set; } = "Win+Shift+C";
+
+    /// <summary>Hotkey khusus quick-capture: kirim teks terseleksi langsung tanpa membuka window.</summary>
+    public string QuickCaptureHotkey { get; set; } = "Win+Shift+X";
+
+    /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
+    public string QuickCaptureReveal { get; set; } = "done";
+
+    /// <summary>Tampilkan notifikasi tray saat quick-capture selesai.</summary>
+    public bool QuickCaptureNotify { get; set; } = true;
     public bool LaunchAtLogin { get; set; }
     public bool HideOnFocusLost { get; set; } = true;
     public bool ShowResponseInline { get; set; } = true;
@@ -63,6 +72,9 @@ public sealed class AppSettings
         Provider = source.Provider;
         Language = source.Language;
         Hotkey = source.Hotkey;
+        QuickCaptureHotkey = source.QuickCaptureHotkey;
+        QuickCaptureReveal = source.QuickCaptureReveal;
+        QuickCaptureNotify = source.QuickCaptureNotify;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;
         ShowResponseInline = source.ShowResponseInline;
