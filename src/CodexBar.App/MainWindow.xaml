@@ -411,6 +411,23 @@
                                 <ComboBoxItem Content="high" Tag="high" />
                             </ComboBox>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,12,3" VerticalAlignment="Center">
+                            <TextBlock x:Name="QuickCaptureRevealLabel" Text="Quick-capture" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                            <ComboBox x:Name="QuickCaptureRevealCombo" Width="160" SelectionChanged="SettingsControl_Changed"
+                                      ToolTip="Perilaku saat hotkey quick-capture ditekan" AutomationProperties.Name="Mode quick-capture">
+                                <ComboBoxItem Content="Buka saat kirim" Tag="capture" />
+                                <ComboBoxItem Content="Buka saat selesai" Tag="done" />
+                                <ComboBoxItem Content="Ke clipboard" Tag="clipboard" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,12,3" VerticalAlignment="Center">
+                            <TextBlock x:Name="QuickCaptureHotkeyLabel" Text="QC hotkey" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                            <TextBox x:Name="QuickCaptureHotkeyBox" Width="120" Height="28" VerticalContentAlignment="Center"
+                                     Background="{DynamicResource GlassTrack}" Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource GlassStroke}" BorderThickness="1"
+                                     ToolTip="Contoh: Win+Shift+X" AutomationProperties.Name="Hotkey quick-capture" />
+                            <Button x:Name="ApplyQuickHotkeyButton" Content="OK" Margin="6,0,0,0" Style="{StaticResource GlassPillButton}" Click="ApplyQuickHotkeyButton_Click" />
+                        </StackPanel>
                         <CheckBox x:Name="OutputDockedCheck" Content="Output menyatu" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="MenuDockedCheck" Content="Menu menyatu" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <ToggleButton x:Name="TopmostToggle" Content="Selalu di atas" Margin="0,3,12,3" Style="{StaticResource GlassToggle}" Click="TopmostToggle_Click" />
@@ -421,6 +438,8 @@
                                   ToolTip="Salin otomatis respons ke clipboard saat selesai." />
                         <CheckBox x:Name="LaunchAtLoginCheck" Content="Jalan saat login" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Otomatis jalan dan standby di tray saat login, agar buka via hotkey selalu instan." />
+                        <CheckBox x:Name="QuickCaptureNotifyCheck" Content="Notif quick-capture" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
+                                  ToolTip="Tampilkan notifikasi tray saat quick-capture selesai." />
                         <CheckBox x:Name="DiagnosticsLoggingCheck" Content="Log diagnostik" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Simpan log ke %LOCALAPPDATA%\CodexBar\logs untuk pelaporan bug. Default mati." />
                     </WrapPanel>

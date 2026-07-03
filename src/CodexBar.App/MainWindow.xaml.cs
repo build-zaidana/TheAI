@@ -1841,6 +1841,14 @@ public partial class MainWindow : Window
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
         AutoCopyResponseCheck.IsChecked = _settings.AutoCopyResponse;
         LaunchAtLoginCheck.IsChecked = _settings.LaunchAtLogin;
+        QuickCaptureNotifyCheck.IsChecked = _settings.QuickCaptureNotify;
+        QuickCaptureHotkeyBox.Text = _settings.QuickCaptureHotkey;
+        QuickCaptureRevealCombo.SelectedIndex = _settings.QuickCaptureReveal switch
+        {
+            "capture" => 0,
+            "clipboard" => 2,
+            _ => 1
+        };
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
         ProviderCombo.SelectedIndex = _settings.Provider == "anthropic" ? 1 : 0;
@@ -2001,6 +2009,13 @@ public partial class MainWindow : Window
         _settings.AutoCopyResponse = AutoCopyResponseCheck.IsChecked == true;
         _settings.LaunchAtLogin = LaunchAtLoginCheck.IsChecked == true;
         StartupRegistration.Apply(_settings.LaunchAtLogin);
+        _settings.QuickCaptureNotify = QuickCaptureNotifyCheck.IsChecked == true;
+        _settings.QuickCaptureReveal = (QuickCaptureRevealCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
+        {
+            "capture" => "capture",
+            "clipboard" => "clipboard",
+            _ => "done"
+        };
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
         _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
@@ -2886,6 +2901,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ApplyQuickHotkeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _quickCaptureHotKey.ChangeGesture(QuickCaptureHotkeyBox.Text);
+            _settings.QuickCaptureHotkey = _quickCaptureHotKey.CurrentGesture ?? _settings.QuickCaptureHotkey;
+            QuickCaptureHotkeyBox.Text = _settings.QuickCaptureHotkey;
+            await SaveSettingsSafeAsync();
+            SetStatus(LF("hotkey.active", _settings.QuickCaptureHotkey), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
+    }
+
     private void RegenerateButton_Click(object sender, RoutedEventArgs e) => Regenerate();
 
     private void Regenerate()
@@ -3305,6 +3336,15 @@ public partial class MainWindow : Window
         // Controls that were previously left as static XAML text (so they didn't switch language).
         TopmostToggle.Content = loc["settings.alwaysOnTop"];
         ApplyHotkeyButton.Content = loc["hotkey.apply"];
+        QuickCaptureRevealLabel.Text = loc["quickCapture.label"];
+        QuickCaptureHotkeyLabel.Text = loc["quickCapture.hotkeyLabel"];
+        QuickCaptureNotifyCheck.Content = loc["quickCapture.notify"];
+        if (QuickCaptureRevealCombo.Items.Count >= 3)
+        {
+            ((System.Windows.Controls.ComboBoxItem)QuickCaptureRevealCombo.Items[0]).Content = loc["quickCapture.revealCapture"];
+            ((System.Windows.Controls.ComboBoxItem)QuickCaptureRevealCombo.Items[1]).Content = loc["quickCapture.revealDone"];
+            ((System.Windows.Controls.ComboBoxItem)QuickCaptureRevealCombo.Items[2]).Content = loc["quickCapture.revealClipboard"];
+        }
         ModelCombo.ToolTip = loc["settings.modelTooltip"];
         if (OutputPositionCombo.Items.Count >= 2)
         {
