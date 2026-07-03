@@ -14,9 +14,6 @@ public sealed class AppSettings
 
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
-
-    /// <summary>Tampilkan notifikasi tray saat quick-capture selesai.</summary>
-    public bool QuickCaptureNotify { get; set; } = true;
     public bool LaunchAtLogin { get; set; }
     public bool HideOnFocusLost { get; set; } = true;
     public bool ShowResponseInline { get; set; } = true;
@@ -74,7 +71,6 @@ public sealed class AppSettings
         Hotkey = source.Hotkey;
         QuickCaptureHotkey = source.QuickCaptureHotkey;
         QuickCaptureReveal = source.QuickCaptureReveal;
-        QuickCaptureNotify = source.QuickCaptureNotify;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;
         ShowResponseInline = source.ShowResponseInline;

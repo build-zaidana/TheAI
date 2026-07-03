@@ -646,8 +646,6 @@ public partial class MainWindow : Window
             // but make the failure visible so the user knows the combo didn't register.
             DiagnosticsLog.Error("QuickCaptureHotkey", exception.Message);
             SetStatus(LF("quickCapture.registerFailed", _settings.QuickCaptureHotkey), StatusErrorBrush);
-            _trayIcon.ShowBalloonTip(4000, L("notification.hotkeyInactive"),
-                LF("quickCapture.registerFailed", _settings.QuickCaptureHotkey), Forms.ToolTipIcon.Warning);
         }
     }
 
@@ -662,11 +660,6 @@ public partial class MainWindow : Window
 
         if (_controller.IsBusy || _controller.ThreadId is null)
         {
-            if (_settings.QuickCaptureNotify)
-            {
-                _trayIcon.ShowBalloonTip(2000, "CodexBar", L("quickCapture.busy"), Forms.ToolTipIcon.Info);
-            }
-
             return;
         }
 
@@ -676,11 +669,6 @@ public partial class MainWindow : Window
             var selection = await SelectionCapture.TryCaptureTextAsync();
             if (string.IsNullOrWhiteSpace(selection))
             {
-                if (_settings.QuickCaptureNotify)
-                {
-                    _trayIcon.ShowBalloonTip(2000, "CodexBar", L("quickCapture.noSelection"), Forms.ToolTipIcon.Info);
-                }
-
                 return;
             }
 
@@ -1531,13 +1519,6 @@ public partial class MainWindow : Window
                         {
                             ShowFromExternalActivation();
                         }
-
-                        if (_settings.QuickCaptureNotify)
-                        {
-                            _trayIcon.ShowBalloonTip(2500, "CodexBar",
-                                L(completedNormally ? "quickCapture.done" : "status.error"),
-                                Forms.ToolTipIcon.Info);
-                        }
                     }
                     else if (!IsVisible || !IsActive)
                     {
@@ -1814,7 +1795,6 @@ public partial class MainWindow : Window
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
         AutoCopyResponseCheck.IsChecked = _settings.AutoCopyResponse;
         LaunchAtLoginCheck.IsChecked = _settings.LaunchAtLogin;
-        QuickCaptureNotifyCheck.IsChecked = _settings.QuickCaptureNotify;
         QuickCaptureHotkeyBox.Text = _settings.QuickCaptureHotkey;
         QuickCaptureRevealCombo.SelectedIndex = _settings.QuickCaptureReveal switch
         {
@@ -1982,7 +1962,6 @@ public partial class MainWindow : Window
         _settings.AutoCopyResponse = AutoCopyResponseCheck.IsChecked == true;
         _settings.LaunchAtLogin = LaunchAtLoginCheck.IsChecked == true;
         StartupRegistration.Apply(_settings.LaunchAtLogin);
-        _settings.QuickCaptureNotify = QuickCaptureNotifyCheck.IsChecked == true;
         _settings.QuickCaptureReveal = (QuickCaptureRevealCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
         {
             "capture" => "capture",
@@ -3311,7 +3290,6 @@ public partial class MainWindow : Window
         ApplyHotkeyButton.Content = loc["hotkey.apply"];
         QuickCaptureRevealLabel.Text = loc["quickCapture.label"];
         QuickCaptureHotkeyLabel.Text = loc["quickCapture.hotkeyLabel"];
-        QuickCaptureNotifyCheck.Content = loc["quickCapture.notify"];
         if (QuickCaptureRevealCombo.Items.Count >= 3)
         {
             ((System.Windows.Controls.ComboBoxItem)QuickCaptureRevealCombo.Items[0]).Content = loc["quickCapture.revealCapture"];

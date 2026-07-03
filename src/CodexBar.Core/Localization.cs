@@ -195,7 +195,6 @@ public static class Strings
         ["quickCapture.done"] = ("Jawaban quick-capture selesai.", "Quick-capture answer ready."),
         ["quickCapture.label"] = ("Quick-capture", "Quick-capture"),
         ["quickCapture.hotkeyLabel"] = ("QC hotkey", "QC hotkey"),
-        ["quickCapture.notify"] = ("Notif quick-capture", "Quick-capture notif"),
         ["quickCapture.revealCapture"] = ("Buka saat kirim", "Open on send"),
         ["quickCapture.revealDone"] = ("Buka saat selesai", "Open when done"),
         ["quickCapture.revealClipboard"] = ("Ke clipboard", "To clipboard"),
