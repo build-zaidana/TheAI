@@ -106,13 +106,13 @@ public sealed class AnthropicProvider : IAgentProvider
     public Task<IReadOnlyList<ProviderThreadSummary>> ListThreadsAsync(
         int limit = 50,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<ProviderThreadSummary>>([]);
+        Task.FromResult(LocalConversationStore.ListSummaries(Id, limit));
 
     public Task<IReadOnlyList<ProviderThreadSummary>> SearchThreadsAsync(
         string searchTerm,
         int limit = 50,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<ProviderThreadSummary>>([]);
+        Task.FromResult(LocalConversationStore.ListSummaries(Id, limit, searchTerm));
 
     public Task<IReadOnlyList<ProviderThreadMessage>> ReadThreadAsync(
         string threadId,

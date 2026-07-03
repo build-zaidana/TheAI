@@ -23,10 +23,10 @@ ke **Codex** tanpa membuka Codex penuh. Hotkey global `Win+Shift+C`.
   - `CodexBar.Providers.OpenAI.OpenAIProvider` = OpenAI Chat Completions API, daftar model statis (`OpenAIProvider.KnownModels()`). **Unit-tested, BELUM live** (butuh OpenAI key).
   - `CodexBar.Providers.OpenRouter.OpenRouterProvider` = OpenRouter (gateway OpenAI-compatible ke banyak model); `ListModelsAsync` mengambil katalog live dari `GET /models` OpenRouter, fallback ke daftar statis bila gagal. **Unit-tested, BELUM live** (butuh OpenRouter key).
   - API key disimpan di **Windows Credential Manager** via `CodexBar.Core.CredentialStore` (P/Invoke, bukan NuGet), keyed per provider id (`CodexBar/apiKey/{providerId}`). Provider bisa diganti live: `ConversationController.SwitchProviderAsync` (blokir saat busy, rollback bila init gagal).
-  - `CodexBar.Providers.LocalConversationStore`: persist percakapan provider tanpa thread server-side (Anthropic/OpenAI/OpenRouter) ke `%LOCALAPPDATA%\CodexBar\conversations\{providerId}\{threadId}.json`. `StartOrResumeThreadAsync` memuat ulang dari disk saat thread id lama dibuka kembali (mis. setelah restart app, karena `settings.ThreadIds` sudah menyimpan id-nya); `SendPromptAsync` menyimpan setelah tiap giliran user & assistant.
+  - `CodexBar.Providers.LocalConversationStore`: persist percakapan provider tanpa thread server-side (Anthropic/OpenAI/OpenRouter) ke `%LOCALAPPDATA%\CodexBar\conversations\{providerId}\{threadId}.json`. `StartOrResumeThreadAsync` memuat ulang dari disk saat thread id lama dibuka kembali (mis. setelah restart app, karena `settings.ThreadIds` sudah menyimpan id-nya); `SendPromptAsync` menyimpan setelah tiap giliran user & assistant. `ListSummaries` (dipakai `ListThreadsAsync`/`SearchThreadsAsync`) membaca semua file di folder provider, derive title/preview dari isi pesan (tanpa file metadata terpisah) — jadi Sidebar bisa nampilin & buka ulang thread lama provider ini, bukan cuma thread aktif terakhir.
 - **Transport seam**: `CodexProvider` menerima `Func<ICodexTransport>`. `TestCodexTransport` di smoke test menguji timeout/RPC-error/disconnect tanpa proses nyata.
 - **Quick-capture**: `CodexBar.Windows.SelectionCapture` (SendInput Ctrl+C + guard sequence-number clipboard) → hotkey menangkap seleksi app lain.
-- Subsistem lain: `PromptTemplate` (+ `Expand` untuk `{selection}`/`{clipboard}`), `PromptHistory`, `DiagnosticsLog`, `BugReport`. SchemaVersion **8**.
+- Subsistem lain: `PromptTemplate` (+ `Expand` untuk `{selection}`/`{clipboard}`), `PromptHistory`, `DiagnosticsLog`, `BugReport`. SchemaVersion **12**.
 - Gaya kode: WinForms+WPF aktif → kualifikasi penuh tipe ambigu (mis. `CodexBar.Core.Localization` bentrok `System.Windows.Localization`).
 
 ## 2. Struktur direktori (yang perlu dicek)
@@ -90,7 +90,7 @@ Kondisi sekarang (semua SUDAH di kode, build hijau):
 - **Permission/sandbox** combo pakai nama Codex resmi: `read-only`/`workspace-write`/`danger-full-access`.
 - Bug fix: `IsMissingThread` cocok "rollout" (thread lama); `ReadThreadAsync` tangani "not materialized" (thread baru kosong) → return [].
 
-> ⚠️ GOTCHA kontrak: bila mengubah signature `IAgentProvider`, WAJIB update `FakeProvider` + call-site di `tests/CodexBar.SmokeTest/Program.cs` (kalau tidak, build merah). `SchemaVersion` saat ini **7** (AppSettings + JsonSettingsStore + assertion test harus sinkron). Build & test SELALU hijau di commit terakhir (`dotnet build` 0/0, smoke test PASS).
+> ⚠️ GOTCHA kontrak: bila mengubah signature `IAgentProvider`, WAJIB update `FakeProvider` + call-site di `tests/CodexBar.SmokeTest/Program.cs` (kalau tidak, build merah). `SchemaVersion` saat ini **12** (AppSettings + JsonSettingsStore + assertion test harus sinkron). Build & test SELALU hijau di commit terakhir (`dotnet build` 0/0, smoke test PASS).
 
 ## 4. Build & jalan (CATATAN PENTING — mesin spesifik)
 - `dotnet` TIDAK di PATH; ada di `%LOCALAPPDATA%\Microsoft\dotnet\dotnet.exe` (publish.ps1 sudah menanganinya).
@@ -126,7 +126,7 @@ Yang masih terbuka:
 - ✅ **Dead code** `MarkdownRenderer.Build`/`CreateCodeBlock` + style `FieldChipButton` — dihapus (commit f38dcf5).
 - ✅ **CI** (.github/workflows/build.yml) — build + deterministic smoke test + WPF UI smoke test otomatis.
 - ✅ **Logging/diagnostik** opt-in — `DiagnosticsLog` + toggle Settings + "Buka folder log" + penangkap unhandled exception (commit e314db8/c95aaf6/aaa4207).
-- **#7 multi-monitor**: `WindowPositioner.PlaceAboveTaskbar` masih pakai monitor kursor (`GetWorkArea` window-based sudah ada tapi tak dipakai di placement). By-design-ish.
+- ✅ **#7 multi-monitor** — diverifikasi (2026-07-03): `PlaceAboveTaskbar` sengaja pakai monitor kursor, bukan bug. Dipanggil tepat sebelum overlay ditampilkan lewat hotkey (`ToggleOverlay`/`ShowFromExternalActivation`), jadi overlay gaya command-palette memang seharusnya muncul di monitor tempat kursor berada saat hotkey ditekan — user multi-monitor mengonfirmasi ini perilaku yang diharapkan. `GetWorkArea` (window-based, dipakai untuk membatasi tinggi window saat mengetik) sengaja beda logic, bukan inkonsistensi yang perlu disatukan.
 - **Seleksi-drag teks jawaban**: tidak ada (WPF TextBlock). Opsi: read-only TextBox plain (kehilangan format).
 - Fitur Codex lain yg belum: voice/realtime, MCP/skills/plugins, file browser, background terminals, thread fork/archive/delete/rename, remote control.
 

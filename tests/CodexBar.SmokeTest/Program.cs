@@ -1004,6 +1004,19 @@ static async Task AssertLocalConversationPersistsAsync(string providerId, Func<I
             var history = await reader.ReadThreadAsync(threadId);
             Assert(history.Count == 2 && history[0].Text == "hi" && history[1].Text == "Hello world",
                 $"Percakapan lokal {providerId} harus dipulihkan dari disk saat thread id yang sama dibuka lagi.");
+
+            var listed = await reader.ListThreadsAsync();
+            var summary = listed.FirstOrDefault(t => t.Id == threadId);
+            Assert(summary is not null && summary.Title == "hi" && summary.Preview == "Hello world",
+                $"ListThreadsAsync {providerId} harus menampilkan thread yang baru disimpan dengan title/preview dari pesan.");
+
+            var found = await reader.SearchThreadsAsync("hello");
+            Assert(found.Any(t => t.Id == threadId),
+                $"SearchThreadsAsync {providerId} harus menemukan thread lewat kata dalam preview.");
+
+            var notFound = await reader.SearchThreadsAsync($"tidak-ada-{Guid.NewGuid():N}");
+            Assert(notFound.All(t => t.Id != threadId),
+                $"SearchThreadsAsync {providerId} tidak boleh mengembalikan thread yang tidak cocok.");
         }
     }
     finally
