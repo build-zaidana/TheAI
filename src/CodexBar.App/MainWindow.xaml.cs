@@ -1798,7 +1798,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         });
     }
 
-    private async Task ShowUserInputAsync(ProviderUserInputEvent input)
+    private async Task ShowUserInputAsync(
+        ProviderUserInputEvent input,
+        string? expectedThreadId = null,
+        string activityKey = NotchWindow.MainActivityKey)
     {
         await _approvalGate.WaitAsync();
         try
@@ -1807,7 +1810,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 ? threadIdElement.GetString()
                 : null;
             if (!string.IsNullOrWhiteSpace(requestThreadId) &&
-                !string.Equals(requestThreadId, _controller.ThreadId, StringComparison.Ordinal))
+                !string.Equals(requestThreadId, expectedThreadId ?? _controller.ThreadId, StringComparison.Ordinal))
             {
                 await input.RespondAsync(null);
                 SetStatus(L("status.oldQuestionCancelled"), StatusErrorBrush);
@@ -1823,7 +1826,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             if (IsNotchMode && _notch is not null)
             {
                 _approvalVisible = true;
-                var answers = await _notch.RequestInputAsync(input);
+                var answers = await _notch.RequestInputAsync(input, activityKey);
                 if (input.IsPending?.Invoke() != false)
                 {
                     await input.RespondAsync(answers);
@@ -1854,7 +1857,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    private async Task ShowApprovalAsync(ProviderApprovalEvent approval)
+    private async Task ShowApprovalAsync(
+        ProviderApprovalEvent approval,
+        string? expectedThreadId = null,
+        string activityKey = NotchWindow.MainActivityKey)
     {
         await _approvalGate.WaitAsync();
         try
@@ -1863,7 +1869,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 ? threadIdElement.GetString()
                 : null;
             if (!string.IsNullOrWhiteSpace(requestThreadId) &&
-                !string.Equals(requestThreadId, _controller.ThreadId, StringComparison.Ordinal))
+                !string.Equals(requestThreadId, expectedThreadId ?? _controller.ThreadId, StringComparison.Ordinal))
             {
                 await approval.RespondAsync(ProviderApprovalDecision.Decline);
                 SetStatus(L("status.oldApprovalDeclined"), StatusErrorBrush);
@@ -1879,7 +1885,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             if (IsNotchMode && _notch is not null)
             {
                 _approvalVisible = true;
-                var decision = await _notch.RequestApprovalAsync(approval);
+                var decision = await _notch.RequestApprovalAsync(approval, activityKey);
                 if (approval.IsPending?.Invoke() != false)
                 {
                     await approval.RespondAsync(decision);
@@ -2515,6 +2521,33 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", "npm install --save-dev vitest",
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
+            }
+        }
+
+        // CODEXBAR_TEST_PARALLEL=<prompt>: start a real parallel agent with that prompt (end-to-end check).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_PARALLEL") is { Length: > 0 } parallelPrompt && _notch is not null)
+        {
+            _ = RunUiTaskAsync(async () =>
+            {
+                var key = await ((INotchHost)this).StartParallelAgentAsync(parallelPrompt);
+                _notch.PreviewAgent(key);
+            });
+        }
+
+        // CODEXBAR_PREVIEW_AGENTS=1|compact: the main conversation and two parallel agents, all
+        // simulated (no processes start); "1" opens the second agent, "compact" leaves the notch shut.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_AGENTS") is { Length: > 0 } agentsPreview && _notch is not null)
+        {
+            _notch.OnTurnStarted("Perbaiki bug login di halaman checkout");
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Membaca src/checkout"));
+            _notch.BeginActivity("agent-preview1", "Tulis unit test untuk PaymentService", "Claude", _workspaceLabel);
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Menjalankan npm test"), "agent-preview1");
+            _notch.HandleProviderEvent(new ProviderTextDeltaEvent("Menambahkan 6 test untuk refund dan retry pembayaran…"), "agent-preview1");
+            _notch.BeginActivity("agent-preview2", "Update README bagian arsitektur", "Claude", _workspaceLabel);
+            _notch.HandleProviderEvent(new ProviderCompletedEvent("completed"), "agent-preview2");
+            if (agentsPreview != "compact")
+            {
+                _notch.PreviewAgent("agent-preview1");
             }
         }
 
@@ -4445,6 +4478,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
 
         _renderTimer.Stop();
+        DisposeParallelAgents();
         _sidebarWindow?.Close();
         _notch?.Close();
         if (_outputWindow is not null)

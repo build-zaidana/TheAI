@@ -52,6 +52,17 @@ internal interface INotchHost
     IReadOnlyList<string> QueuedPrompts { get; }
     void RemoveQueuedPrompt(int index);
     Task SendNextQueuedAsync();
+
+    /// <summary>Start a parallel agent (new thread, same workspace and provider); returns its activity key.</summary>
+    Task<string> StartParallelAgentAsync(string prompt);
+    Task SendToActivityAsync(string key, string prompt);
+    Task StopActivityAsync(string key);
+
+    /// <summary>Close a finished parallel agent (stops it first if it still runs).</summary>
+    void DismissActivity(string key);
+
+    /// <summary>Open a parallel agent's thread in the main window.</summary>
+    Task OpenActivityInWindowAsync(string key);
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
     Task OpenThreadFromNotchAsync(ProviderThreadSummary thread);
@@ -82,8 +93,6 @@ public partial class NotchWindow : Window
     private static readonly Brush DotIdle = Frozen(Color.FromArgb(0x4D, 0xFF, 0xFF, 0xFF));
 
     private readonly INotchHost _host;
-    private readonly ObservableCollection<StepItem> _steps = new();
-    private readonly System.Text.StringBuilder _output = new();
     private readonly DispatcherTimer _collapseTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
     private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
     private readonly DispatcherTimer _doneTimer = new() { Interval = TimeSpan.FromSeconds(4) };
@@ -97,11 +106,12 @@ public partial class NotchWindow : Window
     internal NotchWindow(INotchHost host)
     {
         _host = host;
+        _activity = MainActivity;
         InitializeComponent();
         InitTone();
         InitWindowStyle();
         ApplyEdgeLayout();
-        StepList.ItemsSource = _steps;
+        StepList.ItemsSource = _activity.Steps;
 
         var spin = new DoubleAnimation(0, 360, TimeSpan.FromSeconds(0.9)) { RepeatBehavior = RepeatBehavior.Forever };
         Storyboard.SetTarget(spin, SpinnerIndicator.Children[1]);
@@ -121,6 +131,7 @@ public partial class NotchWindow : Window
                 }
                 else
                 {
+                    SelectMostRelevant();
                     OpenActivity();
                 }
             }
@@ -128,9 +139,15 @@ public partial class NotchWindow : Window
         _doneTimer.Tick += (_, _) =>
         {
             _doneTimer.Stop();
-            if (_view == NotchView.Compact && _state is NotchState.Done or NotchState.Error)
+            if (_view == NotchView.Compact)
             {
-                SetState(NotchState.Idle);
+                foreach (var activity in _activities.Where(a => a.State is NotchState.Done or NotchState.Error))
+                {
+                    activity.State = NotchState.Idle;
+                }
+
+                SetState(AggregateState());
+                RenderAgentList();
             }
         };
 
@@ -164,30 +181,22 @@ public partial class NotchWindow : Window
         }
     }
 
-    /// <summary>Called by the host right before a prompt is sent (from any surface).</summary>
-    public void OnTurnStarted(string prompt)
-    {
-        _doneTimer.Stop();
-        _steps.Clear();
-        _output.Clear();
-        OutputText.Text = string.Empty;
-        OutputBox.Visibility = Visibility.Collapsed;
-        ResetChangedFiles();
-        ActivityPrompt.Text = prompt;
-        AddStep(L("notch.step.sending"));
-        SetState(NotchState.Working);
-    }
+    /// <summary>Called by the host right before a prompt is sent in the main conversation.</summary>
+    public void OnTurnStarted(string prompt) =>
+        BeginActivity(MainActivityKey, prompt, _host.ProviderName, _host.WorkspaceName);
 
-    public void HandleProviderEvent(ProviderEvent providerEvent)
+    /// <summary>An event of the main conversation, or of the parallel agent with that key.</summary>
+    public void HandleProviderEvent(ProviderEvent providerEvent, string key = MainActivityKey)
     {
+        var activity = ActivityFor(key);
         switch (providerEvent)
         {
-            case ProviderStatusEvent status when _state == NotchState.Working || _host.IsBusy:
-                AddStep(status.Message);
+            case ProviderStatusEvent status when activity.IsBusy || (activity.IsMain && _host.IsBusy):
+                AddStep(activity, status.Message);
                 break;
 
             case ProviderTextDeltaEvent text:
-                AppendOutput(text.Delta);
+                AppendOutput(activity, text.Delta);
                 break;
 
             case ProviderQuotaEvent:
@@ -195,42 +204,47 @@ public partial class NotchWindow : Window
                 break;
 
             case ProviderFileChangeEvent fileChange:
-                AddChangedFiles(fileChange.Changes);
-                AddStep(fileChange.Changes.Count == 1
+                AddChangedFiles(activity, fileChange.Changes);
+                AddStep(activity, fileChange.Changes.Count == 1
                     ? string.Format(L("notch.step.editedOne"), System.IO.Path.GetFileName(fileChange.Changes[0].MovePath ?? fileChange.Changes[0].Path))
                     : string.Format(L("notch.step.editedMany"), fileChange.Changes.Count));
                 break;
 
             case ProviderApprovalEvent:
             case ProviderUserInputEvent:
-                AddStep(L("notch.step.waiting"));
-                SetState(NotchState.Waiting);
+                AddStep(activity, L("notch.step.waiting"));
+                SetActivityState(activity, NotchState.Waiting);
                 break;
 
             case ProviderErrorEvent error when !error.WillRetry:
-                CompleteSteps();
-                AddStep(Truncate(error.Message, 120), isError: true);
-                SetState(NotchState.Error);
+                CompleteSteps(activity);
+                AddStep(activity, Truncate(error.Message, 120), isError: true);
+                SetActivityState(activity, NotchState.Error);
                 _doneTimer.Start();
                 break;
 
             case ProviderCompletedEvent completed:
-                CompleteSteps();
+                CompleteSteps(activity);
                 if (completed.Status == "completed")
                 {
-                    AddStep(L("notch.step.done"));
-                    CompleteSteps();
-                    SetState(NotchState.Done);
+                    AddStep(activity, L("notch.step.done"));
+                    CompleteSteps(activity);
+                    SetActivityState(activity, NotchState.Done);
                 }
                 else
                 {
-                    AddStep(completed.Status == "interrupted" || completed.Status == "cancelled"
+                    AddStep(activity, completed.Status == "interrupted" || completed.Status == "cancelled"
                         ? L("notch.step.cancelled")
                         : completed.Status, isError: completed.Status != "interrupted" && completed.Status != "cancelled");
-                    SetState(NotchState.Idle);
+                    SetActivityState(activity, NotchState.Idle);
                 }
                 _doneTimer.Start();
                 break;
+        }
+
+        if (ReferenceEquals(activity, _activity))
+        {
+            ApplyState();
         }
     }
 
@@ -250,6 +264,7 @@ public partial class NotchWindow : Window
         LauncherInput.Text = string.Empty;
         RefreshAttachments();
         RefreshQuota();
+        RenderAgentList();
         _view = NotchView.Launcher;
         ApplyView(animate: true);
         UpdateVisibility();
@@ -275,8 +290,7 @@ public partial class NotchWindow : Window
     private void OpenActivity()
     {
         _collapseTimer.Stop();
-        ActivityProviderRun.Text = _host.ProviderName;
-        ActivityContextRun.Text = "  " + _host.WorkspaceName;
+        SelectActivity(_activity);
         _view = NotchView.Activity;
         ApplyView(animate: true);
         ApplyState();
@@ -680,6 +694,7 @@ public partial class NotchWindow : Window
         }
         else
         {
+            SelectMostRelevant();
             OpenActivity();
             Activate();
         }
@@ -973,6 +988,7 @@ public partial class NotchWindow : Window
         ErrorIndicator.Visibility = _state == NotchState.Error ? Visibility.Visible : Visibility.Collapsed;
         ApplyQuotaRing();
         ApplyQueueState();
+        ApplyCompactCount();
 
         if (_state == NotchState.Working)
         {
@@ -983,15 +999,17 @@ public partial class NotchWindow : Window
             _spinner.Stop(this);
         }
 
-        var busy = _host.IsBusy || _state is NotchState.Working or NotchState.Waiting;
+        var busy = ActivityBusy(_activity);
         var typed = FollowUpInput.Text.Trim().Length > 0;
-        var stop = busy && !typed;
+        // Only the main conversation has a queue; a busy parallel agent can only be stopped.
+        var stop = busy && (!typed || !_activity.IsMain);
         StopGlyph.Visibility = stop ? Visibility.Visible : Visibility.Collapsed;
         SendGlyph.Visibility = stop ? Visibility.Collapsed : Visibility.Visible;
         ActionButton.IsEnabled = busy || typed;
         System.Windows.Automation.AutomationProperties.SetName(ActionButton,
             stop ? L("notch.stop") : busy ? L("notch.queueButton") : L("notch.send"));
-        FollowUpPlaceholder.Text = busy ? L("notch.followUp.busy") : L("notch.followUp.idle");
+        FollowUpPlaceholder.Text = !busy ? L("notch.followUp.idle")
+            : _activity.IsMain ? L("notch.followUp.busy") : L("notch.followUp.working");
     }
 
     private void UpdateVisibility()
@@ -1036,49 +1054,60 @@ public partial class NotchWindow : Window
 
     // ---- Content ---------------------------------------------------------------------------
 
-    private void AddStep(string text, bool isError = false)
+    private static void AddStep(Activity activity, string text, bool isError = false)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             return;
         }
 
+        var steps = activity.Steps;
         text = text.Trim();
-        if (_steps.Count > 0 && _steps[^1].Text == text)
+        if (steps.Count > 0 && steps[^1].Text == text)
         {
             return;
         }
 
-        CompleteSteps();
-        _steps.Add(new StepItem(text, Done: false, isError));
-        while (_steps.Count > MaxSteps)
+        CompleteSteps(activity);
+        steps.Add(new StepItem(text, Done: false, isError));
+        while (steps.Count > MaxSteps)
         {
-            _steps.RemoveAt(0);
+            steps.RemoveAt(0);
         }
     }
 
-    private void CompleteSteps()
+    private static void CompleteSteps(Activity activity)
     {
-        for (var i = 0; i < _steps.Count; i++)
+        var steps = activity.Steps;
+        for (var i = 0; i < steps.Count; i++)
         {
-            if (!_steps[i].Done && !_steps[i].IsError)
+            if (!steps[i].Done && !steps[i].IsError)
             {
-                _steps[i] = _steps[i] with { Done = true };
+                steps[i] = steps[i] with { Done = true };
             }
         }
     }
 
-    private void AppendOutput(string delta)
+    private void AppendOutput(Activity activity, string delta)
     {
-        _output.Append(delta);
-        if (_output.Length > MaxOutputChars * 2)
+        var output = activity.Output;
+        output.Append(delta);
+        if (output.Length > MaxOutputChars * 2)
         {
-            _output.Remove(0, _output.Length - MaxOutputChars);
+            output.Remove(0, output.Length - MaxOutputChars);
         }
 
-        var text = _output.ToString();
-        OutputText.Text = text.Length > MaxOutputChars ? "â€¦" + text[^MaxOutputChars..].TrimStart() : text;
-        OutputBox.Visibility = Visibility.Visible;
+        if (ReferenceEquals(activity, _activity))
+        {
+            RenderOutput();
+        }
+    }
+
+    private void RenderOutput()
+    {
+        var text = _activity.Output.ToString();
+        OutputText.Text = text.Length > MaxOutputChars ? "…" + text[^MaxOutputChars..].TrimStart() : text;
+        OutputBox.Visibility = text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RenderRecent()
@@ -1120,6 +1149,7 @@ public partial class NotchWindow : Window
             return;
         }
 
+        SelectActivity(MainActivity);
         if (_host.IsBusy)
         {
             await _host.SubmitFromNotchAsync(prompt);
@@ -1135,8 +1165,8 @@ public partial class NotchWindow : Window
         }
         catch (Exception exception)
         {
-            AddStep(Truncate(exception.Message, 120), isError: true);
-            SetState(NotchState.Error);
+            AddStep(MainActivity, Truncate(exception.Message, 120), isError: true);
+            SetActivityState(MainActivity, NotchState.Error);
         }
     }
 
@@ -1191,7 +1221,13 @@ public partial class NotchWindow : Window
 
     private async void LauncherInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            // Ctrl+Enter: run it as a separate agent, next to whatever is running.
+            e.Handled = true;
+            await StartParallelAsync(LauncherInput.Text);
+        }
+        else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
             await SubmitAsync(LauncherInput.Text);
@@ -1249,8 +1285,7 @@ public partial class NotchWindow : Window
             var text = FollowUpInput.Text;
             if (text.Trim().Length > 0)
             {
-                FollowUpInput.Clear();
-                await SubmitAsync(text);
+                await SubmitFollowUpAsync(text);
             }
         }
     }
@@ -1258,15 +1293,40 @@ public partial class NotchWindow : Window
     private async void ActionButton_Click(object sender, RoutedEventArgs e)
     {
         // Busy with text typed: the button queues it. Busy and empty: it stops the turn.
-        if (_host.IsBusy && FollowUpInput.Text.Trim().Length == 0)
+        var activity = _activity;
+        if (ActivityBusy(activity) && (FollowUpInput.Text.Trim().Length == 0 || !activity.IsMain))
         {
-            await _host.StopFromNotchAsync();
+            if (activity.IsMain)
+            {
+                await _host.StopFromNotchAsync();
+            }
+            else
+            {
+                await _host.StopActivityAsync(activity.Key);
+            }
             return;
         }
 
-        var text = FollowUpInput.Text;
+        await SubmitFollowUpAsync(FollowUpInput.Text);
+    }
+
+    private async Task SubmitFollowUpAsync(string text)
+    {
+        var activity = _activity;
+        if (!activity.IsMain && activity.IsBusy)
+        {
+            return;
+        }
+
         FollowUpInput.Clear();
-        await SubmitAsync(text);
+        if (activity.IsMain)
+        {
+            await SubmitAsync(text);
+        }
+        else
+        {
+            await SendToAgentAsync(activity, text);
+        }
     }
 
     private void PinButton_Click(object sender, RoutedEventArgs e)
@@ -1281,18 +1341,44 @@ public partial class NotchWindow : Window
         PinButton.ToolTip = _pinned ? L("notch.unpin") : L("notch.pin");
     }
 
-    private void OpenWindowButton_Click(object sender, RoutedEventArgs e)
+    private async void OpenWindowButton_Click(object sender, RoutedEventArgs e)
     {
+        var activity = _activity;
         Collapse();
-        _host.OpenConversationWindow();
+        if (activity.IsMain)
+        {
+            _host.OpenConversationWindow();
+            return;
+        }
+
+        try
+        {
+            await _host.OpenActivityInWindowAsync(activity.Key);
+        }
+        catch (Exception exception)
+        {
+            AddStep(activity, Truncate(exception.Message, 120), isError: true);
+        }
     }
 
+    // Closing a finished parallel agent removes it; a running one keeps going in the background.
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Collapse();
-        if (_state is NotchState.Done or NotchState.Error)
+        var activity = _activity;
+        if (!activity.IsMain && !activity.IsBusy)
         {
-            SetState(NotchState.Idle);
+            _host.DismissActivity(activity.Key);
+            RemoveActivity(activity.Key);
+            if (_view == NotchView.Activity && VisibleActivities.Count > 0)
+            {
+                return;
+            }
+        }
+
+        Collapse();
+        if (activity.State is NotchState.Done or NotchState.Error)
+        {
+            SetActivityState(activity, NotchState.Idle);
         }
     }
 

@@ -29,9 +29,6 @@ public partial class NotchWindow
     private static readonly Brush RemovedTextBrush = Frozen(Color.FromRgb(0xFF, 0x8A, 0x80));
     private static readonly Brush ContextTextBrush = Frozen(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
 
-    private readonly Dictionary<string, ChangedFile> _changedFiles = new(StringComparer.OrdinalIgnoreCase);
-    private bool _filesExpanded;
-
     private sealed class ChangedFile(string path)
     {
         public string Path { get; set; } = path;
@@ -45,8 +42,8 @@ public partial class NotchWindow
     /// <summary>Dev preview only: open the activity view with the file list expanded.</summary>
     internal void PreviewActivity()
     {
-        _filesExpanded = true;
-        if (_changedFiles.Values.FirstOrDefault() is { } first)
+        _activity.FilesExpanded = true;
+        if (_activity.Files.Values.FirstOrDefault() is { } first)
         {
             first.Expanded = true;
         }
@@ -58,26 +55,20 @@ public partial class NotchWindow
         ApplyPin();
     }
 
-    private void ResetChangedFiles()
+    private void AddChangedFiles(Activity activity, IReadOnlyList<ProviderFileChange> changes)
     {
-        _changedFiles.Clear();
-        _filesExpanded = false;
-        RenderChangedFiles();
-    }
-
-    private void AddChangedFiles(IReadOnlyList<ProviderFileChange> changes)
-    {
+        var files = activity.Files;
         foreach (var change in changes)
         {
             var target = change.MovePath is { Length: > 0 } moved ? moved : change.Path;
             // A move re-keys the entry under its new path.
-            if (!_changedFiles.Remove(change.Path, out var file) && !_changedFiles.TryGetValue(target, out file))
+            if (!files.Remove(change.Path, out var file) && !files.TryGetValue(target, out file))
             {
                 file = new ChangedFile(target) { Kind = change.Kind };
             }
 
             file.Path = target;
-            _changedFiles[target] = file;
+            files[target] = file;
 
             // An added file stays "added" through later edits; a delete wins over everything.
             if (change.Kind == "delete" || file.Kind != "add")
@@ -95,7 +86,10 @@ public partial class NotchWindow
             }
         }
 
-        RenderChangedFiles();
+        if (ReferenceEquals(activity, _activity))
+        {
+            RenderChangedFiles();
+        }
     }
 
     // Codex sends the whole content (no +/- markers) for added and deleted files.
@@ -119,7 +113,7 @@ public partial class NotchWindow
 
     private void RenderChangedFiles()
     {
-        if (_changedFiles.Count == 0)
+        if (_activity.Files.Count == 0)
         {
             FilesBox.Visibility = Visibility.Collapsed;
             FilesList.Children.Clear();
@@ -127,23 +121,23 @@ public partial class NotchWindow
         }
 
         FilesBox.Visibility = Visibility.Visible;
-        FilesSummary.Text = string.Format(L("notch.files.summary"), _changedFiles.Count);
-        var added = _changedFiles.Values.Sum(file => file.Added);
-        var removed = _changedFiles.Values.Sum(file => file.Removed);
+        FilesSummary.Text = string.Format(L("notch.files.summary"), _activity.Files.Count);
+        var added = _activity.Files.Values.Sum(file => file.Added);
+        var removed = _activity.Files.Values.Sum(file => file.Removed);
         FilesAdded.Text = added > 0 ? $"+{added}" : string.Empty;
         FilesRemoved.Text = removed > 0 ? $"−{removed}" : string.Empty;
         OpenEditorButton.Content = L("notch.files.openEditor");
-        FilesScroller.Visibility = _filesExpanded ? Visibility.Visible : Visibility.Collapsed;
+        FilesScroller.Visibility = _activity.FilesExpanded ? Visibility.Visible : Visibility.Collapsed;
         FilesChevronRotation.BeginAnimation(RotateTransform.AngleProperty, null);
-        FilesChevronRotation.Angle = _filesExpanded ? 90 : 0;
+        FilesChevronRotation.Angle = _activity.FilesExpanded ? 90 : 0;
 
         FilesList.Children.Clear();
-        if (!_filesExpanded)
+        if (!_activity.FilesExpanded)
         {
             return;
         }
 
-        foreach (var file in _changedFiles.Values)
+        foreach (var file in _activity.Files.Values)
         {
             FilesList.Children.Add(BuildFileRow(file));
             if (file.Expanded)
@@ -331,8 +325,8 @@ public partial class NotchWindow
 
     private void FilesHeader_Click(object sender, RoutedEventArgs e)
     {
-        _filesExpanded = !_filesExpanded;
-        if (_filesExpanded)
+        _activity.FilesExpanded = !_activity.FilesExpanded;
+        if (_activity.FilesExpanded)
         {
             // Opening the list is a sign the user is reading: don't auto-collapse under them.
             _doneTimer.Stop();
@@ -341,7 +335,7 @@ public partial class NotchWindow
 
         RenderChangedFiles();
         FilesChevronRotation.BeginAnimation(RotateTransform.AngleProperty,
-            new DoubleAnimation(_filesExpanded ? 0 : 90, _filesExpanded ? 90 : 0, TimeSpan.FromMilliseconds(160)) { EasingFunction = new CubicEase() });
+            new DoubleAnimation(_activity.FilesExpanded ? 0 : 90, _activity.FilesExpanded ? 90 : 0, TimeSpan.FromMilliseconds(160)) { EasingFunction = new CubicEase() });
     }
 
     private void FileRow_Click(object sender, RoutedEventArgs e)
@@ -368,7 +362,7 @@ public partial class NotchWindow
         {
             EditorLauncher.Open(workspace, goTo: false);
         }
-        else if (_changedFiles.Values.FirstOrDefault(file => file.Kind != "delete") is { } first)
+        else if (_activity.Files.Values.FirstOrDefault(file => file.Kind != "delete") is { } first)
         {
             EditorLauncher.Open(ResolvePath(first.Path), goTo: true);
         }

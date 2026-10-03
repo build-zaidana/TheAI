@@ -24,7 +24,7 @@ public partial class NotchWindow
             QueueList.Children.Add(BuildQueueRow(i, queued[i]));
         }
 
-        QueueBox.Visibility = queued.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        QueueBox.Visibility = queued.Count > 0 && _activity.IsMain ? Visibility.Visible : Visibility.Collapsed;
         QueueTitleRun.Text = $"{L("notch.queue.title")} · {queued.Count}";
         QueueSendNowButton.Content = L("notch.queue.sendNow");
         ApplyQueueState();
@@ -32,7 +32,7 @@ public partial class NotchWindow
 
     private void ApplyQueueState()
     {
-        var paused = !_host.IsBusy && _state is not (NotchState.Working or NotchState.Waiting) && _host.QueuedPrompts.Count > 0;
+        var paused = !_host.IsBusy && !MainActivity.IsBusy && _host.QueuedPrompts.Count > 0;
         QueueStateRun.Text = paused ? "  " + L("notch.queue.paused") : string.Empty;
         QueueSendNowButton.Visibility = paused ? Visibility.Visible : Visibility.Collapsed;
     }

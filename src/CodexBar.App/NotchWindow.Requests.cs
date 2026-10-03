@@ -29,9 +29,10 @@ public partial class NotchWindow
     private NotchView _viewBeforeRequest = NotchView.Compact;
 
     /// <summary>Ask the user to approve an action. Esc or Tolak declines.</summary>
-    internal Task<ProviderApprovalDecision> RequestApprovalAsync(ProviderApprovalEvent approval)
+    internal Task<ProviderApprovalDecision> RequestApprovalAsync(ProviderApprovalEvent approval, string key = MainActivityKey)
     {
         CancelPendingRequest();
+        SelectActivity(ActivityFor(key));
         _approvalSource = new TaskCompletionSource<ProviderApprovalDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
         _requestPending = approval.IsPending;
 
@@ -67,9 +68,10 @@ public partial class NotchWindow
     }
 
     /// <summary>Ask the agent's structured question(s). Null means the user cancelled.</summary>
-    internal Task<IReadOnlyDictionary<string, IReadOnlyList<string>>?> RequestInputAsync(ProviderUserInputEvent input)
+    internal Task<IReadOnlyDictionary<string, IReadOnlyList<string>>?> RequestInputAsync(ProviderUserInputEvent input, string key = MainActivityKey)
     {
         CancelPendingRequest();
+        SelectActivity(ActivityFor(key));
         _inputSource = new TaskCompletionSource<IReadOnlyDictionary<string, IReadOnlyList<string>>?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _inputRequest = input;
         _requestPending = input.IsPending;
@@ -119,7 +121,9 @@ public partial class NotchWindow
     {
         RequestError.Visibility = Visibility.Collapsed;
         RequestCountdown.Text = string.Empty;
-        RequestContext.Text = $"{_host.ProviderName} · {_host.WorkspaceName}";
+        RequestContext.Text = _activity.IsMain
+            ? $"{_host.ProviderName} · {_host.WorkspaceName}"
+            : $"{_activity.Provider} · {_activity.Workspace} · {L("notch.agents.parallel")}";
         if (_view != NotchView.Request)
         {
             _viewBeforeRequest = _view == NotchView.Launcher ? NotchView.Activity : _view;
@@ -481,16 +485,15 @@ public partial class NotchWindow
             return;
         }
 
-        if (_state == NotchState.Waiting)
+        if (_activity.State == NotchState.Waiting)
         {
-            SetState(NotchState.Working);
+            SetActivityState(_activity, NotchState.Working);
         }
 
-        _view = _viewBeforeRequest == NotchView.Activity || _host.IsBusy ? NotchView.Activity : NotchView.Compact;
+        _view = _viewBeforeRequest == NotchView.Activity || ActivityBusy(_activity) ? NotchView.Activity : NotchView.Compact;
         if (_view == NotchView.Activity)
         {
-            ActivityProviderRun.Text = _host.ProviderName;
-            ActivityContextRun.Text = "  " + _host.WorkspaceName;
+            SelectActivity(_activity);
         }
         ApplyView(animate: true);
         UpdateVisibility();
