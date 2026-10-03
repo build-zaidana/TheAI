@@ -40,6 +40,7 @@ internal interface ISettingsHost
     void ChooseWorkspace();
     (bool Ok, string Message) ApplyHotkey(string gesture);
     (bool Ok, string Message) ApplyQuickCaptureHotkey(string gesture);
+    (bool Ok, string Message) ApplyScreenshotHotkey(string gesture);
     void OpenLogin();
     void RunAction(string action);
 
@@ -134,6 +135,7 @@ public partial class SettingsWindow : Window
         Select(ApprovalPopup, s.ApprovalPolicy);
         HotkeyField.Text = s.Hotkey;
         QuickHotkeyField.Text = s.QuickCaptureHotkey;
+        ShotHotkeyField.Text = s.ScreenshotHotkey;
         Select(QuickRevealPopup, s.QuickCaptureReveal);
         DiagnosticsSwitch.IsChecked = s.EnableDiagnosticsLogging;
 
@@ -379,7 +381,12 @@ public partial class SettingsWindow : Window
         e.Handled = true;
         var field = (TextBox)sender;
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
-        var current = (string)field.Tag == "quick" ? _host.Settings.QuickCaptureHotkey : _host.Settings.Hotkey;
+        var current = (string)field.Tag switch
+        {
+            "quick" => _host.Settings.QuickCaptureHotkey,
+            "shot" => _host.Settings.ScreenshotHotkey,
+            _ => _host.Settings.Hotkey
+        };
 
         if (key == Key.Escape)
         {
@@ -430,6 +437,13 @@ public partial class SettingsWindow : Window
     {
         var (ok, message) = _host.ApplyQuickCaptureHotkey(QuickHotkeyField.Text);
         QuickHotkeyField.Text = _host.Settings.QuickCaptureHotkey;
+        SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private void ApplyShotHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        var (ok, message) = _host.ApplyScreenshotHotkey(ShotHotkeyField.Text);
+        ShotHotkeyField.Text = _host.Settings.ScreenshotHotkey;
         SetHotkeyHint(message, ok ? Green : Red);
     }
 

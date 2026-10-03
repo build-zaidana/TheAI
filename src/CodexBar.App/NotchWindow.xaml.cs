@@ -31,6 +31,14 @@ internal interface INotchHost
     /// <summary>Offset of the notch centre from the centre of its edge, as a fraction of the edge length (persisted).</summary>
     double NotchOffset { get; set; }
     IReadOnlyList<PromptTemplate> Templates { get; }
+
+    /// <summary>Files and screenshots waiting to go with the next prompt (shared with the main window).</summary>
+    IReadOnlyList<ProviderInputAttachment> Attachments { get; }
+
+    /// <summary>Attach existing files; returns how many were added (max 10 in total, duplicates skipped).</summary>
+    int AddAttachments(IEnumerable<string> paths);
+    void RemoveAttachment(ProviderInputAttachment attachment);
+    void CaptureScreenshot();
     Task SubmitFromNotchAsync(string prompt);
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
@@ -204,7 +212,7 @@ public partial class NotchWindow : Window
 
     // ---- Views -----------------------------------------------------------------------------
 
-    private async void OpenLauncher()
+    private async void OpenLauncher(bool focus = true)
     {
         _collapseTimer.Stop();
         _hoverTimer.Stop();
@@ -216,11 +224,15 @@ public partial class NotchWindow : Window
         LauncherHint.Text = L("notch.launcher.hint");
         BuildChips();
         LauncherInput.Text = string.Empty;
+        RefreshAttachments();
         _view = NotchView.Launcher;
         ApplyView(animate: true);
         UpdateVisibility();
-        Activate();
-        LauncherInput.Focus();
+        if (focus)
+        {
+            Activate();
+            LauncherInput.Focus();
+        }
 
         try
         {
@@ -1073,7 +1085,7 @@ public partial class NotchWindow : Window
     private async Task SubmitAsync(string prompt)
     {
         prompt = prompt.Trim();
-        if (prompt.Length == 0 || _host.IsBusy)
+        if ((prompt.Length == 0 && _host.Attachments.Count == 0) || _host.IsBusy)
         {
             return;
         }
@@ -1135,7 +1147,7 @@ public partial class NotchWindow : Window
     {
         var hasText = LauncherInput.Text.Length > 0;
         LauncherPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
-        LauncherSendButton.IsEnabled = LauncherInput.Text.Trim().Length > 0 && !_host.IsBusy;
+        UpdateLauncherSendState();
         RenderRecent();
     }
 

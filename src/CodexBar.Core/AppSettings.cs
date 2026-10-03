@@ -12,6 +12,9 @@ public sealed class AppSettings
     /// <summary>Hotkey khusus quick-capture: kirim teks terseleksi langsung tanpa membuka window.</summary>
     public string QuickCaptureHotkey { get; set; } = "Win+Shift+X";
 
+    /// <summary>Hotkey screenshot area: pilih bagian layar lalu lampirkan ke prompt berikutnya.</summary>
+    public string ScreenshotHotkey { get; set; } = "Win+Shift+Z";
+
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
@@ -82,6 +85,7 @@ public sealed class AppSettings
         Language = source.Language;
         Hotkey = source.Hotkey;
         QuickCaptureHotkey = source.QuickCaptureHotkey;
+        ScreenshotHotkey = source.ScreenshotHotkey;
         QuickCaptureReveal = source.QuickCaptureReveal;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;

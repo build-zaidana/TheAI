@@ -60,6 +60,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private OnboardingWindow? _onboardingWindow;
     private readonly GlobalHotKey _hotKey = new();
     private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
+    private readonly GlobalHotKey _screenshotHotKey = new(0x4344);
+    private bool _capturingScreen;
     private string? _pendingQuickCaptureReveal;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly DispatcherTimer _renderTimer;
@@ -687,6 +689,74 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             // but make the failure visible so the user knows the combo didn't register.
             DiagnosticsLog.Error("QuickCaptureHotkey", exception.Message);
             SetStatus(LF("quickCapture.registerFailed", _settings.QuickCaptureHotkey), StatusErrorBrush);
+        }
+
+        try
+        {
+            _screenshotHotKey.Pressed += (_, _) => CaptureScreenshot();
+            _screenshotHotKey.Register(this, _settings.ScreenshotHotkey);
+            _settings.ScreenshotHotkey = _screenshotHotKey.CurrentGesture ?? _settings.ScreenshotHotkey;
+        }
+        catch (Exception exception)
+        {
+            // Optional as well; the combo can be taken by another app.
+            DiagnosticsLog.Error("ScreenshotHotkey", exception.Message);
+        }
+    }
+
+    // Freeze the screen, let the user pick an area, and attach the PNG to the next prompt. In
+    // notch mode the result lands in the launcher; otherwise in the main window's attachment bar.
+    private void CaptureScreenshot()
+    {
+        if (_capturingScreen || _controller.IsBusy)
+        {
+            return;
+        }
+
+        _capturingScreen = true;
+        var notchWasVisible = _notch?.IsVisible == true;
+        try
+        {
+            _notch?.Hide();
+            string? path;
+            try
+            {
+                path = ScreenCaptureWindow.Capture();
+            }
+            finally
+            {
+                if (notchWasVisible)
+                {
+                    _notch?.Show();
+                }
+            }
+
+            if (path is null)
+            {
+                return;
+            }
+
+            _temporaryAttachmentPaths.Add(path);
+            AddAttachment(path, $"Screenshot {DateTime.Now:HH.mm.ss}.png");
+            RenderAttachments();
+            if (IsNotchMode && _notch is not null)
+            {
+                _notch.ShowAttachments();
+            }
+            else
+            {
+                ShowFromExternalActivation();
+                PromptBox.Focus();
+            }
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("Screenshot", exception.Message);
+            ShowError(LF("status.attachmentFailed", exception.Message));
+        }
+        finally
+        {
+            _capturingScreen = false;
         }
     }
 
@@ -1468,6 +1538,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         AttachmentBar.Visibility = _attachments.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         UpdateSendButtonState();
+        _notch?.RefreshAttachments();
     }
 
     private void RemoveAttachmentButton_Click(object sender, RoutedEventArgs e)
@@ -2255,6 +2326,21 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         return (ReferenceEquals(HotkeyStatusText.Foreground, StatusReadyBrush), HotkeyStatusText.Text);
     }
 
+    (bool Ok, string Message) ISettingsHost.ApplyScreenshotHotkey(string gesture)
+    {
+        try
+        {
+            _screenshotHotKey.ChangeGesture(gesture);
+            _settings.ScreenshotHotkey = _screenshotHotKey.CurrentGesture ?? _settings.ScreenshotHotkey;
+            _ = SaveSettingsSafeAsync();
+            return (true, LF("hotkey.active", _settings.ScreenshotHotkey));
+        }
+        catch (Exception exception)
+        {
+            return (false, exception.Message);
+        }
+    }
+
     (bool Ok, string Message) ISettingsHost.ApplyQuickCaptureHotkey(string gesture)
     {
         try
@@ -2326,6 +2412,19 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", "npm install --save-dev vitest",
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
+            }
+        }
+
+        // CODEXBAR_PREVIEW_ATTACH=path1;path2[;drop]: open the notch launcher with those files
+        // attached ("drop" also shows the drop zone), to check the chips without dragging.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_ATTACH") is { Length: > 0 } attach && _notch is not null)
+        {
+            var parts = attach.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            ((INotchHost)this).AddAttachments(parts.Where(part => part != "drop"));
+            _notch.ShowAttachments();
+            if (parts.Contains("drop"))
+            {
+                _notch.PreviewDropZone();
             }
         }
 
@@ -2466,6 +2565,41 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     }
 
     IReadOnlyList<PromptTemplate> INotchHost.Templates => _settings.PromptTemplates;
+
+    IReadOnlyList<ProviderInputAttachment> INotchHost.Attachments => _attachments;
+
+    int INotchHost.AddAttachments(IEnumerable<string> paths)
+    {
+        var added = 0;
+        foreach (var path in paths)
+        {
+            if (_attachments.Count >= 10)
+            {
+                break;
+            }
+
+            if (File.Exists(path) && AddAttachment(path))
+            {
+                added++;
+            }
+        }
+
+        if (added > 0)
+        {
+            RenderAttachments();
+        }
+
+        return added;
+    }
+
+    void INotchHost.RemoveAttachment(ProviderInputAttachment attachment)
+    {
+        _attachments.Remove(attachment);
+        CleanupTemporaryAttachments([attachment.Path]);
+        RenderAttachments();
+    }
+
+    void INotchHost.CaptureScreenshot() => Dispatcher.BeginInvoke(CaptureScreenshot);
 
     async Task INotchHost.SubmitFromNotchAsync(string prompt)
     {
@@ -2870,6 +3004,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         };
         menu.Items.Add(modeMenu);
         menu.Items.Add(L("tray.recenterNotch"), null, (_, _) => Dispatcher.Invoke(() => _notch?.Recenter()));
+        menu.Items.Add(L("tray.screenshot"), null, (_, _) => Dispatcher.BeginInvoke(CaptureScreenshot));
         menu.Items.Add("Thread baru", null, (_, _) => Dispatcher.BeginInvoke(
             () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync)));
         menu.Items.Add(L("tray.settings"), null, (_, _) => Dispatcher.Invoke(() => OpenSettingsWindow()));
@@ -4109,6 +4244,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
         _hotKey.Dispose();
         _quickCaptureHotKey.Dispose();
+        _screenshotHotKey.Dispose();
         _approvalGate.Dispose();
         CleanupTemporaryAttachments(_temporaryAttachmentPaths.ToArray());
         _trayIcon.Visible = false;

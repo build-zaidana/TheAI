@@ -250,6 +250,11 @@
     <Grid x:Name="Root" Margin="28,0,28,36">
         <Border x:Name="Shell"
                 Background="Black"
+                AllowDrop="True"
+                DragEnter="Shell_DragEnter"
+                DragOver="Shell_DragOver"
+                DragLeave="Shell_DragLeave"
+                Drop="Shell_Drop"
                 CornerRadius="0,0,14,14"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
@@ -304,6 +309,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock x:Name="LauncherPlaceholder" Text="Tanya Codex, atau cari thread" FontSize="15"
                                        Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" IsHitTestVisible="False" />
@@ -312,13 +318,33 @@
                                      AutomationProperties.Name="Tanya atau cari thread" />
                             <TextBlock x:Name="LauncherProviderText" Grid.Column="1" Text="Codex" FontSize="12" Margin="10,0,10,0"
                                        Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
-                            <Button x:Name="LauncherSendButton" Grid.Column="2" Style="{StaticResource NotchRoundButton}"
+                            <Button x:Name="ScreenshotButton" Grid.Column="2" Style="{StaticResource NotchIconButton}" Margin="0,0,6,0"
+                                    Click="ScreenshotButton_Click" AutomationProperties.Name="Screenshot">
+                                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
+                                      StrokeLineJoin="Round" Width="18" Height="16" Stretch="None"
+                                      Data="M 1.5,4.5 L 1.5,13 Q 1.5,14.5 3,14.5 L 15,14.5 Q 16.5,14.5 16.5,13 L 16.5,4.5 Q 16.5,3 15,3 L 12.5,3 L 11.3,1.2 L 6.7,1.2 L 5.5,3 L 3,3 Q 1.5,3 1.5,4.5 Z M 12,8.6 A 3,3 0 1 1 6,8.6 A 3,3 0 1 1 12,8.6 Z" />
+                            </Button>
+                            <Button x:Name="LauncherSendButton" Grid.Column="3" Style="{StaticResource NotchRoundButton}"
                                     Click="LauncherSendButton_Click" IsEnabled="False" AutomationProperties.Name="Kirim">
                                 <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Data="M 7,12 L 7,2 M 2.5,6.5 L 7,2 L 11.5,6.5" Width="14" Height="14" />
                             </Button>
                         </Grid>
                     </Border>
+
+                    <Border x:Name="DropZone" Margin="0,8,0,0" Height="64" CornerRadius="14" Visibility="Collapsed"
+                            Background="#0FFFFFFF" IsHitTestVisible="False">
+                        <Grid>
+                            <Rectangle RadiusX="14" RadiusY="14" Stroke="#59FFFFFF" StrokeThickness="1.2" StrokeDashArray="4 3" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Path Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Width="16" Height="16" Margin="0,0,9,0" VerticalAlignment="Center"
+                                      Data="M 8,1.5 L 8,10.5 M 4,6.5 L 8,10.5 L 12,6.5 M 2,14.5 L 14,14.5" />
+                                <TextBlock x:Name="DropZoneText" Text="Lepaskan untuk melampirkan" FontSize="13" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <WrapPanel x:Name="AttachmentTray" Margin="0,8,0,0" Visibility="Collapsed" />
 
                     <TextBlock x:Name="RecentHeader" Text="Lanjutkan" FontSize="11" FontWeight="SemiBold"
                                Foreground="{StaticResource NotchText3}" Margin="12,12,12,4" />

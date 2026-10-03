@@ -143,6 +143,10 @@ public sealed class JsonSettingsStore
         {
             settings.QuickCaptureHotkey = "Win+Shift+X";
         }
+        if (string.IsNullOrWhiteSpace(settings.ScreenshotHotkey))
+        {
+            settings.ScreenshotHotkey = "Win+Shift+Z";
+        }
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;
