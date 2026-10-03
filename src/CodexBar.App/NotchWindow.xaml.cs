@@ -614,10 +614,6 @@ public partial class NotchWindow : Window
         {
             ReleaseLiquid(_lastDragPoint);   // last pointer position seen while dragging
         }
-        else
-        {
-            DockNear(CursorDip());
-        }
     }
 
     private void OpenFromClick()
@@ -666,35 +662,6 @@ public partial class NotchWindow : Window
         }
 
         return (edge, length > 0 ? Math.Clamp(fromCentre / length, -0.45, 0.45) : 0, vertical);
-    }
-
-    // Dock to whichever edge of the work area the cursor ended up closest to.
-    private void DockNear(System.Windows.Point point)
-    {
-        var (edge, offset, vertical) = ChooseDock(point);
-
-        // Where the droplet is right now (window coords → screen DIPs), before re-shaping it.
-        var before = Shell.TranslatePoint(new System.Windows.Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2), this);
-        var screenCentre = new System.Windows.Point(Left + before.X, Top + before.Y);
-
-        _host.NotchEdge = edge;
-        _host.NotchOffset = offset;
-        _floating = false;
-        CompactIndicator.Visibility = Visibility.Visible;
-        ApplyEdgeLayout();
-        ApplyView(animate: false);
-        ApplyState();
-        UpdateLayout();
-
-        // The new edge moves the shape inside the window; shift the window so it doesn't jump.
-        var after = Shell.TranslatePoint(new System.Windows.Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2), this);
-        BeginAnimation(LeftProperty, null);
-        BeginAnimation(TopProperty, null);
-        Left = screenCentre.X - after.X;
-        Top = screenCentre.Y - after.Y;
-
-        var along = vertical ? new Vector(0, 1) : new Vector(1, 0);
-        PlaceNotch(animate: true, onArrive: () => Splash(along));
     }
 
     /// <summary>Put the notch back in the middle of the top edge (tray menu).</summary>
@@ -790,52 +757,22 @@ public partial class NotchWindow : Window
     private System.Windows.Point _lastWindowPos;
     private TimeSpan _lastFrame;
 
-    private const double DropletWidth = 84;
-    private const double DropletHeight = 34;
-
-    // Detach from the edge: centre the shape in the (much larger, transparent) window so it can
-    // stretch in any direction without being clipped by the window bounds, round it off and —
-    // when compact — pull it into a short droplet. The window is shifted by the same amount the
-    // shape moved inside it, so on screen nothing jumps.
+    // Lifting the notch off its edge always turns it into liquid. An open notch is dragged
+    // exactly like a closed one: it folds back into the compact pill first, and once the liquid
+    // has landed it opens again (same view, typed text kept) at its new place.
     private void LiftOff()
     {
-        if (_view == NotchView.Compact)
+        if (_view != NotchView.Compact)
         {
-            _floating = true;
-            StartLiquid();
-            return;
+            _reopenAfterDrop = _view;
+            _collapseTimer.Stop();
+            _view = NotchView.Compact;
+            ApplyView(animate: false);
+            UpdateLayout();
         }
-
-        var centre = new System.Windows.Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2);
-        var before = Shell.TranslatePoint(centre, this);
 
         _floating = true;
-        Shell.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
-        Shell.VerticalAlignment = VerticalAlignment.Center;
-        Shell.Margin = new Thickness(0);
-        Root.Margin = new Thickness(0);
-        ApplyOutline();
-        ApplyRadius(Radius);
-        UpdateLayout();
-
-        var after = Shell.TranslatePoint(new System.Windows.Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2), this);
-        var shift = before - after;
-        _pressLeft += shift.X;
-        _pressTop += shift.Y;
-        Left += shift.X;
-        Top += shift.Y;
-
-        if (_view == NotchView.Compact)
-        {
-            var ease = new BackEase { Amplitude = 0.3, EasingMode = EasingMode.EaseOut };
-            var duration = TimeSpan.FromMilliseconds(260);
-            Animate(Shell, WidthProperty, Shell.ActualWidth, DropletWidth, duration, ease);
-            Animate(Shell, HeightProperty, Shell.ActualHeight, DropletHeight, duration, ease);
-            CompactGlyph.Visibility = Visibility.Collapsed;
-            CompactIndicator.Visibility = Visibility.Collapsed;
-        }
-
-        StartPhysics();
+        StartLiquid();
     }
 
     private void StartPhysics()

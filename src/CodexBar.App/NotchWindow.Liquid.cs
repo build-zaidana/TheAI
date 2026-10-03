@@ -29,6 +29,7 @@ public partial class NotchWindow
     private readonly Point[] _dropTarget = new Point[DropCount];
     private bool _liquid;
     private bool _liquidReleasing;
+    private NotchView? _reopenAfterDrop;
     private Vector _grabOffset;
     private Vector _landingAlong;
     private TimeSpan _liquidLastFrame;
@@ -195,6 +196,21 @@ public partial class NotchWindow
         Shell.Opacity = 1;
         ApplyState();
         Splash(_landingAlong);
+
+        // A notch that was open when it was picked up opens again where it landed.
+        var reopen = _reopenAfterDrop;
+        _reopenAfterDrop = null;
+        if (reopen == NotchView.Launcher)
+        {
+            _view = NotchView.Launcher;
+            ApplyView(animate: true);
+            Activate();
+            LauncherInput.Focus();
+        }
+        else if (reopen == NotchView.Activity)
+        {
+            OpenActivity();
+        }
     }
 
     // ---- Rendering ------------------------------------------------------------------------
