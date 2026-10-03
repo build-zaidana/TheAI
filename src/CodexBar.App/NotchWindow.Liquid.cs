@@ -211,6 +211,10 @@ public partial class NotchWindow
         {
             OpenActivity();
         }
+        else if (reopen == NotchView.Request && HasPendingRequest)
+        {
+            ShowPendingRequest();
+        }
     }
 
     // ---- Rendering ------------------------------------------------------------------------

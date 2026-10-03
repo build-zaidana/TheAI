@@ -143,6 +143,103 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Request view (approvals / agent questions) -->
+        <Style x:Key="NotchPill" TargetType="Button">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="#1FFFFFFF" CornerRadius="16" Padding="16,0">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NotchPrimaryPill" TargetType="Button" BasedOn="{StaticResource NotchPill}">
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="White" CornerRadius="16" Padding="16,0">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#E6FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NotchTextLink" TargetType="Button">
+            <Setter Property="Foreground" Value="#99FFFFFF" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="White" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="NotchOption" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="#D9FFFFFF" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" Background="#14FFFFFF" BorderBrush="Transparent" BorderThickness="1.5" CornerRadius="12" Padding="12,8">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#1FFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="White" />
+                                <Setter TargetName="Bg" Property="Background" Value="#24FFFFFF" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NotchSecret" TargetType="PasswordBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CaretBrush" Value="White" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Transparent margin gives the drop shadow room; transparent pixels are click-through. -->
@@ -251,6 +348,40 @@
                         <TextBlock x:Name="LauncherHint" Text="↵ kirim   Esc tutup" FontSize="11" Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
                         <TextBlock x:Name="LauncherWorkspaceText" Text="CodexBar" FontSize="11" HorizontalAlignment="Right"
                                    Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+
+                <!-- Request: an approval or a question from the agent, answered right here. -->
+                <StackPanel x:Name="RequestPanel" Margin="20,14,16,16" Width="564" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
+                    <Grid Height="22">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource NotchOrange}" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="RequestKind" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock x:Name="RequestContext" FontSize="12" Foreground="{StaticResource NotchText3}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock x:Name="RequestTitle" Margin="0,10,0,0" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="RequestMessage" Margin="0,4,0,0" FontSize="13" Foreground="#9BFFFFFF" TextWrapping="Wrap" />
+                    <Border x:Name="RequestDetailBox" Margin="0,12,0,0" Background="#12FFFFFF" CornerRadius="12" Padding="12,10">
+                        <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock x:Name="RequestDetail" FontFamily="Cascadia Mono, Consolas" FontSize="12" LineHeight="19"
+                                       Foreground="#E6FFFFFF" TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Border>
+                    <StackPanel x:Name="RequestFields" Margin="0,12,0,0" />
+                    <TextBlock x:Name="RequestError" Margin="0,8,0,0" FontSize="12" Foreground="#FF6B61" TextWrapping="Wrap" Visibility="Collapsed" />
+                    <Grid Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="RequestLink" Style="{StaticResource NotchTextLink}" Click="RequestLink_Click" />
+                            <TextBlock x:Name="RequestCountdown" Margin="12,0,0,0" FontSize="12" Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="RequestTertiary" Style="{StaticResource NotchPill}" Click="RequestTertiary_Click" />
+                            <Button x:Name="RequestSecondary" Style="{StaticResource NotchPill}" Click="RequestSecondary_Click" />
+                            <Button x:Name="RequestPrimary" Style="{StaticResource NotchPrimaryPill}" Click="RequestPrimary_Click" />
+                        </StackPanel>
                     </Grid>
                 </StackPanel>
 

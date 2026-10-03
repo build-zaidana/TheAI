@@ -1646,6 +1646,18 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 return;
             }
 
+            // Notch mode: the question is answered inside the notch, no window pops up.
+            if (IsNotchMode && _notch is not null)
+            {
+                _approvalVisible = true;
+                var answers = await _notch.RequestInputAsync(input);
+                if (input.IsPending?.Invoke() != false)
+                {
+                    await input.RespondAsync(answers);
+                }
+                return;
+            }
+
             _approvalVisible = true;
             Show();
             Activate();
@@ -1687,6 +1699,18 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
             if (approval.IsPending?.Invoke() == false)
             {
+                return;
+            }
+
+            // Notch mode: approve or decline inside the notch, no dialog and no focus steal.
+            if (IsNotchMode && _notch is not null)
+            {
+                _approvalVisible = true;
+                var decision = await _notch.RequestApprovalAsync(approval);
+                if (approval.IsPending?.Invoke() != false)
+                {
+                    await approval.RespondAsync(decision);
+                }
                 return;
             }
 
@@ -2281,6 +2305,28 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         if (Environment.GetEnvironmentVariable("CODEXBAR_OPEN_SETTINGS") is { Length: > 0 } page)
         {
             OpenSettingsWindow(page);
+        }
+
+        // CODEXBAR_PREVIEW_REQUEST=approval|input: show a sample request in the notch (no provider involved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REQUEST") is { Length: > 0 } request && _notch is not null)
+        {
+            var raw = System.Text.Json.JsonDocument.Parse("{}").RootElement;
+            if (request == "input")
+            {
+                var question = new ProviderInputQuestion("target", "Target", "Deploy ke lingkungan mana?",
+                    [new ProviderInputOption("Staging", "Aman untuk dicoba"), new ProviderInputOption("Production", "Pengguna sungguhan")],
+                    AllowsOther: true);
+                var note = new ProviderInputQuestion("note", "Catatan", "Ada pesan untuk tim?", [], IsRequired: false);
+                _ = _notch.RequestInputAsync(new ProviderUserInputEvent("Konfirmasi deploy", "Agent butuh dua jawaban sebelum lanjut.",
+                    [question, note], answers => { DiagnosticsLog.Info("PreviewRequest", $"answers={answers?.Count ?? -1}"); return Task.CompletedTask; }, raw));
+            }
+            else
+            {
+                _ = _notch.RequestApprovalAsync(new ProviderApprovalEvent("item/commandExecution/requestApproval",
+                    string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", "npm install --save-dev vitest",
+                        @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
+                    decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
+            }
         }
 
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_ONBOARDING") is { Length: > 0 } preview)

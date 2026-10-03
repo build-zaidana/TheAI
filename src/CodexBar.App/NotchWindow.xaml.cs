@@ -45,7 +45,7 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity }
+    private enum NotchView { Compact, Launcher, Activity, Request }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
@@ -95,7 +95,14 @@ public partial class NotchWindow : Window
             _hoverTimer.Stop();
             if (_view == NotchView.Compact && _state != NotchState.Idle)
             {
-                OpenActivity();
+                if (HasPendingRequest)
+                {
+                    ShowPendingRequest();
+                }
+                else
+                {
+                    OpenActivity();
+                }
             }
         };
         _doneTimer.Tick += (_, _) =>
@@ -121,6 +128,12 @@ public partial class NotchWindow : Window
 
     public void ToggleLauncher()
     {
+        if (HasPendingRequest)
+        {
+            ShowPendingRequest();
+            return;
+        }
+
         if (_view == NotchView.Launcher && IsActive)
         {
             Collapse();
@@ -484,7 +497,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -507,7 +520,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -538,7 +551,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -618,6 +631,12 @@ public partial class NotchWindow : Window
 
     private void OpenFromClick()
     {
+        if (HasPendingRequest)
+        {
+            ShowPendingRequest();
+            return;
+        }
+
         if (_state == NotchState.Idle)
         {
             OpenLauncher();
@@ -1086,7 +1105,10 @@ public partial class NotchWindow : Window
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
-            Collapse();
+            if (!HandleRequestEscape())
+            {
+                Collapse();
+            }
         }
     }
 
