@@ -161,9 +161,8 @@ public sealed class JsonSettingsStore
         settings.NotchOffset = double.IsFinite(settings.NotchOffset) ? Math.Clamp(settings.NotchOffset, -0.45, 0.45) : 0;
         settings.NotchEdge = settings.NotchEdge?.ToLowerInvariant() switch
         {
-            "bottom" => "bottom",
-            "left" => "left",
-            "right" => "right",
+            "bottom" or "left" or "right" or "top-left" or "top-right" or "bottom-left" or "bottom-right" =>
+                settings.NotchEdge.ToLowerInvariant(),
             _ => "top"
         };
         settings.DisplayMode = settings.DisplayMode?.ToLowerInvariant() switch

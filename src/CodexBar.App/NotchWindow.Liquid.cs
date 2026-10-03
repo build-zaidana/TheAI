@@ -38,10 +38,8 @@ public partial class NotchWindow
 
     private void StartLiquid()
     {
-        var centreInWindow = Shell.TranslatePoint(new Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2), this);
+        var (centreInWindow, along, length) = ArmAnchor();
         var centre = new Point(Left + centreInWindow.X, Top + centreInWindow.Y);
-        var along = Vertical ? new Vector(0, 1) : new Vector(1, 0);
-        var length = Vertical ? Shell.ActualHeight : Shell.ActualWidth;
         var cursor = CursorDip();
 
         // Lead drop sits where the pill was grabbed; the rest are strung along the pill, nearest first.
@@ -81,11 +79,9 @@ public partial class NotchWindow
         ApplyState();
         UpdateLayout();
 
-        var (left, top) = ComputePlacement();
-        var centreInWindow = Shell.TranslatePoint(new Point(Shell.ActualWidth / 2, Shell.ActualHeight / 2), this);
-        var target = new Point(left + centreInWindow.X, top + centreInWindow.Y);
-        var along = vertical ? new Vector(0, 1) : new Vector(1, 0);
-        var length = vertical ? Shell.ActualHeight : Shell.ActualWidth;
+        var (left, top) = ComputePlacement(_shapeWidth.Target, _shapeHeight.Target);
+        var (anchor, along, length) = ArmAnchor();
+        var target = new Point(left + anchor.X, top + anchor.Y);
 
         // Keep the drops' current order along the edge so they don't cross on the way in.
         var order = Enumerable.Range(0, DropCount).OrderBy(i => Vector.Multiply(_drops[i] - target, along)).ToArray();

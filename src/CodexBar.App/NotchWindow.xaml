@@ -164,6 +164,8 @@
                 MouseLeftButtonUp="Shell_MouseLeftButtonUp">
 
             <Grid x:Name="ShellRoot">
+            <!-- Corner-docked L shape (Border background is cleared in corner mode). -->
+            <local:NotchShape x:Name="CornerShape" Visibility="Collapsed" />
             <local:UnclampedGrid>
                 <!-- Compact: icon only, like a hardware notch with a live activity. -->
                 <Grid x:Name="CompactPanel" Height="30" Margin="11,0" Cursor="Hand" VerticalAlignment="Top"

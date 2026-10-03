@@ -282,7 +282,16 @@ public partial class NotchWindow : Window
     private double ExpandedRadius => _island ? 30 : 26;
 
     // Notch: only the corners facing away from its edge are round. Island: all four.
-    private void ApplyRadius(double radius) =>
+    private void ApplyRadius(double radius)
+    {
+        if (IsCorner && !_floating)
+        {
+            Shell.CornerRadius = new CornerRadius(0);
+            CornerShape.OuterRadius = radius;
+            CornerShape.InnerRadius = CompactRadius;
+            return;
+        }
+
         Shell.CornerRadius = _island ? new CornerRadius(radius)
             : _floating ? new CornerRadius(_view == NotchView.Compact ? 999 : radius)
             : Edge switch
@@ -292,6 +301,7 @@ public partial class NotchWindow : Window
             "right" => new CornerRadius(radius, 0, 0, radius),
             _ => new CornerRadius(0, 0, radius, radius)
         };
+    }
 
     /// <summary>Switch between the notch (edge-attached) and Dynamic Island (floating pill) styles.</summary>
     public void SetIsland(bool island)
@@ -304,147 +314,6 @@ public partial class NotchWindow : Window
         _island = island;
         ApplyEdgeLayout();
         ApplyView(animate: false);
-    }
-
-    private readonly System.Windows.Media.Effects.DropShadowEffect _shadow = new()
-    {
-        BlurRadius = 40,
-        ShadowDepth = 10,
-        Direction = 270,
-        Opacity = 0,
-        Color = Colors.Black
-    };
-
-    private NotchView _shownView = NotchView.Compact;
-    private int _transitionId;
-    private bool _transitioning;
-
-    private FrameworkElement PanelFor(NotchView view) => view switch
-    {
-        NotchView.Launcher => LauncherPanel,
-        NotchView.Activity => ActivityPanel,
-        _ => CompactPanel
-    };
-
-    private double TargetWidth => _view switch
-    {
-        NotchView.Launcher => LauncherWidth,
-        NotchView.Activity => ActivityWidth,
-        _ => _state == NotchState.Idle ? IdleWidth : CompactWidth
-    };
-
-    private static double MeasureHeight(FrameworkElement panel, double width)
-    {
-        panel.Measure(new System.Windows.Size(width, double.PositiveInfinity));
-        return Math.Ceiling(panel.DesiredSize.Height);
-    }
-
-    private void ApplyView(bool animate)
-    {
-        var incoming = PanelFor(_view);
-        var outgoing = PanelFor(_shownView);
-        var expanded = _view != NotchView.Compact;
-        incoming.Visibility = Visibility.Visible;
-        double width, height;
-        if (_view == NotchView.Compact)
-        {
-            (width, height) = CompactSize();
-            if (Vertical)
-            {
-                CompactPanel.Height = height - CompactPanel.Margin.Top - CompactPanel.Margin.Bottom;
-            }
-        }
-        else
-        {
-            width = TargetWidth;
-            height = MeasureHeight(incoming, width);
-        }
-        var id = ++_transitionId;
-
-        if (!animate || !IsVisible)
-        {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel })
-            {
-                panel.BeginAnimation(OpacityProperty, null);
-                panel.Opacity = 1;
-                panel.Visibility = panel == incoming ? Visibility.Visible : Visibility.Collapsed;
-            }
-
-            Shell.BeginAnimation(WidthProperty, null);
-            Shell.BeginAnimation(HeightProperty, null);
-            BeginAnimation(RadiusProperty, null);
-            Shell.Width = width;
-            Shell.Height = height;
-            Radius = expanded ? ExpandedRadius : CompactRadius;
-            Shell.Effect = expanded ? _shadow : null;
-            _shadow.Opacity = expanded ? 0.45 : 0;
-            _shownView = _view;
-            _transitioning = false;
-            UpdateWindowStyle();
-            return;
-        }
-
-        var growing = width > Shell.ActualWidth + 0.5 || height > Shell.ActualHeight + 0.5;
-        var duration = TimeSpan.FromMilliseconds(growing ? 440 : 300);
-        IEasingFunction ease = growing
-            ? new BackEase { Amplitude = 0.16, EasingMode = EasingMode.EaseOut }
-            : new QuinticEase { EasingMode = EasingMode.EaseOut };
-
-        _transitioning = true;
-        Shell.Effect = null;
-
-        Animate(Shell, WidthProperty, Shell.ActualWidth, width, duration, ease);
-        Animate(this, RadiusProperty, Radius, expanded ? ExpandedRadius : CompactRadius, duration, ease);
-        Animate(Shell, HeightProperty, Shell.ActualHeight, height, duration, ease, (_, _) =>
-        {
-            if (id != _transitionId)
-            {
-                return;
-            }
-
-            _transitioning = false;
-            if (_view != NotchView.Compact)
-            {
-                Shell.Effect = _shadow;
-                _shadow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty,
-                    new DoubleAnimation(0, 0.45, TimeSpan.FromMilliseconds(180)));
-            }
-
-            // Content may have changed while we were moving (recent threads arriving, etc.).
-            SyncHeightToContent(TimeSpan.FromMilliseconds(180));
-        });
-
-        if (outgoing != incoming)
-        {
-            var fadeOut = Frame(new DoubleAnimation(0, TimeSpan.FromMilliseconds(110)));
-            fadeOut.Completed += (_, _) =>
-            {
-                if (PanelFor(_view) != outgoing)
-                {
-                    outgoing.Visibility = Visibility.Collapsed;
-                }
-            };
-            outgoing.BeginAnimation(OpacityProperty, fadeOut);
-
-            incoming.Opacity = 0;
-            incoming.BeginAnimation(OpacityProperty, Frame(new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(240))
-            {
-                BeginTime = TimeSpan.FromMilliseconds(expanded ? 90 : 60),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            }));
-
-            if (incoming.RenderTransform is TranslateTransform slide)
-            {
-                slide.BeginAnimation(TranslateTransform.YProperty, Frame(new DoubleAnimation(-10, 0, TimeSpan.FromMilliseconds(380))
-                {
-                    BeginTime = TimeSpan.FromMilliseconds(60),
-                    EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut }
-                }));
-            }
-        }
-
-        _shownView = _view;
-        UpdateWindowStyle();
     }
 
     // ---- Window style ----------------------------------------------------------------------
@@ -507,19 +376,61 @@ public partial class NotchWindow : Window
     private double _pressLeft;
     private double _pressTop;
 
-    private string Edge => _host.NotchEdge is "bottom" or "left" or "right" ? _host.NotchEdge : "top";
+    private const double CornerZone = 150;
+
+    private string Edge => _host.NotchEdge switch
+    {
+        "bottom" or "left" or "right" => _host.NotchEdge,
+        "top-left" or "top-right" or "bottom-left" or "bottom-right" when !_island => _host.NotchEdge,
+        _ => "top"
+    };
 
     private bool Vertical => Edge is "left" or "right";
 
+    // Corner docking: the notch becomes an L hugging both edges (drawn by CornerShape).
+    private bool IsCorner => Edge.Contains('-');
+
+    private bool CornerTop => Edge.StartsWith("top", StringComparison.Ordinal);
+
+    private bool CornerLeft => Edge.EndsWith("left", StringComparison.Ordinal);
+
     private (double Width, double Height) CompactSize()
     {
+        if (IsCorner)
+        {
+            // Bounding box of the L: horizontal arm length × vertical arm length.
+            return _state == NotchState.Idle ? (132, 96) : (172, 112);
+        }
+
         var length = _state == NotchState.Idle ? IdleWidth : CompactWidth;
         return Vertical ? (CompactThickness, length) : (length, CompactThickness);
+    }
+
+    // Centre of the arm the liquid flows along (window coordinates), its direction and length.
+    private (System.Windows.Point Centre, Vector Along, double Length) ArmAnchor()
+    {
+        var w = Shell.ActualWidth;
+        var h = Shell.ActualHeight;
+        var centre = IsCorner
+            ? new System.Windows.Point(w / 2, CornerTop ? CompactThickness / 2 : h - CompactThickness / 2)
+            : new System.Windows.Point(w / 2, h / 2);
+        var along = Vertical ? new Vector(0, 1) : new Vector(1, 0);
+        var length = Vertical ? h : w;
+        return (Shell.TranslatePoint(centre, this), along, length);
     }
 
     private void ApplyEdgeLayout()
     {
         var edge = Edge;
+        if (IsCorner)
+        {
+            ApplyCornerLayout();
+            return;
+        }
+
+        Shell.Background = Brushes.Black;
+        CornerShape.Visibility = Visibility.Collapsed;
+        CompactPanel.VerticalAlignment = VerticalAlignment.Top;
         Shell.HorizontalAlignment = edge switch
         {
             "left" => System.Windows.HorizontalAlignment.Left,
@@ -573,6 +484,65 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, CompactPanel })
+        {
+            panel.RenderTransformOrigin = ContentOrigin();
+        }
+        AnchorPanels();
+    }
+
+    // While the shape grows, expanded content stays pinned to the side it grows out of instead
+    // of being centred in a box that is still narrower than it (which clipped its far side).
+    private void AnchorPanels()
+    {
+        var horizontal = Edge switch
+        {
+            "left" or "top-left" or "bottom-left" => System.Windows.HorizontalAlignment.Left,
+            "right" or "top-right" or "bottom-right" => System.Windows.HorizontalAlignment.Right,
+            _ => System.Windows.HorizontalAlignment.Center
+        };
+        var vertical = Edge switch
+        {
+            "bottom" or "bottom-left" or "bottom-right" => VerticalAlignment.Bottom,
+            "left" or "right" => VerticalAlignment.Center,
+            _ => VerticalAlignment.Top
+        };
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel })
+        {
+            panel.HorizontalAlignment = horizontal;
+            panel.VerticalAlignment = vertical;
+        }
+    }
+
+    // L in a screen corner: the shape is drawn by CornerShape (the Border is only a transparent
+    // box), its compact content sits in the horizontal arm, and it expands into a panel whose
+    // only rounded corner is the one facing into the screen.
+    private void ApplyCornerLayout()
+    {
+        Shell.Background = null;
+        CornerShape.Visibility = Visibility.Visible;
+        CornerShape.Corner = Edge;
+        Shell.HorizontalAlignment = CornerLeft ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+        Shell.VerticalAlignment = CornerTop ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+        Root.Margin = new Thickness(CornerLeft ? 0 : 36, CornerTop ? 0 : 36, CornerLeft ? 36 : 0, CornerTop ? 36 : 0);
+        Shell.Margin = new Thickness(0);
+
+        CompactPanel.Margin = new Thickness(11, 0, 11, 0);
+        CompactPanel.Width = double.NaN;
+        CompactPanel.Height = CompactThickness;
+        CompactPanel.VerticalAlignment = CornerTop ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+        CompactGlyph.HorizontalAlignment = CornerLeft ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Right;
+        CompactGlyph.VerticalAlignment = VerticalAlignment.Center;
+        CompactIndicator.HorizontalAlignment = CornerLeft ? System.Windows.HorizontalAlignment.Right : System.Windows.HorizontalAlignment.Left;
+        CompactIndicator.VerticalAlignment = VerticalAlignment.Center;
+
+        ApplyOutline();
+        ApplyRadius(Radius);
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, CompactPanel })
+        {
+            panel.RenderTransformOrigin = ContentOrigin();
+        }
+        AnchorPanels();
     }
 
     private void Shell_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -667,6 +637,18 @@ public partial class NotchWindow : Window
     private (string Edge, double Offset, bool Vertical) ChooseDock(System.Windows.Point point)
     {
         var area = WindowPositioner.GetWorkArea(this);
+        if (!_island)
+        {
+            var nearTop = point.Y - area.Top < CornerZone;
+            var nearBottom = area.Bottom - point.Y < CornerZone;
+            var nearLeft = point.X - area.Left < CornerZone;
+            var nearRight = area.Right - point.X < CornerZone;
+            if ((nearTop || nearBottom) && (nearLeft || nearRight))
+            {
+                return ($"{(nearTop ? "top" : "bottom")}-{(nearLeft ? "left" : "right")}", 0, false);
+            }
+        }
+
         var distances = new (string Edge, double Distance)[]
         {
             ("top", point.Y - area.Top),
@@ -725,15 +707,24 @@ public partial class NotchWindow : Window
         PlaceNotch(animate: true);
     }
 
-    private (double Left, double Top) ComputePlacement()
+    // Window position for a shape of the given size. The shape's centre is clamped so the whole
+    // shape stays on screen: a notch parked near a side slides inward as it opens and back out
+    // as it closes, instead of the panel being cut off.
+    private (double Left, double Top) ComputePlacement(double shapeWidth, double shapeHeight)
     {
         var area = WindowPositioner.GetWorkArea(this);
         var width = ActualWidth > 0 ? ActualWidth : Width;
         var height = ActualHeight > 0 ? ActualHeight : Height;
-        const double inset = 110; // keep the shape's centre away from the corners
+        if (IsCorner)
+        {
+            return (CornerLeft ? area.Left : area.Right - width, CornerTop ? area.Top : area.Bottom - height);
+        }
 
-        var centreX = Math.Clamp(area.Left + area.Width / 2 + _host.NotchOffset * area.Width, area.Left + inset, area.Right - inset);
-        var centreY = Math.Clamp(area.Top + area.Height / 2 + _host.NotchOffset * area.Height, area.Top + inset, area.Bottom - inset);
+        const double margin = 8;
+        var halfX = Math.Min(shapeWidth / 2 + margin, area.Width / 2);
+        var halfY = Math.Min(shapeHeight / 2 + margin, area.Height / 2);
+        var centreX = Math.Clamp(area.Left + area.Width / 2 + _host.NotchOffset * area.Width, area.Left + halfX, area.Right - halfX);
+        var centreY = Math.Clamp(area.Top + area.Height / 2 + _host.NotchOffset * area.Height, area.Top + halfY, area.Bottom - halfY);
         var (left, top) = Edge switch
         {
             "bottom" => (centreX - width / 2, area.Bottom - height),
@@ -747,7 +738,10 @@ public partial class NotchWindow : Window
 
     private void PlaceNotch(bool animate = false, Action? onArrive = null)
     {
-        var (left, top) = ComputePlacement();
+        var (left, top) = ComputePlacement(_shapeWidth.Target, _shapeHeight.Target);
+        StopMotion();
+        _windowLeft.Snap(left);
+        _windowTop.Snap(top);
 
         if (animate && IsVisible)
         {
@@ -945,35 +939,8 @@ public partial class NotchWindow : Window
         return fromDevice.Transform(new System.Windows.Point(cursor.X, cursor.Y));
     }
 
-    // Steps and streamed output change the active panel's height; follow it smoothly.
-    private void Panel_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        if (e.HeightChanged && !_transitioning && sender == PanelFor(_view))
-        {
-            SyncHeightToContent(TimeSpan.FromMilliseconds(200));
-        }
-    }
-
-    private void SyncHeightToContent(TimeSpan duration)
-    {
-        var panel = PanelFor(_view);
-        if (panel == CompactPanel)
-        {
-            return;
-        }
-
-        var target = Math.Ceiling(panel.ActualHeight + panel.Margin.Top + panel.Margin.Bottom);
-        if (Math.Abs(target - Shell.ActualHeight) < 0.5)
-        {
-            return;
-        }
-
-        Animate(Shell, HeightProperty, Shell.ActualHeight, target, duration,
-            new CubicEase { EasingMode = EasingMode.EaseOut });
-    }
-
     // Completed handlers are copied into the clock when the animation starts, so they must be
-    // attached before BeginAnimation â€” attaching afterwards silently never fires.
+    // attached before BeginAnimation - attaching afterwards silently never fires.
     private static DoubleAnimation Animate(
         DependencyObject target, DependencyProperty property, double from, double to,
         TimeSpan duration, IEasingFunction ease, EventHandler? completed = null)
@@ -1041,9 +1008,8 @@ public partial class NotchWindow : Window
         if (!IsVisible)
         {
             Show();
+            PlaceNotch();
         }
-
-        PlaceNotch();
     }
 
     // ---- Outline ---------------------------------------------------------------------------
@@ -1062,7 +1028,7 @@ public partial class NotchWindow : Window
 
     // No rim on the side that meets the screen edge (the island floats, so it gets all four).
     private void ApplyOutline() =>
-        Shell.BorderThickness = _island || _floating ? new Thickness(1) : Edge switch
+        Shell.BorderThickness = IsCorner && !_floating ? new Thickness(0) : _island || _floating ? new Thickness(1) : Edge switch
         {
             "bottom" => new Thickness(1, 1, 1, 0),
             "left" => new Thickness(0, 1, 1, 1),
