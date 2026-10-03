@@ -9,6 +9,7 @@ public sealed class CodexProvider : IAgentProvider
     private static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(30);
     private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
     private readonly ConcurrentDictionary<string, byte> _serverRequests = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ProviderQuotaWindow> _quotaWindows = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly SemaphoreSlim _initializeLock = new(1, 1);
     private readonly Func<string, string>? _localize;
@@ -180,6 +181,7 @@ public sealed class CodexProvider : IAgentProvider
         }
 
         var method = GetString(account, "type") ?? "unknown";
+        _ = RefreshRateLimitsAsync();
         return new ProviderAccountInfo(
             IsAuthenticated: true,
             AuthenticationMethod: method,
@@ -690,6 +692,14 @@ public sealed class CodexProvider : IAgentProvider
                 _currentTurnId = null;
                 _serverRequests.Clear();
                 Emit(new ProviderCompletedEvent(status));
+                _ = RefreshRateLimitsAsync();
+                break;
+
+            case "account/rateLimits/updated":
+                if (parameters.TryGetProperty("rateLimits", out var updatedLimits))
+                {
+                    EmitQuota(updatedLimits);
+                }
                 break;
 
             case "thread/tokenUsage/updated":
@@ -736,6 +746,71 @@ public sealed class CodexProvider : IAgentProvider
                 }
                 break;
         }
+    }
+
+    // Subscription usage (ChatGPT plan limits). Optional: API-key accounts and older app-servers
+    // simply don't answer, and the meter stays hidden.
+    private async Task RefreshRateLimitsAsync()
+    {
+        try
+        {
+            var result = await SendRequestAsync("account/rateLimits/read", null!, CancellationToken.None).ConfigureAwait(false);
+            if (result.TryGetProperty("rateLimits", out var limits))
+            {
+                EmitQuota(limits);
+            }
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    // Updates are sparse: merge into what we already know, then report the whole picture.
+    private void EmitQuota(JsonElement snapshot)
+    {
+        foreach (var window in ParseRateLimitSnapshot(snapshot))
+        {
+            _quotaWindows[window.Id] = window;
+        }
+
+        if (_quotaWindows.IsEmpty)
+        {
+            return;
+        }
+
+        var reached = snapshot.TryGetProperty("rateLimitReachedType", out var reachedType) &&
+            reachedType.ValueKind == JsonValueKind.String;
+        Emit(new ProviderQuotaEvent(_quotaWindows.Values.OrderBy(w => w.Id == "session" ? 0 : 1).ToArray(), reached));
+    }
+
+    /// <summary>The primary/secondary windows of a <c>RateLimitSnapshot</c>.</summary>
+    internal static IReadOnlyList<ProviderQuotaWindow> ParseRateLimitSnapshot(JsonElement snapshot)
+    {
+        var windows = new List<ProviderQuotaWindow>();
+        foreach (var (name, fallbackId) in new[] { ("primary", "session"), ("secondary", "weekly") })
+        {
+            if (!snapshot.TryGetProperty(name, out var window) || window.ValueKind != JsonValueKind.Object ||
+                !window.TryGetProperty("usedPercent", out var used) || used.ValueKind != JsonValueKind.Number)
+            {
+                continue;
+            }
+
+            long? minutes = window.TryGetProperty("windowDurationMins", out var duration) && duration.ValueKind == JsonValueKind.Number
+                ? duration.GetInt64()
+                : null;
+            var id = minutes switch
+            {
+                <= 6 * 60 => "session",
+                >= 6 * 24 * 60 => "weekly",
+                _ => fallbackId
+            };
+            DateTimeOffset? resetsAt = window.TryGetProperty("resetsAt", out var resets) && resets.ValueKind == JsonValueKind.Number
+                ? DateTimeOffset.FromUnixTimeSeconds(resets.GetInt64())
+                : null;
+            windows.Add(new ProviderQuotaWindow(id, Math.Clamp(used.GetDouble() / 100.0, 0, 1), resetsAt));
+        }
+
+        return windows;
     }
 
     /// <summary>

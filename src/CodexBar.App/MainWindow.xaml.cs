@@ -1555,6 +1555,11 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         Dispatcher.BeginInvoke(async () =>
         {
+            if (providerEvent is ProviderQuotaEvent quota)
+            {
+                StoreQuota(_controller.ProviderId, quota, persist: true);
+            }
+
             _notch?.HandleProviderEvent(providerEvent);
             switch (providerEvent)
             {
@@ -2215,6 +2220,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _notch ??= new NotchWindow(this);
             _notch.SetIsland(_settings.DisplayMode == "island");
             _notch.ShowIdle();
+            _notch.RefreshQuota();
             if (!keepMainVisible)
             {
                 Hide();
@@ -2415,6 +2421,19 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         }
 
+        // CODEXBAR_PREVIEW_QUOTA=1|ring: sample usage (not saved); "1" opens the launcher to show the bars.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_QUOTA") is { Length: > 0 } quotaPreview && _notch is not null)
+        {
+            StoreQuota(_controller.ProviderId, new ProviderQuotaEvent([
+                new ProviderQuotaWindow("session", 0.78, DateTimeOffset.Now.AddHours(2.4)),
+                new ProviderQuotaWindow("weekly", 0.42, DateTimeOffset.Now.AddDays(3.2))]), persist: false);
+            _notch.RefreshQuota();
+            if (quotaPreview != "ring")
+            {
+                _notch.ToggleLauncher();
+            }
+        }
+
         // CODEXBAR_PREVIEW_FILES=1: a finished sample turn that edited a few files.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_FILES") is { Length: > 0 } && _notch is not null)
         {
@@ -2559,6 +2578,56 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     string INotchHost.WorkspaceName => _workspaceLabel;
 
     string INotchHost.WorkspacePath => _settings.WorkspacePath ?? string.Empty;
+
+    ProviderQuotaEvent? INotchHost.Quota =>
+        _quota.TryGetValue(_controller.ProviderId, out var quota) ? quota : null;
+
+    // Last subscription usage per provider. Claude Code only reports it during a turn, so it is
+    // kept on disk to have something to show right after start.
+    private readonly Dictionary<string, ProviderQuotaEvent> _quota = LoadQuotaCache();
+
+    private static string QuotaCachePath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "quota.json");
+
+    private sealed record QuotaCacheEntry(List<ProviderQuotaWindow> Windows, bool LimitReached);
+
+    private static Dictionary<string, ProviderQuotaEvent> LoadQuotaCache()
+    {
+        try
+        {
+            if (File.Exists(QuotaCachePath) &&
+                System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, QuotaCacheEntry>>(File.ReadAllText(QuotaCachePath)) is { } cached)
+            {
+                return cached.ToDictionary(pair => pair.Key, pair => new ProviderQuotaEvent(pair.Value.Windows, pair.Value.LimitReached));
+            }
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("QuotaCache", exception.Message);
+        }
+
+        return new Dictionary<string, ProviderQuotaEvent>();
+    }
+
+    private void StoreQuota(string providerId, ProviderQuotaEvent quota, bool persist)
+    {
+        _quota[providerId] = quota;
+        if (!persist)
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(QuotaCachePath)!);
+            File.WriteAllText(QuotaCachePath, System.Text.Json.JsonSerializer.Serialize(
+                _quota.ToDictionary(pair => pair.Key, pair => new QuotaCacheEntry(pair.Value.Windows.ToList(), pair.Value.LimitReached))));
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("QuotaCache", exception.Message);
+        }
+    }
 
     bool INotchHost.IsBusy => _controller.IsBusy;
 
@@ -3658,6 +3727,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             var replacement = _providerFactory(providerId);
             await _controller.SwitchProviderAsync(replacement);
+            _notch?.RefreshQuota();
 
             _settings.Provider = providerId;
             ActiveProviderChanged?.Invoke(replacement);

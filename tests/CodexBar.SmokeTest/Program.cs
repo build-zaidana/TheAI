@@ -938,7 +938,28 @@ static int RunFileChangeTests()
             """{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"},{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"no"}]}}""");
         Assert(results.Count == 2 && !results[0].IsError && results[1].IsError, "tool_result harus diparse dengan is_error.");
 
-        Console.WriteLine("PASS file change tests");
+        var quota = ClaudeCodeProvider.ParseRateLimitEvent(
+            """{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1791049800,"rateLimitType":"five_hour","unifiedWindows":{"five_hour":{"utilization":0.34,"resetsAt":1791049800},"seven_day":{"utilization":0.42,"resetsAt":1791471600}}}}""");
+        Assert(quota is { LimitReached: false } && quota.Windows.Count == 2 &&
+               quota.Windows[0] == new ProviderQuotaWindow("session", 0.34, DateTimeOffset.FromUnixTimeSeconds(1791049800)) &&
+               quota.Windows[1].Id == "weekly",
+            "rate_limit_event Claude Code harus jadi jendela session dan weekly.");
+        var rejected = ClaudeCodeProvider.ParseRateLimitEvent(
+            """{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1791049800,"rateLimitType":"five_hour"}}""");
+        Assert(rejected is { LimitReached: true } && rejected.Windows.Single().UsedFraction == 1,
+            "Batas yang tercapai tanpa unifiedWindows harus tetap dilaporkan.");
+        Assert(ClaudeCodeProvider.ParseRateLimitEvent("""{"type":"result"}""") is null, "Baris lain bukan event kuota.");
+
+        using var snapshot = JsonDocument.Parse("""
+            {"primary":{"usedPercent":61,"windowDurationMins":300,"resetsAt":1791049800},
+             "secondary":{"usedPercent":12,"windowDurationMins":10080}}
+            """);
+        var codexWindows = CodexProvider.ParseRateLimitSnapshot(snapshot.RootElement);
+        Assert(codexWindows.Count == 2 && codexWindows[0].Id == "session" && Math.Abs(codexWindows[0].UsedFraction - 0.61) < 1e-9 &&
+               codexWindows[1].Id == "weekly" && codexWindows[1].ResetsAt is null,
+            "RateLimitSnapshot Codex harus dipetakan ke session/weekly.");
+
+        Console.WriteLine("PASS file change and quota tests");
         return 0;
     }
     catch (Exception exception)

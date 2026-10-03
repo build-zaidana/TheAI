@@ -293,6 +293,10 @@
                                   Data="M 4,7.3 L 6.1,9.4 L 10.2,4.9" />
                         </Grid>
                         <Ellipse x:Name="WaitIndicator" Width="8" Height="8" Fill="{StaticResource NotchOrange}" Visibility="Collapsed" />
+                        <Grid x:Name="QuotaRing" Visibility="Collapsed">
+                            <Ellipse Stroke="#33FFFFFF" StrokeThickness="2.2" />
+                            <Path x:Name="QuotaArc" Stroke="#E6FFFFFF" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Grid>
                         <Ellipse x:Name="ErrorIndicator" Width="8" Height="8" Fill="{StaticResource NotchRed}" Visibility="Collapsed" />
                     </Grid>
                 </Grid>
@@ -369,6 +373,9 @@
                     </ItemsControl>
 
                     <WrapPanel x:Name="ChipPanel" Margin="6,10,6,0" />
+
+                    <!-- Subscription usage: one row per limit window. -->
+                    <StackPanel x:Name="QuotaPanel" Margin="12,12,12,0" Visibility="Collapsed" />
 
                     <Grid Margin="12,4,12,2" Height="24">
                         <TextBlock x:Name="LauncherHint" Text="↵ kirim   Esc tutup" FontSize="11" Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />

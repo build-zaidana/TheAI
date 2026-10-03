@@ -254,6 +254,11 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         while ((line = await process.StandardOutput.ReadLineAsync(token).ConfigureAwait(false)) is not null)
         {
             TrackFileEdits(line, pendingEdits);
+            if (line.Contains("\"rate_limit_event\"", StringComparison.Ordinal) && ParseRateLimitEvent(line) is { } quota)
+            {
+                Emit(quota);
+            }
+
             var chunk = ParseStreamLine(line);
             switch (chunk.Kind)
             {
@@ -567,6 +572,66 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         return results;
     }
+
+    /// <summary>
+    /// Subscription usage from a <c>rate_limit_event</c> line. <c>unifiedWindows</c> carries every
+    /// window (five_hour, seven_day, …) with utilization 0–1; older CLIs only name the window that
+    /// is closest to its limit, which is still enough to show it when the limit is hit.
+    /// </summary>
+    internal static ProviderQuotaEvent? ParseRateLimitEvent(string line)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            if (GetString(root, "type") != "rate_limit_event" ||
+                !root.TryGetProperty("rate_limit_info", out var info) ||
+                info.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            var rejected = GetString(info, "status") == "rejected";
+            var windows = new List<ProviderQuotaWindow>();
+            if (info.TryGetProperty("unifiedWindows", out var unified) && unified.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var window in unified.EnumerateObject())
+                {
+                    if (window.Value.ValueKind != JsonValueKind.Object ||
+                        !window.Value.TryGetProperty("utilization", out var utilization) ||
+                        utilization.ValueKind != JsonValueKind.Number)
+                    {
+                        continue;
+                    }
+
+                    windows.Add(new ProviderQuotaWindow(
+                        QuotaWindowId(window.Name),
+                        Math.Clamp(utilization.GetDouble(), 0, 1),
+                        FromUnixSeconds(GetLong(window.Value, "resetsAt"))));
+                }
+            }
+            else if (rejected && GetString(info, "rateLimitType") is { Length: > 0 } type)
+            {
+                windows.Add(new ProviderQuotaWindow(QuotaWindowId(type), 1, FromUnixSeconds(GetLong(info, "resetsAt"))));
+            }
+
+            return windows.Count > 0 || rejected ? new ProviderQuotaEvent(windows, rejected) : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string QuotaWindowId(string name) => name switch
+    {
+        "five_hour" => "session",
+        "seven_day" => "weekly",
+        _ => name
+    };
+
+    private static DateTimeOffset? FromUnixSeconds(long seconds) =>
+        seconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(seconds) : null;
 
     internal readonly record struct AuthStatus(
         bool LoggedIn, string? AuthMethod, string? Email, string? SubscriptionType);

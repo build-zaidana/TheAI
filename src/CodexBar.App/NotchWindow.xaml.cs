@@ -35,6 +35,9 @@ internal interface INotchHost
     double NotchOffset { get; set; }
     IReadOnlyList<PromptTemplate> Templates { get; }
 
+    /// <summary>Last known subscription usage of the active provider (null when unknown).</summary>
+    ProviderQuotaEvent? Quota { get; }
+
     /// <summary>Files and screenshots waiting to go with the next prompt (shared with the main window).</summary>
     IReadOnlyList<ProviderInputAttachment> Attachments { get; }
 
@@ -181,6 +184,10 @@ public partial class NotchWindow : Window
                 AppendOutput(text.Delta);
                 break;
 
+            case ProviderQuotaEvent:
+                RefreshQuota();
+                break;
+
             case ProviderFileChangeEvent fileChange:
                 AddChangedFiles(fileChange.Changes);
                 AddStep(fileChange.Changes.Count == 1
@@ -236,6 +243,7 @@ public partial class NotchWindow : Window
         BuildChips();
         LauncherInput.Text = string.Empty;
         RefreshAttachments();
+        RefreshQuota();
         _view = NotchView.Launcher;
         ApplyView(animate: true);
         UpdateVisibility();
@@ -957,6 +965,7 @@ public partial class NotchWindow : Window
         DoneIndicator.Visibility = _state == NotchState.Done ? Visibility.Visible : Visibility.Collapsed;
         WaitIndicator.Visibility = _state == NotchState.Waiting ? Visibility.Visible : Visibility.Collapsed;
         ErrorIndicator.Visibility = _state == NotchState.Error ? Visibility.Visible : Visibility.Collapsed;
+        ApplyQuotaRing();
 
         if (_state == NotchState.Working)
         {

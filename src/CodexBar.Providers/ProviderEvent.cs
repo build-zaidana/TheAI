@@ -85,3 +85,13 @@ public sealed record ProviderFileChange(string Path, string Kind, string Diff, s
 /// <summary>Files changed by a completed edit step of the current turn.</summary>
 public sealed record ProviderFileChangeEvent(IReadOnlyList<ProviderFileChange> Changes)
     : ProviderEvent(DateTimeOffset.Now);
+
+/// <summary>
+/// Usage of one subscription limit window. <c>Id</c> is "session" (the rolling ~5 hour window),
+/// "weekly", or a provider-specific name; <c>UsedFraction</c> runs from 0 to 1.
+/// </summary>
+public sealed record ProviderQuotaWindow(string Id, double UsedFraction, DateTimeOffset? ResetsAt);
+
+/// <summary>Latest known subscription usage for the active account.</summary>
+public sealed record ProviderQuotaEvent(IReadOnlyList<ProviderQuotaWindow> Windows, bool LimitReached = false)
+    : ProviderEvent(DateTimeOffset.Now);
