@@ -161,6 +161,20 @@ public partial class NotchWindow
         CompactCount.Visibility = running > 1 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>Bring one conversation up in the activity view (from a notification).</summary>
+    public void ShowActivityFor(string key)
+    {
+        if (HasPendingRequest)
+        {
+            ShowPendingRequest();
+            return;
+        }
+
+        SelectActivity(ActivityFor(key));
+        OpenActivity();
+        Activate();
+    }
+
     /// <summary>Dev preview only: open one activity, pinned.</summary>
     internal void PreviewAgent(string key)
     {

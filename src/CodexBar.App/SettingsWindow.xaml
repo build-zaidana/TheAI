@@ -262,6 +262,21 @@
                                 </StackPanel>
                             </Border>
                             <TextBlock Style="{StaticResource MacRowHint}" Text="{local:Tr Jawaban yang selesai langsung masuk clipboard. Selalu di atas berlaku untuk bar dan jendela percakapan., En=Finished answers go straight to the clipboard. Keep above applies to the bar and conversation window.}" />
+
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Bunyi saat selesai, En=Sound when done}" />
+                                        <CheckBox x:Name="CompletionSoundSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Notifikasi saat selesai, En=Notify when done}" />
+                                        <CheckBox x:Name="CompletionNotificationSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="NotifyHint" Style="{StaticResource MacRowHint}" />
                         </StackPanel>
 
                         <!-- Tampilan -->

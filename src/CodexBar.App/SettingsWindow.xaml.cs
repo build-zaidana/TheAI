@@ -111,6 +111,11 @@ public partial class SettingsWindow : Window
         Select(ThemePopup, s.Appearance.Theme.ToLowerInvariant());
         LaunchAtLoginSwitch.IsChecked = s.LaunchAtLogin;
         AutoCopySwitch.IsChecked = s.AutoCopyResponse;
+        CompletionSoundSwitch.IsChecked = s.CompletionSound;
+        NotifyHint.Text = Tr.Text(
+            "Notifikasi muncul saat jawaban selesai tapi tidak sedang kamu lihat: jendela tertutup, notch tersembunyi, atau giliran yang lama. Mode Fokus Windows tetap dihormati.",
+            "A notification appears when an answer finishes while you're not looking: window closed, notch hidden, or a long turn. Windows Focus mode is respected.");
+        CompletionNotificationSwitch.IsChecked = s.CompletionNotification;
         AlwaysOnTopSwitch.IsChecked = s.AlwaysOnTop;
 
         ModeNotch.IsChecked = s.DisplayMode == "notch";
@@ -247,6 +252,8 @@ public partial class SettingsWindow : Window
         s.Appearance.Theme = TagOf(ThemePopup) ?? "system";
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
+        s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
+        s.CompletionNotification = CompletionNotificationSwitch.IsChecked == true;
         s.AlwaysOnTop = AlwaysOnTopSwitch.IsChecked == true;
         s.NotchHideWhenIdle = HideIdleSwitch.IsChecked == true;
         s.OutputDocked = DockedSwitch.IsChecked == true;

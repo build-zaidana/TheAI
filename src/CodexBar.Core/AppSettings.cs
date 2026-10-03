@@ -58,6 +58,12 @@ public sealed class AppSettings
     /// <summary>Salin otomatis respons ke clipboard saat selesai. Default mati.</summary>
     public bool AutoCopyResponse { get; set; }
 
+    /// <summary>Bunyi pelan saat agent selesai menjawab.</summary>
+    public bool CompletionSound { get; set; } = true;
+
+    /// <summary>Notifikasi Windows (dengan Lihat / Salin jawaban) saat jawaban selesai tapi tidak sedang dilihat.</summary>
+    public bool CompletionNotification { get; set; } = true;
+
     /// <summary>Aktifkan diagnostics logging opt-in ke file (untuk pelaporan bug). Default mati.</summary>
     public bool EnableDiagnosticsLogging { get; set; }
 
@@ -101,6 +107,8 @@ public sealed class AppSettings
         ShowReasoning = source.ShowReasoning;
         MenuDocked = source.MenuDocked;
         AutoCopyResponse = source.AutoCopyResponse;
+        CompletionSound = source.CompletionSound;
+        CompletionNotification = source.CompletionNotification;
         EnableDiagnosticsLogging = source.EnableDiagnosticsLogging;
         PromptTemplates = PromptTemplate.Normalize(source.PromptTemplates);
         Appearance = new AppearanceSettings

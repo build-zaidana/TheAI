@@ -227,6 +227,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             AboutText.Text = LF("settings.about", version?.ToString(3) ?? "1.0.0");
             PromptBox.Focus();
+            _notifier.Initialize();
+            _notifier.Activated += (action, key) => Dispatcher.BeginInvoke(() => NotificationActivated(action, key));
             await StartupAsync();
             ApplyDisplayMode();
             OpenDevPreviews();
@@ -1157,6 +1159,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         DisarmAutoResume();
         _lastPrompt = prompt;
+        _turnStartedAt = DateTimeOffset.Now;
 
         var attachmentSummary = pendingAttachments.Length == 0
             ? string.Empty
@@ -1747,10 +1750,15 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                             ShowFromExternalActivation();
                         }
                     }
-                    else if (!IsNotchMode && (!IsVisible || !IsActive) && (_queue.Count == 0 || !completedNormally))
+                    else if (completedNormally && _queue.Count == 0)
                     {
-                        _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
-                            Forms.ToolTipIcon.Info);
+                        // The next queued prompt would start right away: only the last one notifies.
+                        NotifyCompletion(
+                            NotchWindow.MainActivityKey,
+                            ((INotchHost)this).ProviderName,
+                            _workspaceLabel,
+                            _messages.LastOrDefault(message => !message.IsUser)?.Markdown ?? string.Empty,
+                            DateTimeOffset.Now - _turnStartedAt);
                     }
 
                     _notch?.RefreshQueue();
@@ -2522,6 +2530,16 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
             }
+        }
+
+        // CODEXBAR_TEST_NOTIFY=1: a sample "done" notification as if nobody was looking.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_NOTIFY") is { Length: > 0 })
+        {
+            const string sample = "Validasi email sekarang memakai regex dan menolak input kosong. Saya juga menambahkan **6 test** untuk kasus tepi.";
+            _notifiedAnswers[NotchWindow.MainActivityKey] = sample;
+            var shown = _notifier.Show(LF("notify.doneTitle", ((INotchHost)this).ProviderName, _workspaceLabel),
+                CompletionNotifier.Preview(sample), NotchWindow.MainActivityKey, _settings.CompletionSound);
+            DiagnosticsLog.Info("Notifier", $"test toast shown={shown}");
         }
 
         // CODEXBAR_TEST_PARALLEL=<prompt>: start a real parallel agent with that prompt (end-to-end check).

@@ -22,6 +22,8 @@ public partial class MainWindow
         public ConversationController Controller { get; } = controller;
         public string WorkspacePath { get; } = workspacePath;
         public string Title { get; set; } = string.Empty;
+        public System.Text.StringBuilder Answer { get; } = new();
+        public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.Now;
         public string WorkspaceLabel => new DirectoryInfo(WorkspacePath).Name;
     }
 
@@ -123,6 +125,8 @@ public partial class MainWindow
         }
 
         _notch?.BeginActivity(agent.Key, display, ((INotchHost)this).ProviderName, agent.WorkspaceLabel);
+        agent.Answer.Clear();
+        agent.StartedAt = DateTimeOffset.Now;
         try
         {
             if (startThread)
@@ -166,8 +170,17 @@ public partial class MainWindow
                 _ = ShowUserInputAsync(input, agent.Controller.ThreadId, agent.Key);
                 break;
 
+            case ProviderTextDeltaEvent text:
+                agent.Answer.Append(text.Delta);
+                break;
+
             case ProviderCompletedEvent completed:
                 DiagnosticsLog.Info("ParallelAgent", $"{agent.Key} completed status={completed.Status}");
+                if (completed.Status == "completed")
+                {
+                    NotifyCompletion(agent.Key, ((INotchHost)this).ProviderName, agent.WorkspaceLabel,
+                        agent.Answer.ToString(), DateTimeOffset.Now - agent.StartedAt);
+                }
                 break;
         }
 
