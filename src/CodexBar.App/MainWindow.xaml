@@ -371,6 +371,17 @@
                             <ComboBoxItem Content="Dark" Tag="dark" />
                         </ComboBox>
                         <StackPanel Orientation="Horizontal" Margin="0,3,10,3" VerticalAlignment="Center">
+                            <TextBlock x:Name="DisplayModeLabel" Text="Tampilan" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
+                            <ComboBox x:Name="DisplayModeCombo" Width="140" SelectionChanged="SettingsControl_Changed"
+                                      AutomationProperties.Name="Mode tampilan">
+                                <ComboBoxItem Content="Notch" Tag="notch" />
+                                <ComboBoxItem Content="Dynamic Island" Tag="island" />
+                                <ComboBoxItem Content="Bar" Tag="bar" />
+                            </ComboBox>
+                            <CheckBox x:Name="NotchHideIdleCheck" Content="Sembunyikan notch saat diam" Margin="10,0,0,0"
+                                      VerticalAlignment="Center" Click="SettingsControl_Changed" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,10,3" VerticalAlignment="Center">
                             <TextBlock x:Name="LanguageLabel" Text="Bahasa" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
                             <ComboBox x:Name="LanguageCombo" Width="120" SelectionChanged="SettingsControl_Changed"
                                       AutomationProperties.Name="Bahasa antarmuka">
@@ -485,11 +496,12 @@
                             <StackPanel Orientation="Horizontal" Margin="0,3,14,3" VerticalAlignment="Center">
                                 <TextBlock x:Name="ProviderLabel" Text="Provider" VerticalAlignment="Center"
                                            Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
-                                <ComboBox x:Name="ProviderCombo" Width="120"
+                                <ComboBox x:Name="ProviderCombo" Width="160"
                                           SelectionChanged="ProviderCombo_SelectionChanged"
                                           AutomationProperties.Name="Pilih provider AI">
                                     <ComboBoxItem Content="Codex" Tag="codex" />
-                                    <ComboBoxItem Content="Claude" Tag="anthropic" />
+                                    <ComboBoxItem Content="Claude (Langganan)" Tag="claude-code" />
+                                    <ComboBoxItem Content="Claude API" Tag="anthropic" />
                                     <ComboBoxItem Content="OpenAI" Tag="openai" />
                                     <ComboBoxItem Content="OpenRouter" Tag="openrouter" />
                                 </ComboBox>

@@ -3,6 +3,7 @@ using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
 using CodexBar.Providers.Anthropic;
+using CodexBar.Providers.ClaudeCode;
 using CodexBar.Providers.Codex;
 using CodexBar.Providers.OpenAI;
 using CodexBar.Providers.OpenRouter;
@@ -109,6 +110,7 @@ public partial class App : System.Windows.Application
         Func<string, string> localize = key => CodexBar.Core.Localization.Instance[key];
         return providerId switch
         {
+            "claude-code" => new ClaudeCodeProvider(localize),
             "anthropic" => new AnthropicProvider(
                 SharedHttp,
                 () => CodexBar.Core.CredentialStore.TryRead(ApiKeyCredentialTarget("anthropic"))

@@ -1,9 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\CodexBar.Core\CodexBar.Core.csproj" />
     <ProjectReference Include="..\CodexBar.Providers\CodexBar.Providers.csproj" />
     <ProjectReference Include="..\CodexBar.Providers.Codex\CodexBar.Providers.Codex.csproj" />
+    <ProjectReference Include="..\CodexBar.Providers.ClaudeCode\CodexBar.Providers.ClaudeCode.csproj" />
     <ProjectReference Include="..\CodexBar.Providers.Anthropic\CodexBar.Providers.Anthropic.csproj" />
     <ProjectReference Include="..\CodexBar.Providers.OpenAI\CodexBar.Providers.OpenAI.csproj" />
     <ProjectReference Include="..\CodexBar.Providers.OpenRouter\CodexBar.Providers.OpenRouter.csproj" />

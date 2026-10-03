@@ -150,6 +150,7 @@ public sealed class JsonSettingsStore
         settings.Provider = settings.Provider?.ToLowerInvariant() switch
         {
             "anthropic" => "anthropic",
+            "claude-code" => "claude-code",
             "openai" => "openai",
             "openrouter" => "openrouter",
             _ => "codex"
@@ -157,6 +158,20 @@ public sealed class JsonSettingsStore
         settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
+        settings.NotchOffset = double.IsFinite(settings.NotchOffset) ? Math.Clamp(settings.NotchOffset, -0.45, 0.45) : 0;
+        settings.NotchEdge = settings.NotchEdge?.ToLowerInvariant() switch
+        {
+            "bottom" => "bottom",
+            "left" => "left",
+            "right" => "right",
+            _ => "top"
+        };
+        settings.DisplayMode = settings.DisplayMode?.ToLowerInvariant() switch
+        {
+            "bar" => "bar",
+            "island" => "island",
+            _ => "notch"
+        };
         settings.ThreadIds = new Dictionary<string, string>(
             settings.ThreadIds ?? new Dictionary<string, string>(),
             StringComparer.OrdinalIgnoreCase);

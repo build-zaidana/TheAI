@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodexBar.Providers\CodexBar.Providers.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Expose pure argument/stream helpers to the deterministic smoke tests. -->
+    <InternalsVisibleTo Include="CodexBar.SmokeTest" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

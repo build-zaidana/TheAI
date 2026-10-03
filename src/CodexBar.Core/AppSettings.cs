@@ -15,6 +15,18 @@ public sealed class AppSettings
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
+
+    /// <summary>Tampilan utama: "notch" (menempel tepi atas), "island" (Dynamic Island melayang) atau "bar" (di atas taskbar).</summary>
+    public string DisplayMode { get; set; } = "notch";
+
+    /// <summary>Mode notch: sembunyikan pil saat tidak ada pekerjaan (muncul lagi saat agent bekerja).</summary>
+    public bool NotchHideWhenIdle { get; set; }
+
+    /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
+    public string NotchEdge { get; set; } = "top";
+
+    /// <summary>Geser notch dari tengah sisinya, sebagai fraksi panjang sisi (-0.45..0.45).</summary>
+    public double NotchOffset { get; set; }
     public bool HideOnFocusLost { get; set; } = true;
     public bool ShowResponseInline { get; set; } = true;
     public bool Pinned { get; set; }

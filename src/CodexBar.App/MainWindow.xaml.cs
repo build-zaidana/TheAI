@@ -28,7 +28,7 @@ using RichTextBox = System.Windows.Controls.RichTextBox;
 
 namespace CodexBar.App;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, INotchHost
 {
     private static readonly Brush StatusReadyBrush = new SolidColorBrush(Color.FromRgb(0x5E, 0xE6, 0xA8));
     private static readonly Brush StatusBusyBrush = new SolidColorBrush(Color.FromRgb(0xE6, 0xB4, 0x5E));
@@ -55,6 +55,7 @@ public partial class MainWindow : Window
     private readonly ConversationController _controller;
     private readonly Func<string, IAgentProvider> _providerFactory;
     private OutputWindow? _outputWindow;
+    private NotchWindow? _notch;
     private readonly GlobalHotKey _hotKey = new();
     private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
     private string? _pendingQuickCaptureReveal;
@@ -223,6 +224,7 @@ public partial class MainWindow : Window
             AboutText.Text = LF("settings.about", version?.ToString(3) ?? "1.0.0");
             PromptBox.Focus();
             await StartupAsync();
+            ApplyDisplayMode();
         }
         catch (Exception exception)
         {
@@ -262,7 +264,8 @@ public partial class MainWindow : Window
             }
 
             // The ChatGPT-vs-API-key warning only applies to the Codex CLI (key-based providers skip it).
-            if (!_controller.Capabilities.SupportsApiKey &&
+            if (_controller.ProviderId == "codex" &&
+                !_controller.Capabilities.SupportsApiKey &&
                 !account.AuthenticationMethod.Equals("chatgpt", StringComparison.OrdinalIgnoreCase) &&
                 !_settings.ApiKeyWarningAcknowledged)
             {
@@ -347,19 +350,21 @@ public partial class MainWindow : Window
         switch (kind)
         {
             case OnboardingKind.InstallNeeded:
-                OnboardingTitle.Text = loc["onboard.install.title"];
-                OnboardingBody.Text = loc["onboard.install.body"];
-                _onboardingCommand = "npm install -g @openai/codex";
+                OnboardingTitle.Text = loc[OnboardingKey("onboard.install.title")];
+                OnboardingBody.Text = loc[OnboardingKey("onboard.install.body")];
+                _onboardingCommand = IsClaudeCodeProvider
+                    ? "npm install -g " + ClaudeCodeNpmPackage
+                    : "npm install -g @openai/codex";
                 OnboardingCommandBox.Visibility = Visibility.Visible;
                 OnboardingActionButton.Content = loc["onboard.install.action"];
                 OnboardingActionButton.Visibility = Visibility.Visible;
-                SetStatus(loc["onboard.install.status"], StatusErrorBrush);
+                SetStatus(loc[OnboardingKey("onboard.install.status")], StatusErrorBrush);
                 break;
 
             case OnboardingKind.LoginNeeded:
-                OnboardingTitle.Text = loc["onboard.login.title"];
-                OnboardingBody.Text = detail ?? loc["onboard.login.body"];
-                _onboardingCommand = "codex login";
+                OnboardingTitle.Text = loc[OnboardingKey("onboard.login.title")];
+                OnboardingBody.Text = detail ?? loc[OnboardingKey("onboard.login.body")];
+                _onboardingCommand = IsClaudeCodeProvider ? "claude auth login" : "codex login";
                 OnboardingCommandBox.Visibility = Visibility.Visible;
                 OnboardingActionButton.Content = loc["onboard.login.action"];
                 OnboardingActionButton.Visibility = Visibility.Visible;
@@ -399,6 +404,14 @@ public partial class MainWindow : Window
     }
 
     private void HideOnboarding() => OnboardingPanel.Visibility = Visibility.Collapsed;
+
+    private const string ClaudeCodeNpmPackage = "@anthropic-ai/claude-code";
+
+    private bool IsClaudeCodeProvider => _controller.ProviderId == "claude-code";
+
+    // Claude-subscription onboarding reuses the Codex panel with its own copy ("onboard.claude.*").
+    private string OnboardingKey(string codexKey) =>
+        IsClaudeCodeProvider ? codexKey.Replace("onboard.", "onboard.claude.") : codexKey;
 
     private void OnboardingCopyButton_Click(object sender, RoutedEventArgs e)
     {
@@ -464,7 +477,9 @@ public partial class MainWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo("https://github.com/openai/codex#installation")
+            Process.Start(new ProcessStartInfo(IsClaudeCodeProvider
+                ? "https://docs.claude.com/en/docs/claude-code/setup"
+                : "https://github.com/openai/codex#installation")
             {
                 UseShellExecute = true
             });
@@ -483,7 +498,15 @@ public partial class MainWindow : Window
         {
             if (_onboardingKind == OnboardingKind.LoginNeeded)
             {
-                LaunchCodexLogin();
+                if (IsClaudeCodeProvider)
+                {
+                    LaunchClaudeLogin();
+                }
+                else
+                {
+                    LaunchCodexLogin();
+                }
+
                 OnboardingBody.Text = CodexBar.Core.Localization.Instance["onboard.login.wait"];
                 return;
             }
@@ -494,8 +517,8 @@ public partial class MainWindow : Window
             }
 
             var loc = CodexBar.Core.Localization.Instance;
-            OnboardingBody.Text = loc["onboard.install.progress"];
-            SetStatus(loc["onboard.install.statusProgress"], StatusBusyBrush);
+            OnboardingBody.Text = loc[OnboardingKey("onboard.install.progress")];
+            SetStatus(loc[OnboardingKey("onboard.install.statusProgress")], StatusBusyBrush);
             var npm = FindCommand("npm.cmd") ?? FindCommand("npm.exe");
             if (npm is null)
             {
@@ -513,9 +536,10 @@ public partial class MainWindow : Window
                 }
             }
 
-            await RunSetupProcessAsync(npm, "install", "-g", "@openai/codex");
+            await RunSetupProcessAsync(npm, "install", "-g",
+                IsClaudeCodeProvider ? ClaudeCodeNpmPackage : "@openai/codex");
             ShowOnboarding(OnboardingKind.LoginNeeded,
-                loc["onboard.install.success"]);
+                loc[OnboardingKey("onboard.install.success")]);
         }
         catch (Exception exception)
         {
@@ -607,6 +631,12 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo(launcher, "login") { UseShellExecute = true });
     }
 
+    private static void LaunchClaudeLogin()
+    {
+        var launcher = CodexBar.Providers.ClaudeCode.ClaudeCodeExecutableLocator.TryLocate() ?? "claude";
+        Process.Start(new ProcessStartInfo(launcher, "auth login") { UseShellExecute = true });
+    }
+
     private void Window_SourceInitialized(object? sender, EventArgs e)
     {
         _sourceReady = true;
@@ -696,6 +726,12 @@ public partial class MainWindow : Window
     // quick-capture hotkey's job (see QuickCaptureHotKey_Pressed).
     private void GlobalHotKey_Pressed(object? sender, EventArgs e)
     {
+        if (IsNotchMode && _notch is not null && OnboardingPanel.Visibility != Visibility.Visible)
+        {
+            _notch.ToggleLauncher();
+            return;
+        }
+
         if (IsVisible && IsActive)
         {
             ToggleOverlay();
@@ -962,13 +998,17 @@ public partial class MainWindow : Window
         var userMessage = new ChatMessage { IsUser = true, Markdown = userMarkdown };
         _historyLoadedThreadId = _controller.ThreadId;
         _messages.Add(userMessage);
+        _notch?.OnTurnStarted(prompt.Length > 0 ? prompt : attachmentSummary);
         _streamingAgent = null;
         _autoFollow = true;
         _responseZoomDelta = 0;
         RenderConversation();
         SetBusyUi(true);
         _outputWindow?.SetContext(_workspaceLabel, "Mengirim…");
-        ShowOutputSurface();
+        if (!IsNotchMode || IsVisible)
+        {
+            ShowOutputSurface();
+        }
         SetStatus(L("status.sending"), StatusBusyBrush);
 
         try
@@ -990,6 +1030,7 @@ public partial class MainWindow : Window
             _messages.Remove(userMessage);
             RenderConversation();
             SetBusyUi(false);
+            _notch?.HandleProviderEvent(new ProviderErrorEvent(exception.Message));
             ShowError(exception.Message);
         }
     }
@@ -1422,6 +1463,7 @@ public partial class MainWindow : Window
     {
         Dispatcher.BeginInvoke(async () =>
         {
+            _notch?.HandleProviderEvent(providerEvent);
             switch (providerEvent)
             {
                 case ProviderTextDeltaEvent textDelta:
@@ -1520,7 +1562,7 @@ public partial class MainWindow : Window
                             ShowFromExternalActivation();
                         }
                     }
-                    else if (!IsVisible || !IsActive)
+                    else if (!IsNotchMode && (!IsVisible || !IsActive))
                     {
                         _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
                             Forms.ToolTipIcon.Info);
@@ -1793,6 +1835,8 @@ public partial class MainWindow : Window
             _ => 0
         };
         MenuDockedCheck.IsChecked = _settings.MenuDocked;
+        DisplayModeCombo.SelectedIndex = DisplayModeIndex(_settings.DisplayMode);
+        NotchHideIdleCheck.IsChecked = _settings.NotchHideWhenIdle;
         AutoCopyResponseCheck.IsChecked = _settings.AutoCopyResponse;
         LaunchAtLoginCheck.IsChecked = _settings.LaunchAtLogin;
         QuickCaptureHotkeyBox.Text = _settings.QuickCaptureHotkey;
@@ -1959,6 +2003,14 @@ public partial class MainWindow : Window
         _settings.ApprovalPolicy = (ApprovalCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "on-request";
         _settings.ReasoningEffort = (EffortCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? string.Empty;
         _settings.MenuDocked = MenuDockedCheck.IsChecked == true;
+        var displayModeBefore = _settings.DisplayMode;
+        _settings.DisplayMode = (DisplayModeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
+        {
+            "bar" => "bar",
+            "island" => "island",
+            _ => "notch"
+        };
+        _settings.NotchHideWhenIdle = NotchHideIdleCheck.IsChecked == true;
         _settings.AutoCopyResponse = AutoCopyResponseCheck.IsChecked == true;
         _settings.LaunchAtLogin = LaunchAtLoginCheck.IsChecked == true;
         StartupRegistration.Apply(_settings.LaunchAtLogin);
@@ -2005,7 +2057,126 @@ public partial class MainWindow : Window
         UpdateSettingLabels();
         RenderConversation();
         RepositionSidebarIfDocked();
+        if (displayModeBefore != _settings.DisplayMode)
+        {
+            ApplyDisplayMode(keepMainVisible: true);
+        }
+        else
+        {
+            _notch?.ShowIdle();
+        }
         _ = SaveSettingsSafeAsync();
+    }
+
+    // ---- Display mode (notch / bar) -------------------------------------------------------
+
+    // "notch" and "island" share the same surface; only the shape differs.
+    private bool IsNotchMode => _settings.DisplayMode is "notch" or "island";
+
+    private static int DisplayModeIndex(string mode) => mode switch { "island" => 1, "bar" => 2, _ => 0 };
+
+    private void SetDisplayMode(string mode)
+    {
+        if (_settings.DisplayMode == mode)
+        {
+            return;
+        }
+
+        _settings.DisplayMode = mode;
+        _settingsReady = false;
+        DisplayModeCombo.SelectedIndex = DisplayModeIndex(mode);
+        _settingsReady = true;
+        ApplyDisplayMode();
+        _ = SaveSettingsSafeAsync();
+    }
+
+    // Notch mode keeps this window as the (hidden) engine: settings, onboarding, approvals and
+    // "open in window" still surface it. Bar mode is the original taskbar-anchored launcher.
+    private void ApplyDisplayMode(bool keepMainVisible = false)
+    {
+        if (IsNotchMode)
+        {
+            _notch ??= new NotchWindow(this);
+            _notch.SetIsland(_settings.DisplayMode == "island");
+            _notch.ShowIdle();
+            if (!keepMainVisible && OnboardingPanel.Visibility != Visibility.Visible)
+            {
+                Hide();
+            }
+        }
+        else
+        {
+            _notch?.Hide();
+            if (!IsVisible)
+            {
+                ShowFromExternalActivation();
+            }
+        }
+    }
+
+    string INotchHost.ProviderName => _controller.ProviderId switch
+    {
+        "claude-code" => "Claude",
+        "anthropic" => "Claude API",
+        "openai" => "OpenAI",
+        "openrouter" => "OpenRouter",
+        _ => "Codex"
+    };
+
+    string INotchHost.WorkspaceName => _workspaceLabel;
+
+    bool INotchHost.IsBusy => _controller.IsBusy;
+
+    bool INotchHost.HideNotchWhenIdle => _settings.NotchHideWhenIdle;
+
+    string INotchHost.NotchEdge
+    {
+        get => _settings.NotchEdge;
+        set
+        {
+            _settings.NotchEdge = value;
+            _ = SaveSettingsSafeAsync();
+        }
+    }
+
+    double INotchHost.NotchOffset
+    {
+        get => _settings.NotchOffset;
+        set
+        {
+            _settings.NotchOffset = value;
+            _ = SaveSettingsSafeAsync();
+        }
+    }
+
+    IReadOnlyList<PromptTemplate> INotchHost.Templates => _settings.PromptTemplates;
+
+    async Task INotchHost.SubmitFromNotchAsync(string prompt)
+    {
+        PromptBox.Text = prompt;
+        await SendPromptAsync();
+    }
+
+    Task INotchHost.StopFromNotchAsync() => StopCurrentTurnAsync();
+
+    Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.ListRecentThreadsAsync() =>
+        _controller.ListThreadsAsync(20);
+
+    async Task INotchHost.OpenThreadFromNotchAsync(ProviderThreadSummary thread)
+    {
+        ShowFromExternalActivation();
+        await OpenThreadFromSidebarAsync(thread);
+    }
+
+    void INotchHost.OpenConversationWindow()
+    {
+        ShowFromExternalActivation();
+        _ = RunUiTaskAsync(async () =>
+        {
+            await EnsureHistoryLoadedAsync();
+            RenderConversation();
+            ShowOutputSurface();
+        });
     }
 
     private void UpdateSettingLabels()
@@ -2353,7 +2524,35 @@ public partial class MainWindow : Window
         _attentionMenuItem.Click += (_, _) => Dispatcher.Invoke(ShowAttentionCenter);
         menu.Items.Add(_attentionMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Tampilkan", null, (_, _) => Dispatcher.Invoke(ToggleOverlay));
+        menu.Items.Add(L("tray.show"), null, (_, _) => Dispatcher.Invoke(() =>
+        {
+            if (IsNotchMode && _notch is not null)
+            {
+                _notch.ToggleLauncher();
+            }
+            else
+            {
+                ToggleOverlay();
+            }
+        }));
+        var modeMenu = new Forms.ToolStripMenuItem(L("tray.displayMode"));
+        var notchItem = new Forms.ToolStripMenuItem(L("displayMode.notch")) { Checked = _settings.DisplayMode == "notch" };
+        var islandItem = new Forms.ToolStripMenuItem(L("displayMode.island")) { Checked = _settings.DisplayMode == "island" };
+        var barItem = new Forms.ToolStripMenuItem(L("displayMode.bar")) { Checked = _settings.DisplayMode == "bar" };
+        notchItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("notch"));
+        islandItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("island"));
+        barItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("bar"));
+        modeMenu.DropDownItems.Add(notchItem);
+        modeMenu.DropDownItems.Add(islandItem);
+        modeMenu.DropDownItems.Add(barItem);
+        modeMenu.DropDownOpening += (_, _) =>
+        {
+            notchItem.Checked = _settings.DisplayMode == "notch";
+            islandItem.Checked = _settings.DisplayMode == "island";
+            barItem.Checked = _settings.DisplayMode == "bar";
+        };
+        menu.Items.Add(modeMenu);
+        menu.Items.Add(L("tray.recenterNotch"), null, (_, _) => Dispatcher.Invoke(() => _notch?.Recenter()));
         menu.Items.Add("Thread baru", null, (_, _) => Dispatcher.BeginInvoke(
             () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync)));
         menu.Items.Add("Settings", null, (_, _) => Dispatcher.Invoke(() =>
@@ -3590,6 +3789,7 @@ public partial class MainWindow : Window
 
         _renderTimer.Stop();
         _sidebarWindow?.Close();
+        _notch?.Close();
         if (_outputWindow is not null)
         {
             _outputWindow.PrepareForExit();

@@ -7,6 +7,7 @@ using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
 using CodexBar.Providers.Anthropic;
+using CodexBar.Providers.ClaudeCode;
 using CodexBar.Providers.Codex;
 using CodexBar.Providers.OpenAI;
 using CodexBar.Providers.OpenAiCompatible;
@@ -39,6 +40,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
     if (anthropic != 0)
     {
         return anthropic;
+    }
+
+    var claudeCode = RunClaudeCodeProviderTests();
+    if (claudeCode != 0)
+    {
+        return claudeCode;
     }
 
     var openAiCompatible = await RunOpenAiCompatibleProviderTestsAsync();
@@ -350,6 +357,10 @@ static async Task<int> RunDeterministicTestsAsync()
         await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "Anthropic" }""");
         Assert((await store.LoadAsync()).Provider == "anthropic",
             "Provider anthropic harus dipertahankan (case-insensitive), yang tak dikenal jatuh ke codex.");
+
+        await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "Claude-Code" }""");
+        Assert((await store.LoadAsync()).Provider == "claude-code",
+            "Provider claude-code harus dipertahankan (case-insensitive).");
 
         await File.WriteAllTextAsync(store.SettingsPath, """{ "provider": "OpenAI" }""");
         Assert((await store.LoadAsync()).Provider == "openai",
@@ -876,6 +887,75 @@ static async Task<int> RunAnthropicProviderTestsAsync()
             () => new AnthropicProvider(new HttpClient(new CannedSseHandler(sse)), () => "test-key"));
 
         Console.WriteLine("PASS anthropic provider tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunClaudeCodeProviderTests()
+{
+    try
+    {
+        var models = ClaudeCodeProvider.KnownModels();
+        Assert(models.Count(m => m.IsDefault) == 1 &&
+               models.Single(m => m.IsDefault).Model == ClaudeCodeProvider.DefaultModel,
+            "Harus ada tepat satu model default Claude Code yang konsisten dengan DefaultModel.");
+
+        var first = ClaudeCodeProvider.BuildArguments(
+            "11111111-1111-1111-1111-111111111111", false, "default", null, "workspace-write", []);
+        Assert(first.Contains("-p") && first.Contains("--output-format stream-json") &&
+               first.Contains("--include-partial-messages") &&
+               first.Contains("--session-id 11111111-1111-1111-1111-111111111111") &&
+               first.Contains("--permission-mode acceptEdits") &&
+               !first.Contains("--model") && !first.Contains("--resume"),
+            "Turn pertama harus memakai --session-id, stream-json, dan tanpa --model untuk default.");
+
+        var next = ClaudeCodeProvider.BuildArguments(
+            "abc", true, "opus", "minimal", "read-only", [@"C:\Folder Lampiran"]);
+        Assert(next.Contains("--resume abc") && next.Contains("--model opus") &&
+               next.Contains("--effort low") && next.Contains("--permission-mode plan") &&
+               next.Contains(@"--add-dir ""C:\Folder Lampiran"""),
+            "Turn lanjutan harus --resume, map effort/sandbox, dan quote path berspasi.");
+        Assert(ClaudeCodeProvider.PermissionModeFor("danger-full-access") == "bypassPermissions",
+            "Full access harus map ke bypassPermissions.");
+
+        var text = ClaudeCodeProvider.ParseStreamLine(
+            """{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Halo"}}}""");
+        Assert(text.Kind == ClaudeCodeProvider.StreamKind.TextDelta && text.Text == "Halo",
+            "text_delta harus jadi TextDelta.");
+        var thinking = ClaudeCodeProvider.ParseStreamLine(
+            """{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"hmm"}}}""");
+        Assert(thinking.Kind == ClaudeCodeProvider.StreamKind.ReasoningDelta && thinking.Text == "hmm",
+            "thinking_delta harus jadi ReasoningDelta.");
+        var tool = ClaudeCodeProvider.ParseStreamLine(
+            """{"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"tool_use","name":"Bash"}}}""");
+        Assert(tool.Kind == ClaudeCodeProvider.StreamKind.ToolUse && tool.Text == "Bash",
+            "tool_use harus jadi ToolUse dengan nama tool.");
+        var result = ClaudeCodeProvider.ParseStreamLine(
+            """{"type":"result","subtype":"success","is_error":false,"result":"Halo","usage":{"input_tokens":10,"cache_read_input_tokens":5,"output_tokens":7}}""");
+        Assert(result.Kind == ClaudeCodeProvider.StreamKind.Result && !result.IsError &&
+               result.TotalTokens == 22 && result.OutputTokens == 7,
+            "result harus membawa total token (termasuk cache) dan output token.");
+        var failed = ClaudeCodeProvider.ParseStreamLine(
+            """{"type":"result","subtype":"success","is_error":true,"result":"Claude AI usage limit reached"}""");
+        Assert(failed.IsError && failed.Text!.Contains("usage limit"), "is_error harus jadi error.");
+        Assert(ClaudeCodeProvider.ParseStreamLine("""{"type":"assistant","message":{}}""").Kind == ClaudeCodeProvider.StreamKind.None &&
+               ClaudeCodeProvider.ParseStreamLine("bukan json").Kind == ClaudeCodeProvider.StreamKind.None,
+            "Baris lain/rusak harus diabaikan.");
+
+        var loggedIn = ClaudeCodeProvider.ParseAuthStatus(
+            """{"loggedIn":true,"authMethod":"claude.ai","email":"a@b.c","subscriptionType":"max"}""");
+        Assert(loggedIn.LoggedIn && loggedIn.SubscriptionType == "max" && loggedIn.AuthMethod == "claude.ai",
+            "auth status login harus terbaca.");
+        Assert(!ClaudeCodeProvider.ParseAuthStatus("""{"loggedIn":false,"authMethod":"none"}""").LoggedIn &&
+               !ClaudeCodeProvider.ParseAuthStatus("error").LoggedIn,
+            "auth status belum login / rusak harus dianggap belum login.");
+
+        Console.WriteLine("PASS claude code provider tests");
         return 0;
     }
     catch (Exception exception)
