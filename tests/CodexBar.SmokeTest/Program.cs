@@ -48,6 +48,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return claudeCode;
     }
 
+    var fileChanges = RunFileChangeTests();
+    if (fileChanges != 0)
+    {
+        return fileChanges;
+    }
+
     var openAiCompatible = await RunOpenAiCompatibleProviderTestsAsync();
     if (openAiCompatible != 0)
     {
@@ -892,6 +898,52 @@ static async Task<int> RunAnthropicProviderTestsAsync()
     catch (Exception exception)
     {
         Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunFileChangeTests()
+{
+    try
+    {
+        var diff = LineDiff.Build("a\nb\nc\nd\ne\nf\ng\n", "a\nb\nC\nd\ne\nf\ng\nh\n", context: 1);
+        Assert(LineDiff.Count(diff) == (2, 1), $"LineDiff harus menghitung +2 -1, dapat {LineDiff.Count(diff)}: {diff}");
+        Assert(diff.Contains("-c\n") && diff.Contains("+C\n") && diff.Contains("+h\n") && !diff.Contains(" a\n"),
+            "LineDiff harus memotong konteks jauh dan menandai baris yang berubah.");
+        Assert(LineDiff.Build("same\n", "same\n").Length == 0, "Teks yang sama tidak boleh menghasilkan diff.");
+        Assert(LineDiff.Count("--- a/x\n+++ b/x\n@@ -1 +1 @@\n-old\n+new\n") == (1, 1),
+            "Header file unified diff tidak boleh ikut dihitung.");
+
+        using var codexItem = JsonDocument.Parse("""
+            {"type":"fileChange","id":"i1","status":"completed","changes":[
+              {"path":"C:/w/a.cs","kind":{"type":"update","move_path":"C:/w/b.cs"},"diff":"@@\n-x\n+y\n"},
+              {"path":"C:/w/new.cs","kind":{"type":"add"},"diff":"hello\n"}]}
+            """);
+        var codexChanges = CodexProvider.ParseFileChangeItem(codexItem.RootElement);
+        Assert(codexChanges.Count == 2 && codexChanges[0].MovePath == "C:/w/b.cs" && codexChanges[1].Kind == "add",
+            "fileChange Codex harus diparse beserta kind dan move_path.");
+        using var declined = JsonDocument.Parse("""{"type":"fileChange","id":"i2","status":"declined","changes":[{"path":"x","kind":{"type":"add"},"diff":""}]}""");
+        Assert(CodexProvider.ParseFileChangeItem(declined.RootElement).Count == 0, "Patch yang ditolak tidak boleh dilaporkan.");
+
+        var edits = ClaudeCodeProvider.ParseFileEdits("""
+            {"type":"assistant","message":{"content":[
+              {"type":"text","text":"ok"},
+              {"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"C:/w/a.ts","old_string":"x","new_string":"y"}},
+              {"type":"tool_use","id":"t2","name":"Write","input":{"file_path":"C:/w/b.ts","content":"z"}},
+              {"type":"tool_use","id":"t3","name":"Bash","input":{"command":"ls"}}]}}
+            """.ReplaceLineEndings(""));
+        Assert(edits.Count == 2 && edits[0].Replacements[0] == ("x", "y") && edits[1].Content == "z",
+            "Edit dan Write Claude Code harus dikenali, tool lain diabaikan.");
+        var results = ClaudeCodeProvider.ParseToolResults(
+            """{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"},{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"no"}]}}""");
+        Assert(results.Count == 2 && !results[0].IsError && results[1].IsError, "tool_result harus diparse dengan is_error.");
+
+        Console.WriteLine("PASS file change tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL file change tests: {exception.Message}");
         return 1;
     }
 }

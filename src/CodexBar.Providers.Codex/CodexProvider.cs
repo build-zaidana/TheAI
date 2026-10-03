@@ -727,7 +727,53 @@ public sealed class CodexProvider : IAgentProvider
             case "item/started":
                 Emit(new ProviderStatusEvent(L("provider.status.runningStep", "Menjalankan langkah…")));
                 break;
+
+            case "item/completed":
+                if (parameters.TryGetProperty("item", out var completedItem) &&
+                    ParseFileChangeItem(completedItem) is { Count: > 0 } changes)
+                {
+                    Emit(new ProviderFileChangeEvent(changes));
+                }
+                break;
         }
+    }
+
+    /// <summary>
+    /// Files from a completed <c>fileChange</c> item (empty for other items, or for patches that
+    /// failed or were declined).
+    /// </summary>
+    internal static IReadOnlyList<ProviderFileChange> ParseFileChangeItem(JsonElement item)
+    {
+        if (GetString(item, "type") != "fileChange" ||
+            GetString(item, "status") is not ("completed" or null) ||
+            !item.TryGetProperty("changes", out var changes) ||
+            changes.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var result = new List<ProviderFileChange>();
+        foreach (var change in changes.EnumerateArray())
+        {
+            if (GetString(change, "path") is not { Length: > 0 } path)
+            {
+                continue;
+            }
+
+            var kind = "update";
+            string? movePath = null;
+            if (change.TryGetProperty("kind", out var kindElement))
+            {
+                kind = kindElement.ValueKind == JsonValueKind.String
+                    ? kindElement.GetString() ?? "update"
+                    : GetString(kindElement, "type") ?? "update";
+                movePath = kindElement.ValueKind == JsonValueKind.Object ? GetString(kindElement, "move_path") : null;
+            }
+
+            result.Add(new ProviderFileChange(path, kind, GetString(change, "diff") ?? string.Empty, movePath));
+        }
+
+        return result;
     }
 
     private void HandleServerRequest(JsonElement requestId, string method, JsonElement parameters)

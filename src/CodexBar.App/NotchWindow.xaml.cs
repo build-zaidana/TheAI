@@ -22,6 +22,9 @@ internal interface INotchHost
 {
     string ProviderName { get; }
     string WorkspaceName { get; }
+
+    /// <summary>Full path of the workspace folder (empty when none is open).</summary>
+    string WorkspacePath { get; }
     bool IsBusy { get; }
     bool HideNotchWhenIdle { get; }
 
@@ -160,6 +163,7 @@ public partial class NotchWindow : Window
         _output.Clear();
         OutputText.Text = string.Empty;
         OutputBox.Visibility = Visibility.Collapsed;
+        ResetChangedFiles();
         ActivityPrompt.Text = prompt;
         AddStep(L("notch.step.sending"));
         SetState(NotchState.Working);
@@ -175,6 +179,13 @@ public partial class NotchWindow : Window
 
             case ProviderTextDeltaEvent text:
                 AppendOutput(text.Delta);
+                break;
+
+            case ProviderFileChangeEvent fileChange:
+                AddChangedFiles(fileChange.Changes);
+                AddStep(fileChange.Changes.Count == 1
+                    ? string.Format(L("notch.step.editedOne"), System.IO.Path.GetFileName(fileChange.Changes[0].MovePath ?? fileChange.Changes[0].Path))
+                    : string.Format(L("notch.step.editedMany"), fileChange.Changes.Count));
                 break;
 
             case ProviderApprovalEvent:

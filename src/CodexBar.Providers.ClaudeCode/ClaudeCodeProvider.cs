@@ -248,10 +248,12 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         string? error = null;
         long totalTokens = 0;
         long outputTokens = 0;
+        var pendingEdits = new Dictionary<string, ProviderFileChange>(StringComparer.Ordinal);
 
         string? line;
         while ((line = await process.StandardOutput.ReadLineAsync(token).ConfigureAwait(false)) is not null)
         {
+            TrackFileEdits(line, pendingEdits);
             var chunk = ParseStreamLine(line);
             switch (chunk.Kind)
             {
@@ -311,6 +313,71 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         }
 
         return new TurnOutcome(text.ToString(), error, totalTokens, outputTokens);
+    }
+
+    // Edit/Write tool calls arrive in the full assistant message before the tool runs; they are
+    // reported once the matching tool_result says the edit went through.
+    private void TrackFileEdits(string line, Dictionary<string, ProviderFileChange> pending)
+    {
+        if (line.Contains("\"tool_use\"", StringComparison.Ordinal))
+        {
+            foreach (var edit in ParseFileEdits(line))
+            {
+                if (ToFileChange(edit) is { } change)
+                {
+                    pending[edit.ToolUseId] = change;
+                }
+            }
+        }
+
+        if (line.Contains("\"tool_result\"", StringComparison.Ordinal))
+        {
+            var done = new List<ProviderFileChange>();
+            foreach (var (id, isError) in ParseToolResults(line))
+            {
+                if (pending.Remove(id, out var change) && !isError)
+                {
+                    done.Add(change);
+                }
+            }
+
+            if (done.Count > 0)
+            {
+                Emit(new ProviderFileChangeEvent(done));
+            }
+        }
+    }
+
+    private static ProviderFileChange? ToFileChange(FileEdit edit)
+    {
+        if (edit.Content is { } content)
+        {
+            // Write: diff against what is on disk right now (the tool has not run yet).
+            string? before = null;
+            try
+            {
+                var info = new FileInfo(edit.Path);
+                if (info.Exists && info.Length <= 512 * 1024)
+                {
+                    before = File.ReadAllText(edit.Path);
+                }
+                else if (info.Exists)
+                {
+                    return new ProviderFileChange(edit.Path, "update", string.Empty);
+                }
+            }
+            catch (Exception)
+            {
+                // Unreadable: show it as a plain rewrite.
+            }
+
+            return before is null
+                ? new ProviderFileChange(edit.Path, "add", string.Concat(LineDiff.SplitLines(content).Select(l => "+" + l + "\n")))
+                : new ProviderFileChange(edit.Path, "update", LineDiff.Build(before, content));
+        }
+
+        var diff = string.Concat(edit.Replacements.Select(r => LineDiff.Build(r.Old, r.New)));
+        return new ProviderFileChange(edit.Path, "update", diff);
     }
 
     private static ProcessStartInfo CreateStartInfo(string executable, string arguments, string workingDirectory)
@@ -413,6 +480,93 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         bool IsError = false,
         long TotalTokens = 0,
         long OutputTokens = 0);
+
+    internal sealed record FileEdit(
+        string ToolUseId,
+        string Path,
+        IReadOnlyList<(string Old, string New)> Replacements,
+        string? Content);
+
+    /// <summary>Edit, MultiEdit and Write tool calls in a full <c>assistant</c> stream-json message.</summary>
+    internal static IReadOnlyList<FileEdit> ParseFileEdits(string line)
+    {
+        var edits = new List<FileEdit>();
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            if (GetString(root, "type") != "assistant" ||
+                !root.TryGetProperty("message", out var message) ||
+                !message.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                return edits;
+            }
+
+            foreach (var block in content.EnumerateArray())
+            {
+                if (GetString(block, "type") != "tool_use" ||
+                    GetString(block, "id") is not { Length: > 0 } id ||
+                    !block.TryGetProperty("input", out var input) ||
+                    GetString(input, "file_path") is not { Length: > 0 } path)
+                {
+                    continue;
+                }
+
+                switch (GetString(block, "name"))
+                {
+                    case "Edit":
+                        edits.Add(new FileEdit(id, path,
+                            [(GetString(input, "old_string") ?? string.Empty, GetString(input, "new_string") ?? string.Empty)], null));
+                        break;
+                    case "MultiEdit" when input.TryGetProperty("edits", out var list) && list.ValueKind == JsonValueKind.Array:
+                        edits.Add(new FileEdit(id, path, list.EnumerateArray()
+                            .Select(e => (GetString(e, "old_string") ?? string.Empty, GetString(e, "new_string") ?? string.Empty))
+                            .ToArray(), null));
+                        break;
+                    case "Write":
+                        edits.Add(new FileEdit(id, path, [], GetString(input, "content") ?? string.Empty));
+                        break;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return edits;
+    }
+
+    /// <summary>tool_result blocks in a <c>user</c> stream-json message: (tool_use_id, is_error).</summary>
+    internal static IReadOnlyList<(string Id, bool IsError)> ParseToolResults(string line)
+    {
+        var results = new List<(string, bool)>();
+        try
+        {
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            if (GetString(root, "type") != "user" ||
+                !root.TryGetProperty("message", out var message) ||
+                !message.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                return results;
+            }
+
+            foreach (var block in content.EnumerateArray())
+            {
+                if (GetString(block, "type") == "tool_result" && GetString(block, "tool_use_id") is { Length: > 0 } id)
+                {
+                    results.Add((id, block.TryGetProperty("is_error", out var isError) && isError.ValueKind == JsonValueKind.True));
+                }
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return results;
+    }
 
     internal readonly record struct AuthStatus(
         bool LoggedIn, string? AuthMethod, string? Email, string? SubscriptionType);

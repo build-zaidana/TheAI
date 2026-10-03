@@ -2415,6 +2415,24 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         }
 
+        // CODEXBAR_PREVIEW_FILES=1: a finished sample turn that edited a few files.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_FILES") is { Length: > 0 } && _notch is not null)
+        {
+            var root = string.IsNullOrWhiteSpace(_settings.WorkspacePath) ? @"C:\project" : _settings.WorkspacePath;
+            _notch.OnTurnStarted("Rapikan validasi form login dan tambah test");
+            _notch.HandleProviderEvent(new ProviderFileChangeEvent([
+                new ProviderFileChange(Path.Combine(root, "src", "auth", "LoginForm.tsx"), "update",
+                    LineDiff.Build("export function validate(email) {\n  if (!email) return false;\n  return true;\n}\n",
+                                   "export function validate(email: string) {\n  if (!email.trim()) return false;\n  return EMAIL.test(email);\n}\n"))]));
+            _notch.HandleProviderEvent(new ProviderFileChangeEvent([
+                new ProviderFileChange(Path.Combine(root, "src", "auth", "email.ts"), "add", "export const EMAIL = /^[^@\\s]+@[^@\\s]+$/;\n"),
+                new ProviderFileChange(Path.Combine(root, "tests", "login.test.ts"), "update", "@@ -1,3 +1,6 @@\n import { validate } from '../src/auth/LoginForm';\n+\n+test('rejects blank email', () => {\n+  expect(validate('  ')).toBe(false);\n+});\n"),
+                new ProviderFileChange(Path.Combine(root, "src", "legacy", "oldValidate.js"), "delete", "module.exports = () => true;\n")]));
+            _notch.HandleProviderEvent(new ProviderTextDeltaEvent("Validasi email sekarang memakai regex dan menolak input kosong."));
+            _notch.HandleProviderEvent(new ProviderCompletedEvent("completed"));
+            _notch.PreviewActivity();
+        }
+
         // CODEXBAR_PREVIEW_ATTACH=path1;path2[;drop]: open the notch launcher with those files
         // attached ("drop" also shows the drop zone), to check the chips without dragging.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_ATTACH") is { Length: > 0 } attach && _notch is not null)
@@ -2539,6 +2557,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     };
 
     string INotchHost.WorkspaceName => _workspaceLabel;
+
+    string INotchHost.WorkspacePath => _settings.WorkspacePath ?? string.Empty;
 
     bool INotchHost.IsBusy => _controller.IsBusy;
 

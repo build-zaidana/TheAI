@@ -75,3 +75,13 @@ public sealed record ProviderUserInputEvent(
     Func<bool>? IsPending = null,
     string? ActionUrl = null)
     : ProviderEvent(DateTimeOffset.Now);
+
+/// <summary>
+/// One file the agent changed. <c>Kind</c> is "add", "delete" or "update"; <c>Diff</c> is a
+/// unified-style diff (or the full content for an added file), possibly empty.
+/// </summary>
+public sealed record ProviderFileChange(string Path, string Kind, string Diff, string? MovePath = null);
+
+/// <summary>Files changed by a completed edit step of the current turn.</summary>
+public sealed record ProviderFileChangeEvent(IReadOnlyList<ProviderFileChange> Changes)
+    : ProviderEvent(DateTimeOffset.Now);

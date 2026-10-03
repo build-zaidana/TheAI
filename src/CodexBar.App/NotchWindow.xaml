@@ -474,6 +474,41 @@
                                    Foreground="#B3FFFFFF" TextWrapping="Wrap" MaxHeight="134" />
                     </Border>
 
+                    <!-- Files the agent changed this turn: summary row, expands into a list with diffs. -->
+                    <Border x:Name="FilesBox" Margin="0,8,0,0" Background="#12FFFFFF" CornerRadius="12" Visibility="Collapsed">
+                        <StackPanel>
+                            <Grid Height="38">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="FilesHeaderButton" Style="{StaticResource NotchRowButton}" Height="38" Click="FilesHeader_Click"
+                                        AutomationProperties.Name="File yang diubah">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path x:Name="FilesChevron" Stroke="{StaticResource NotchText3}" StrokeThickness="1.6" Width="10" Height="10"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              Data="M 3,1.5 L 7,5 L 3,8.5" RenderTransformOrigin="0.5,0.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                                            <Path.RenderTransform>
+                                                <RotateTransform x:Name="FilesChevronRotation" />
+                                            </Path.RenderTransform>
+                                        </Path>
+                                        <TextBlock x:Name="FilesSummary" FontSize="13" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="FilesAdded" FontSize="12" Margin="10,0,0,0" Foreground="{StaticResource NotchGreen}"
+                                                   FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="FilesRemoved" FontSize="12" Margin="6,0,0,0" Foreground="{StaticResource NotchRed}"
+                                                   FontFamily="Cascadia Mono, Consolas" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="OpenEditorButton" Grid.Column="1" Style="{StaticResource NotchTextLink}" Margin="8,0,14,0"
+                                        Click="OpenEditor_Click" Content="Buka di VS Code" />
+                            </Grid>
+                            <ScrollViewer x:Name="FilesScroller" MaxHeight="232" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed" Focusable="False">
+                                <StackPanel x:Name="FilesList" Margin="4,0,4,6" />
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+
                     <Grid Margin="0,14,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
