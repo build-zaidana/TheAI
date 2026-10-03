@@ -1,0 +1,88 @@
+<Window x:Class="CodexBar.App.OnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CodexBar"
+        Width="484" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="#1D1D1F"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MacTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Margin="22" CornerRadius="12" Background="White" BorderBrush="#2E000000" BorderThickness="0.5"
+            MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="28" ShadowDepth="8" Direction="270" Opacity="0.28" />
+        </Border.Effect>
+        <StackPanel Margin="20,12,20,20">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource MacLight}" Background="#FF5F57" Click="Later_Click" ToolTip="Tutup">
+                    <Path Stroke="#80000000" StrokeThickness="1.2" Data="M 0,0 L 5,5 M 5,0 L 0,5" />
+                </Button>
+                <Button Style="{StaticResource MacLight}" Background="#D9D9DC" IsEnabled="False" />
+                <Button Style="{StaticResource MacLight}" Background="#D9D9DC" IsEnabled="False" />
+            </StackPanel>
+
+            <Grid Width="56" Height="56" Margin="0,14,0,0" HorizontalAlignment="Center">
+                <Border CornerRadius="13" Background="Black">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.25" />
+                    </Border.Effect>
+                </Border>
+                <Border Width="26" Height="9" CornerRadius="0,0,5,5" Background="White" VerticalAlignment="Top" />
+            </Grid>
+
+            <TextBlock x:Name="TitleText" Margin="0,14,0,0" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock x:Name="BodyText" Margin="20,6,20,0" FontSize="12" Foreground="#6E6E73" TextWrapping="Wrap"
+                       TextAlignment="Center" LineHeight="17" />
+
+            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0" Background="#F7F7F9">
+                <ItemsControl x:Name="StatusList" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <Border Style="{StaticResource MacSeparator}" Visibility="{Binding SeparatorVisibility}" />
+                                <Grid MinHeight="34" Margin="12,0">
+                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Value}" Foreground="#6E6E73" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                        <Grid Width="13" Height="13" VerticalAlignment="Center">
+                                            <Ellipse Fill="{Binding Dot}" />
+                                            <Path Visibility="{Binding CheckVisibility}" Stroke="White" StrokeThickness="1.8"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                  Data="M 3.8,6.8 L 5.7,8.7 L 9.3,4.6" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <Grid x:Name="CommandRow" Margin="2,10,2,0">
+                <TextBlock FontSize="11" Foreground="#8C000000" VerticalAlignment="Center">
+                    <Run x:Name="CommandLead" />
+                    <Run x:Name="CommandText" FontFamily="Cascadia Mono, Consolas" Foreground="#C7000000" />
+                </TextBlock>
+                <Button x:Name="CopyButton" Style="{StaticResource MacLinkButton}" HorizontalAlignment="Right" FontSize="11" Click="Copy_Click" />
+            </Grid>
+
+            <Grid Margin="0,20,0,0">
+                <Button x:Name="LinkButton" Style="{StaticResource MacLinkButton}" HorizontalAlignment="Left" Click="Link_Click" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="SecondaryButton" Style="{StaticResource MacButton}" Margin="0,0,8,0" Click="Secondary_Click" />
+                    <Button x:Name="PrimaryButton" Style="{StaticResource MacPrimaryButton}" Click="Primary_Click" IsDefault="True" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

@@ -420,6 +420,7 @@ public static class Strings
         ["onboard.claude.login.body"] = ("Claude Code sudah terpasang tetapi belum login. Jalankan perintah ini, pilih akun langganan Claude di browser, lalu klik Coba lagi.", "Claude Code is installed but not logged in. Run this command, sign in with your Claude subscription in the browser, then click Try again."),
         ["tray.show"] = ("Buka CodexBar", "Open CodexBar"),
         ["tray.displayMode"] = ("Mode tampilan", "Display mode"),
+        ["tray.settings"] = ("Pengaturan…", "Settings…"),
         ["tray.recenterNotch"] = ("Kembalikan notch ke tengah atas", "Move notch back to top centre"),
         ["displayMode.notch"] = ("Notch (atas layar)", "Notch (top of screen)"),
         ["displayMode.island"] = ("Dynamic Island (melayang)", "Dynamic Island (floating)"),

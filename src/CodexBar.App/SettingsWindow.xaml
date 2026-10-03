@@ -1,0 +1,550 @@
+<Window x:Class="CodexBar.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CodexBar.App"
+        Title="{local:Tr Pengaturan CodexBar, En=CodexBar Settings}"
+        Width="900" Height="640"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13"
+        Foreground="#1D1D1F"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MacTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="NavItem" TargetType="RadioButton">
+                <Setter Property="GroupName" Value="nav" />
+                <Setter Property="Foreground" Value="#1D1D1F" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Margin" Value="0,0,0,1" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Bg" Height="28" CornerRadius="6" Padding="6,0" Background="Transparent">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#0A72E8" />
+                                    <Setter Property="Foreground" Value="White" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="NavTile" TargetType="Border">
+                <Setter Property="Width" Value="20" />
+                <Setter Property="Height" Value="20" />
+                <Setter Property="CornerRadius" Value="5" />
+                <Setter Property="Margin" Value="0,0,9,0" />
+            </Style>
+            <Style x:Key="NavGlyph" TargetType="Path">
+                <Setter Property="Stroke" Value="White" />
+                <Setter Property="StrokeThickness" Value="2.2" />
+                <Setter Property="StrokeStartLineCap" Value="Round" />
+                <Setter Property="StrokeEndLineCap" Value="Round" />
+                <Setter Property="StrokeLineJoin" Value="Round" />
+                <Setter Property="Stretch" Value="Uniform" />
+                <Setter Property="Width" Value="12" />
+                <Setter Property="Height" Value="12" />
+            </Style>
+
+            <!-- Display-mode picker: miniature screens -->
+            <Style x:Key="ModeCard" TargetType="RadioButton">
+                <Setter Property="GroupName" Value="mode" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Margin" Value="11,0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <StackPanel>
+                                <Border x:Name="Ring" CornerRadius="8" BorderThickness="2.5" BorderBrush="Transparent" Padding="0">
+                                    <Border Width="88" Height="56" CornerRadius="6" Background="#B9C6D6" ClipToBounds="True"
+                                            BorderBrush="#26000000" BorderThickness="0.5">
+                                        <ContentPresenter />
+                                    </Border>
+                                </Border>
+                                <TextBlock x:Name="Label" Text="{TemplateBinding Tag}" FontSize="11" Foreground="#6E6E73"
+                                           HorizontalAlignment="Center" Margin="0,6,0,0" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Ring" Property="BorderBrush" Value="#0A72E8" />
+                                    <Setter TargetName="Label" Property="Foreground" Value="#1D1D1F" />
+                                    <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Margin="22" CornerRadius="12" Background="#F7F7F9" BorderBrush="#2E000000" BorderThickness="0.5">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="28" ShadowDepth="8" Direction="270" Opacity="0.28" />
+        </Border.Effect>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Background="#EFEFF2" CornerRadius="12,0,0,12" BorderBrush="#17000000" BorderThickness="0,0,0.5,0"
+                    MouseLeftButtonDown="DragArea_MouseLeftButtonDown">
+                <DockPanel Margin="10,12,10,12" LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="4,0,0,14">
+                        <Button Style="{StaticResource MacLight}" Background="#FF5F57" Click="Close_Click" ToolTip="{local:Tr Tutup, En=Close}">
+                            <Path Stroke="#80000000" StrokeThickness="1.2" Data="M 0,0 L 5,5 M 5,0 L 0,5" />
+                        </Button>
+                        <Button Style="{StaticResource MacLight}" Background="#FEBC2E" Click="Minimize_Click" ToolTip="{local:Tr Kecilkan, En=Minimize}">
+                            <Path Stroke="#80000000" StrokeThickness="1.2" Data="M 0,0 L 6,0" />
+                        </Button>
+                        <Button Style="{StaticResource MacLight}" Background="#D9D9DC" IsEnabled="False" />
+                    </StackPanel>
+
+                    <Border DockPanel.Dock="Top" Height="26" CornerRadius="7" Background="#0F000000" Padding="8,0" Margin="0,0,0,12">
+                        <Grid>
+                            <Path Width="11" Height="11" Stretch="Uniform" Stroke="#73000000" StrokeThickness="2" HorizontalAlignment="Left"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 11,4 A 7,7 0 1 1 10.99,4 M 20,20 L 16,16" />
+                            <TextBlock x:Name="SearchPlaceholder" Text="{local:Tr Cari, En=Search}" Margin="18,0,0,0" Foreground="#8C000000"
+                                       VerticalAlignment="Center" IsHitTestVisible="False" />
+                            <TextBox x:Name="SearchBox" Margin="16,0,0,0" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
+                                     TextChanged="SearchBox_TextChanged" AutomationProperties.Name="{local:Tr Cari pengaturan, En=Search settings}" />
+                        </Grid>
+                    </Border>
+
+                    <Button DockPanel.Dock="Top" Margin="0,0,0,10" Click="AccountCard_Click" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" CornerRadius="8" Padding="6" Background="Transparent">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#0A000000" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="34" Height="34" Margin="0,0,10,0">
+                                <Ellipse Fill="#1D1D1F" />
+                                <Border Width="12" Height="5" CornerRadius="0,0,3,3" Background="White" VerticalAlignment="Top" />
+                            </Grid>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="AccountName" Text="Codex" FontWeight="SemiBold" />
+                                <TextBlock x:Name="AccountStatus" Text="…" FontSize="11" Foreground="#6E6E73" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel>
+                        <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Tag="general" Checked="Nav_Checked" IsChecked="True">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#8E8E93">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 12,9 A 3,3 0 1 0 12.01,9 M 12,3 L 12,5 M 12,19 L 12,21 M 3,12 L 5,12 M 19,12 L 21,12 M 5.6,5.6 L 7,7 M 17,17 L 18.4,18.4 M 5.6,18.4 L 7,17 M 17,7 L 18.4,5.6" />
+                                </Border>
+                                <TextBlock Text="{local:Tr Umum, En=General}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Tag="appearance" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#1D1D1F">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 3,6 L 21,6 L 21,18 L 3,18 Z M 9,6 L 9,8.5 L 15,8.5 L 15,6" />
+                                </Border>
+                                <TextBlock Text="{local:Tr Tampilan, En=Appearance}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavProvider" Style="{StaticResource NavItem}" Tag="provider" Checked="Nav_Checked" Margin="0,10,0,1">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#B4552F">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 5,7 L 10,12 L 5,17 M 13,17 L 19,17" />
+                                </Border>
+                                <TextBlock Text="Provider" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavModel" Style="{StaticResource NavItem}" Tag="model" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#AF52DE">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 12,3 L 20,7.5 L 20,16.5 L 12,21 L 4,16.5 L 4,7.5 Z" />
+                                </Border>
+                                <TextBlock Text="Model" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavWorkspace" Style="{StaticResource NavItem}" Tag="workspace" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#0A72E8">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 3,7 L 9,7 L 11,9 L 21,9 L 21,18 L 3,18 Z" />
+                                </Border>
+                                <TextBlock Text="{local:Tr Workspace &amp; izin, En=Workspace &amp; permissions}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavShortcuts" Style="{StaticResource NavItem}" Tag="shortcuts" Checked="Nav_Checked" Margin="0,10,0,1">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#8E8E93">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 3,7 L 21,7 L 21,18 L 3,18 Z M 7,11 L 7.01,11 M 11,11 L 11.01,11 M 15,11 L 15.01,11 M 8,15 L 16,15" />
+                                </Border>
+                                <TextBlock Text="{local:Tr Pintasan, En=Shortcuts}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="NavAdvanced" Style="{StaticResource NavItem}" Tag="advanced" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NavTile}" Background="#8E8E93">
+                                    <Path Style="{StaticResource NavGlyph}" Data="M 4,7 L 13,7 M 17,7 L 20,7 M 4,17 L 7,17 M 11,17 L 20,17 M 15,5 L 15,9 M 9,15 L 9,19" />
+                                </Border>
+                                <TextBlock Text="{local:Tr Lanjutan, En=Advanced}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Content -->
+            <DockPanel Grid.Column="1">
+                <Grid DockPanel.Dock="Top" Height="48" Background="Transparent" MouseLeftButtonDown="DragArea_MouseLeftButtonDown">
+                    <TextBlock x:Name="PageTitle" Text="Umum" FontSize="13" FontWeight="Bold" Margin="22,0,0,0" VerticalAlignment="Center" />
+                </Grid>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="22,0,22,22">
+                    <Grid>
+                        <!-- Umum -->
+                        <StackPanel x:Name="PageGeneral">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Bahasa, En=Language}" />
+                                        <ComboBox x:Name="LanguagePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="Indonesia" Tag="id" />
+                                            <ComboBoxItem Content="English" Tag="en" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tema bar, En=Bar theme}" />
+                                        <ComboBox x:Name="ThemePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="{local:Tr Ikuti sistem, En=Match system}" Tag="system" />
+                                            <ComboBoxItem Content="{local:Tr Terang, En=Light}" Tag="light" />
+                                            <ComboBoxItem Content="{local:Tr Gelap, En=Dark}" Tag="dark" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Jalankan saat login Windows, En=Open at Windows sign-in}" />
+                                        <CheckBox x:Name="LaunchAtLoginSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Salin jawaban otomatis, En=Copy answers automatically}" />
+                                        <CheckBox x:Name="AutoCopySwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Selalu di atas jendela lain, En=Keep above other windows}" />
+                                        <CheckBox x:Name="AlwaysOnTopSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Style="{StaticResource MacRowHint}" Text="{local:Tr Jawaban yang selesai langsung masuk clipboard. Selalu di atas berlaku untuk bar dan jendela percakapan., En=Finished answers go straight to the clipboard. Keep above applies to the bar and conversation window.}" />
+                        </StackPanel>
+
+                        <!-- Tampilan -->
+                        <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}" Padding="0,14,0,12">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <RadioButton x:Name="ModeNotch" Style="{StaticResource ModeCard}" Tag="Notch" Checked="Mode_Checked">
+                                        <Grid>
+                                            <Border Height="6" VerticalAlignment="Top" Background="#80FFFFFF" />
+                                            <Border Width="26" Height="8" CornerRadius="0,0,4,4" Background="Black" VerticalAlignment="Top" />
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="ModeIsland" Style="{StaticResource ModeCard}" Tag="Dynamic Island" Checked="Mode_Checked">
+                                        <Grid>
+                                            <Border Height="6" VerticalAlignment="Top" Background="#80FFFFFF" />
+                                            <Border Width="26" Height="8" CornerRadius="4" Background="Black" VerticalAlignment="Top" Margin="0,3,0,0" />
+                                        </Grid>
+                                    </RadioButton>
+                                    <RadioButton x:Name="ModeBar" Style="{StaticResource ModeCard}" Tag="Bar" Checked="Mode_Checked">
+                                        <Grid>
+                                            <Border Height="7" VerticalAlignment="Bottom" Background="#262A30" />
+                                            <Border Width="58" Height="7" CornerRadius="3.5" Background="#F2FFFFFF" VerticalAlignment="Bottom" Margin="0,0,0,11"
+                                                    BorderBrush="#33000000" BorderThickness="0.5" />
+                                        </Grid>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
+
+                            <Border x:Name="NotchGroup" Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sembunyikan notch saat diam, En=Hide the notch when idle}" />
+                                        <CheckBox x:Name="HideIdleSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Posisi notch, En=Notch position}" />
+                                        <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" Content="{local:Tr Kembalikan ke tengah atas, En=Back to top centre}" Click="Recenter_Click" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="NotchHint" Style="{StaticResource MacRowHint}" Text="{local:Tr Seret notch ke tepi atau sudut mana pun untuk memindahkannya. Saat disembunyikan ia muncul lagi begitu agent mulai bekerja., En=Drag the notch to any edge or corner to move it. When hidden it reappears as soon as the agent starts working.}" />
+
+                            <TextBlock Style="{StaticResource MacSectionTitle}" Text="Bar" Margin="10,22,0,7" />
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Lebar, En=Width}" />
+                                        <Slider x:Name="BarWidthSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="500" Maximum="1200" ValueChanged="Slider_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tinggi percakapan, En=Conversation height}" />
+                                        <Slider x:Name="BarHeightSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="180" Maximum="900" ValueChanged="Slider_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Ukuran teks input, En=Input text size}" />
+                                        <Slider x:Name="InputFontSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="10" Maximum="24" ValueChanged="Slider_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Ukuran teks jawaban, En=Answer text size}" />
+                                        <Slider x:Name="ResponseFontSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="10" Maximum="24" ValueChanged="Slider_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Percakapan menyatu dengan bar, En=Conversation attached to the bar}" />
+                                        <CheckBox x:Name="DockedSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Posisi percakapan, En=Conversation position}" />
+                                        <ComboBox x:Name="OutputPositionPopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="{local:Tr Di bawah input, En=Below the input}" Tag="below" />
+                                            <ComboBoxItem Content="{local:Tr Di atas input, En=Above the input}" Tag="above" />
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Provider -->
+                        <StackPanel x:Name="PageProvider" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="Provider" />
+                                        <ComboBox x:Name="ProviderPopup" Style="{StaticResource MacPopup}" SelectionChanged="Provider_Changed">
+                                            <ComboBoxItem Content="Codex" Tag="codex" />
+                                            <ComboBoxItem Content="{local:Tr Claude (Langganan), En=Claude (Subscription)}" Tag="claude-code" />
+                                            <ComboBoxItem Content="Claude API" Tag="anthropic" />
+                                            <ComboBoxItem Content="OpenAI" Tag="openai" />
+                                            <ComboBoxItem Content="OpenRouter" Tag="openrouter" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}" MinHeight="48">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="Status" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#C7C7CC" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="StatusText" Text="…" FontSize="12" Foreground="#6E6E73" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Button x:Name="LoginButton" Style="{StaticResource MacButton}" HorizontalAlignment="Right"
+                                                Content="{local:Tr Masuk…, En=Sign in…}" Click="Login_Click" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel x:Name="ApiKeyGroup" Visibility="Collapsed" Margin="0,18,0,0">
+                                <Border Style="{StaticResource MacGroupBox}">
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="API key" Margin="0,0,14,0" />
+                                        <PasswordBox x:Name="ApiKeyField" Grid.Column="1" Style="{StaticResource MacSecretField}" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Simpan, En=Save}" Click="SaveKey_Click" />
+                                        <Button Grid.Column="3" Style="{StaticResource MacButton}" Margin="6,0,0,0" Content="{local:Tr Hapus, En=Remove}" Click="ClearKey_Click" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock x:Name="ApiKeyHint" Style="{StaticResource MacRowHint}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ProviderHint" Style="{StaticResource MacRowHint}" />
+                        </StackPanel>
+
+                        <!-- Model -->
+                        <StackPanel x:Name="PageModel" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="Model" />
+                                        <ComboBox x:Name="ModelPopup" Style="{StaticResource MacPopup}" DisplayMemberPath="DisplayName" SelectionChanged="Model_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="Effort" />
+                                        <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#14000000" CornerRadius="7" Padding="2">
+                                            <StackPanel x:Name="EffortGroup" Orientation="Horizontal">
+                                                <RadioButton Style="{StaticResource MacSegment}" GroupName="effort" Tag="" Content="Auto" Checked="Effort_Checked" />
+                                                <RadioButton Style="{StaticResource MacSegment}" GroupName="effort" Tag="minimal" Content="Minimal" Checked="Effort_Checked" />
+                                                <RadioButton Style="{StaticResource MacSegment}" GroupName="effort" Tag="low" Content="Low" Checked="Effort_Checked" />
+                                                <RadioButton Style="{StaticResource MacSegment}" GroupName="effort" Tag="medium" Content="Medium" Checked="Effort_Checked" />
+                                                <RadioButton Style="{StaticResource MacSegment}" GroupName="effort" Tag="high" Content="High" Checked="Effort_Checked" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tampilkan proses berpikir, En=Show reasoning}" />
+                                        <CheckBox x:Name="ReasoningSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="ModelHint" Style="{StaticResource MacRowHint}" Text="{local:Tr Berlaku mulai pesan berikutnya., En=Applies from the next message.}" />
+                        </StackPanel>
+
+                        <!-- Workspace -->
+                        <StackPanel x:Name="PageWorkspace" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="Folder" />
+                                        <TextBlock x:Name="WorkspacePathText" Grid.Column="1" Margin="16,0,10,0" FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                                                   Foreground="#6E6E73" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" TextAlignment="Right" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Content="{local:Tr Pilih…, En=Choose…}" Click="ChooseWorkspace_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Izin, En=Permissions}" />
+                                        <ComboBox x:Name="SandboxPopup" Style="{StaticResource MacPopup}" SelectionChanged="Sandbox_Changed">
+                                            <ComboBoxItem Content="{local:Tr Hanya baca, En=Read only}" Tag="read-only" />
+                                            <ComboBoxItem Content="{local:Tr Edit di workspace, En=Edit in workspace}" Tag="workspace-write" />
+                                            <ComboBoxItem Content="{local:Tr Akses penuh, En=Full access}" Tag="danger-full-access" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border x:Name="ApprovalSeparator" Style="{StaticResource MacSeparator}" />
+                                    <Grid x:Name="ApprovalRow" Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Minta persetujuan, En=Ask for approval}" />
+                                        <ComboBox x:Name="ApprovalPopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="{local:Tr Untuk perintah tak tepercaya, En=For untrusted commands}" Tag="untrusted" />
+                                            <ComboBoxItem Content="{local:Tr Saat perintah gagal, En=When a command fails}" Tag="on-failure" />
+                                            <ComboBoxItem Content="{local:Tr Saat agent meminta, En=When the agent asks}" Tag="on-request" />
+                                            <ComboBoxItem Content="{local:Tr Tidak pernah, En=Never}" Tag="never" />
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="SandboxHint" Style="{StaticResource MacRowHint}" />
+                        </StackPanel>
+
+                        <!-- Pintasan -->
+                        <StackPanel x:Name="PageShortcuts" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Buka CodexBar, En=Open CodexBar}" />
+                                        <TextBox x:Name="HotkeyField" Grid.Column="1" Style="{StaticResource MacField}" IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                                                 FontFamily="Cascadia Mono, Consolas" PreviewKeyDown="HotkeyField_PreviewKeyDown" Tag="main" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Terapkan, En=Apply}" Click="ApplyHotkey_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="Quick-capture" />
+                                        <TextBox x:Name="QuickHotkeyField" Grid.Column="1" Style="{StaticResource MacField}" IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                                                 FontFamily="Cascadia Mono, Consolas" PreviewKeyDown="HotkeyField_PreviewKeyDown" Tag="quick" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Terapkan, En=Apply}" Click="ApplyQuickHotkey_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Setelah quick-capture, En=After quick-capture}" />
+                                        <ComboBox x:Name="QuickRevealPopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="{local:Tr Tampilkan saat mengirim, En=Show while sending}" Tag="capture" />
+                                            <ComboBoxItem Content="{local:Tr Tampilkan saat selesai, En=Show when done}" Tag="done" />
+                                            <ComboBoxItem Content="{local:Tr Salin jawaban saja, En=Just copy the answer}" Tag="clipboard" />
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="HotkeyHint" Style="{StaticResource MacRowHint}" />
+                        </StackPanel>
+
+                        <!-- Lanjutan -->
+                        <StackPanel x:Name="PageAdvanced" Visibility="Collapsed">
+                            <Border Style="{StaticResource MacGroupBox}">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Log diagnostik, En=Diagnostics log}" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource MacButton}" Content="{local:Tr Buka folder, En=Open folder}" Margin="0,0,12,0" Click="OpenLogs_Click" />
+                                            <CheckBox x:Name="DiagnosticsSwitch" Style="{StaticResource MacSwitch}" Click="Setting_Changed" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Template prompt, En=Prompt templates}" />
+                                        <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" Content="{local:Tr Kelola…, En=Manage…}" Click="Templates_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr File pengaturan, En=Settings file}" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource MacButton}" Content="{local:Tr Ekspor…, En=Export…}" Margin="0,0,6,0" Click="Export_Click" />
+                                            <Button Style="{StaticResource MacButton}" Content="{local:Tr Impor…, En=Import…}" Click="Import_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Laporan bug, En=Bug report}" />
+                                        <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" Content="{local:Tr Buat laporan…, En=Create report…}" Click="ReportBug_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tata letak bar, En=Bar layout}" />
+                                        <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" Content="{local:Tr Atur ulang, En=Reset}" Click="ResetLayout_Click" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="VersionText" Style="{StaticResource MacRowHint}" />
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </Border>
+</Window>

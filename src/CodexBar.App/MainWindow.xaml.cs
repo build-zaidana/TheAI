@@ -28,7 +28,7 @@ using RichTextBox = System.Windows.Controls.RichTextBox;
 
 namespace CodexBar.App;
 
-public partial class MainWindow : Window, INotchHost
+public partial class MainWindow : Window, INotchHost, ISettingsHost
 {
     private static readonly Brush StatusReadyBrush = new SolidColorBrush(Color.FromRgb(0x5E, 0xE6, 0xA8));
     private static readonly Brush StatusBusyBrush = new SolidColorBrush(Color.FromRgb(0xE6, 0xB4, 0x5E));
@@ -56,6 +56,8 @@ public partial class MainWindow : Window, INotchHost
     private readonly Func<string, IAgentProvider> _providerFactory;
     private OutputWindow? _outputWindow;
     private NotchWindow? _notch;
+    private SettingsWindow? _settingsWindow;
+    private OnboardingWindow? _onboardingWindow;
     private readonly GlobalHotKey _hotKey = new();
     private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
     private string? _pendingQuickCaptureReveal;
@@ -225,6 +227,7 @@ public partial class MainWindow : Window, INotchHost
             PromptBox.Focus();
             await StartupAsync();
             ApplyDisplayMode();
+            OpenDevPreviews();
         }
         catch (Exception exception)
         {
@@ -401,9 +404,17 @@ public partial class MainWindow : Window, INotchHost
 
         OnboardingCommand.Text = _onboardingCommand;
         OnboardingPanel.Visibility = Visibility.Visible;
+        if (IsNotchMode)
+        {
+            ShowOnboardingWindow(kind, detail);
+        }
     }
 
-    private void HideOnboarding() => OnboardingPanel.Visibility = Visibility.Collapsed;
+    private void HideOnboarding()
+    {
+        OnboardingPanel.Visibility = Visibility.Collapsed;
+        _onboardingWindow?.Hide();
+    }
 
     private const string ClaudeCodeNpmPackage = "@anthropic-ai/claude-code";
 
@@ -726,9 +737,17 @@ public partial class MainWindow : Window, INotchHost
     // quick-capture hotkey's job (see QuickCaptureHotKey_Pressed).
     private void GlobalHotKey_Pressed(object? sender, EventArgs e)
     {
-        if (IsNotchMode && _notch is not null && OnboardingPanel.Visibility != Visibility.Visible)
+        if (IsNotchMode && _notch is not null)
         {
-            _notch.ToggleLauncher();
+            if (OnboardingPanel.Visibility == Visibility.Visible && _onboardingWindow is not null)
+            {
+                _onboardingWindow.Show();
+                _onboardingWindow.Activate();
+            }
+            else
+            {
+                _notch.ToggleLauncher();
+            }
             return;
         }
 
@@ -776,6 +795,7 @@ public partial class MainWindow : Window, INotchHost
             ModelRow.Visibility = Visibility.Visible;
             _modelsReady = true;
             UpdateModelToolTip();
+            SettingsStateChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception exception)
         {
@@ -850,6 +870,7 @@ public partial class MainWindow : Window, INotchHost
         InlineConversation.ClearVisuals();
         _outputWindow?.Conversation.ClearVisuals();
         UpdateLayout(force: false);
+        SettingsStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task LoadThreadMessagesAsync(string threadId)
@@ -2099,9 +2120,14 @@ public partial class MainWindow : Window, INotchHost
             _notch ??= new NotchWindow(this);
             _notch.SetIsland(_settings.DisplayMode == "island");
             _notch.ShowIdle();
-            if (!keepMainVisible && OnboardingPanel.Visibility != Visibility.Visible)
+            if (!keepMainVisible)
             {
                 Hide();
+            }
+
+            if (OnboardingPanel.Visibility == Visibility.Visible)
+            {
+                ShowOnboardingWindow(_onboardingKind, null);
             }
         }
         else
@@ -2111,6 +2137,250 @@ public partial class MainWindow : Window, INotchHost
             {
                 ShowFromExternalActivation();
             }
+        }
+    }
+
+    // ---- Settings window --------------------------------------------------------------------
+
+    private event EventHandler? SettingsStateChanged;
+
+    event EventHandler? ISettingsHost.StateChanged
+    {
+        add => SettingsStateChanged += value;
+        remove => SettingsStateChanged -= value;
+    }
+
+    internal void OpenSettingsWindow(string page = "general")
+    {
+        if (_settingsWindow is { IsLoaded: true })
+        {
+            _settingsWindow.ShowPage(page);
+            if (_settingsWindow.WindowState == WindowState.Minimized)
+            {
+                _settingsWindow.WindowState = WindowState.Normal;
+            }
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(this);
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.ShowPage(page);
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+    }
+
+    AppSettings ISettingsHost.Settings => _settings;
+
+    string ISettingsHost.ProviderId => _controller.ProviderId;
+
+    bool ISettingsHost.ProviderSupportsApprovals => _controller.ProviderId == "codex";
+
+    string ISettingsHost.WorkspacePath => _settings.WorkspacePath;
+
+    IReadOnlyList<ProviderModelInfo> ISettingsHost.Models =>
+        (ModelCombo.ItemsSource as IEnumerable<ProviderModelInfo>)?.ToArray() ?? [];
+
+    // The settings window edits _settings; push it through the same path the old inline panel
+    // used (controls ← settings, then the shared apply/save routine).
+    void ISettingsHost.ApplySettings()
+    {
+        ConfigureFromSettings();
+        SettingsControl_Changed(this, new RoutedEventArgs());
+    }
+
+    void ISettingsHost.SelectProvider(string providerId) => SelectProviderComboItem(providerId);
+
+    async Task<ProviderAccountInfo?> ISettingsHost.GetAccountAsync()
+    {
+        try
+        {
+            return await _controller.GetAccountAsync();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    string ISettingsHost.SaveApiKey(string key)
+    {
+        ApiKeyBox.Password = key;
+        SaveApiKeyButton_Click(this, new RoutedEventArgs());
+        _ = RunUiTaskAsync(StartupAsync);
+        return ApiKeyStatusText.Text;
+    }
+
+    string ISettingsHost.ClearApiKey()
+    {
+        ClearApiKeyButton_Click(this, new RoutedEventArgs());
+        return ApiKeyStatusText.Text;
+    }
+
+    void ISettingsHost.SelectModel(ProviderModelInfo model) => ModelCombo.SelectedItem = model;
+
+    void ISettingsHost.SelectSandbox(string mode) =>
+        SandboxCombo.SelectedItem = SandboxCombo.Items.OfType<ComboBoxItem>().FirstOrDefault(item => (string?)item.Tag == mode);
+
+    void ISettingsHost.ChooseWorkspace() => WorkspaceButton_Click(this, new RoutedEventArgs());
+
+    (bool Ok, string Message) ISettingsHost.ApplyHotkey(string gesture)
+    {
+        HotkeyTextBox.Text = gesture;
+        ApplyHotkeyButton_Click(this, new RoutedEventArgs());
+        return (ReferenceEquals(HotkeyStatusText.Foreground, StatusReadyBrush), HotkeyStatusText.Text);
+    }
+
+    (bool Ok, string Message) ISettingsHost.ApplyQuickCaptureHotkey(string gesture)
+    {
+        try
+        {
+            _quickCaptureHotKey.ChangeGesture(gesture);
+            _settings.QuickCaptureHotkey = _quickCaptureHotKey.CurrentGesture ?? _settings.QuickCaptureHotkey;
+            QuickCaptureHotkeyBox.Text = _settings.QuickCaptureHotkey;
+            _ = SaveSettingsSafeAsync();
+            return (true, LF("hotkey.active", _settings.QuickCaptureHotkey));
+        }
+        catch (Exception exception)
+        {
+            return (false, exception.Message);
+        }
+    }
+
+    void ISettingsHost.OpenLogin()
+    {
+        if (_controller.ProviderId == "claude-code")
+        {
+            LaunchClaudeLogin();
+        }
+        else
+        {
+            LaunchCodexLogin();
+        }
+    }
+
+    void ISettingsHost.RunAction(string action)
+    {
+        var args = new RoutedEventArgs();
+        switch (action)
+        {
+            case "recenter": _notch?.Recenter(); break;
+            case "logs": OpenLogsButton_Click(this, args); break;
+            case "templates": ManageTemplatesButton_Click(this, args); break;
+            case "export": ExportSettingsButton_Click(this, args); break;
+            case "import": ImportSettingsButton_Click(this, args); break;
+            case "bug": ReportBugButton_Click(this, args); break;
+            case "reset-layout": ResetLayoutButton_Click(this, args); break;
+        }
+    }
+
+    // Developer aids for checking the new windows without clicking through the tray:
+    // CODEXBAR_OPEN_SETTINGS=<page> and CODEXBAR_PREVIEW_ONBOARDING=install|login|apikey|workspace|error.
+    private void OpenDevPreviews()
+    {
+        if (Environment.GetEnvironmentVariable("CODEXBAR_OPEN_SETTINGS") is { Length: > 0 } page)
+        {
+            OpenSettingsWindow(page);
+        }
+
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_ONBOARDING") is { Length: > 0 } preview)
+        {
+            ShowOnboardingWindow(preview switch
+            {
+                "install" => OnboardingKind.InstallNeeded,
+                "apikey" => OnboardingKind.ApiKeyNeeded,
+                "workspace" => OnboardingKind.WorkspaceNeeded,
+                "error" => OnboardingKind.Error,
+                _ => OnboardingKind.LoginNeeded
+            }, null);
+        }
+    }
+
+    // ---- Onboarding sheet (notch mode) ---------------------------------------------------------
+
+    private void ShowOnboardingWindow(OnboardingKind kind, string? detail)
+    {
+        var claude = IsClaudeCodeProvider;
+        var tool = claude ? "Claude Code" : "Codex CLI";
+        var installed = claude
+            ? CodexBar.Providers.ClaudeCode.ClaudeCodeExecutableLocator.TryLocate() is not null
+            : TryLocateCodex();
+        var loc = CodexBar.Core.Localization.Instance;
+        var status = new List<OnboardingStatus>();
+        if (!_controller.Capabilities.SupportsApiKey)
+        {
+            status.Add(new OnboardingStatus(tool, installed ? Tr.Text("Terpasang", "Installed") : Tr.Text("Belum terpasang", "Not installed"), installed));
+            status.Add(new OnboardingStatus(Tr.Text("Akun", "Account"),
+                kind is OnboardingKind.LoginNeeded or OnboardingKind.InstallNeeded ? Tr.Text("Belum masuk", "Not signed in") : Tr.Text("Terhubung", "Connected"),
+                kind is not (OnboardingKind.LoginNeeded or OnboardingKind.InstallNeeded)));
+        }
+        else
+        {
+            status.Add(new OnboardingStatus("API key", Tr.Text("Belum diatur", "Not set"), false));
+        }
+
+        if (kind == OnboardingKind.WorkspaceNeeded)
+        {
+            status.Add(new OnboardingStatus(Tr.Text("Folder kerja", "Workspace"), Tr.Text("Belum dipilih", "Not chosen"), false));
+        }
+
+        Task Retry() => StartupAsync();
+        var args = new RoutedEventArgs();
+        OnboardingContent content = kind switch
+        {
+            OnboardingKind.InstallNeeded => new(
+                Tr.Text($"Pasang {tool}", $"Install {tool}"),
+                loc[OnboardingKey("onboard.install.body")],
+                status, _onboardingCommand,
+                Tr.Text("Pasang otomatis", "Install automatically"), () => { OnboardingActionButton_Click(this, args); return Task.CompletedTask; },
+                Tr.Text("Periksa lagi", "Check again"), Retry,
+                Tr.Text("Panduan…", "Guide…"), () => OnboardingDocsButton_Click(this, args)),
+            OnboardingKind.LoginNeeded => new(
+                claude ? Tr.Text("Hubungkan Claude", "Connect Claude") : Tr.Text("Hubungkan Codex", "Connect Codex"),
+                detail ?? (claude
+                    ? Tr.Text("CodexBar memakai Claude Code yang login dengan langganan Pro atau Max. Tidak perlu API key.", "CodexBar uses Claude Code signed in with a Pro or Max subscription. No API key needed.")
+                    : Tr.Text("CodexBar memakai Codex CLI yang login dengan akun ChatGPT.", "CodexBar uses the Codex CLI signed in with your ChatGPT account.")),
+                status, _onboardingCommand,
+                Tr.Text("Masuk…", "Sign in…"), () => { OnboardingActionButton_Click(this, args); return Task.CompletedTask; },
+                Tr.Text("Periksa lagi", "Check again"), Retry,
+                Tr.Text("Pakai API key…", "Use an API key…"), () => OpenSettingsWindow("provider")),
+            OnboardingKind.ApiKeyNeeded => new(
+                Tr.Text("Masukkan API key", "Add an API key"),
+                loc["onboard.apikey.body"],
+                status, null,
+                Tr.Text("Buka pengaturan", "Open settings"), () => { OpenSettingsWindow("provider"); return Task.CompletedTask; },
+                Tr.Text("Periksa lagi", "Check again"), Retry,
+                null, null),
+            OnboardingKind.WorkspaceNeeded => new(
+                Tr.Text("Pilih folder kerja", "Choose a workspace"),
+                loc["onboard.workspace.body"],
+                status, null,
+                Tr.Text("Pilih folder…", "Choose folder…"), () => { OnboardingRetryButton_Click(this, args); return Task.CompletedTask; },
+                Tr.Text("Nanti", "Later"), () => { _onboardingWindow?.Hide(); return Task.CompletedTask; },
+                null, null),
+            _ => new(
+                loc["onboard.error.title"],
+                detail ?? loc["onboard.error.body"],
+                status, null,
+                Tr.Text("Coba lagi", "Try again"), Retry,
+                Tr.Text("Nanti", "Later"), () => { _onboardingWindow?.Hide(); return Task.CompletedTask; },
+                Tr.Text("Buka log…", "Open log…"), () => OpenLogsButton_Click(this, args))
+        };
+
+        _onboardingWindow ??= new OnboardingWindow();
+        _onboardingWindow.Show(content);
+    }
+
+    private static bool TryLocateCodex()
+    {
+        try
+        {
+            CodexBar.Providers.Codex.CodexExecutableLocator.Locate();
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -2368,6 +2638,7 @@ public partial class MainWindow : Window, INotchHost
         {
             SandboxCombo.IsEnabled = !_controller.IsBusy;
             _permissionChangePending = false;
+            SettingsStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -2555,12 +2826,7 @@ public partial class MainWindow : Window, INotchHost
         menu.Items.Add(L("tray.recenterNotch"), null, (_, _) => Dispatcher.Invoke(() => _notch?.Recenter()));
         menu.Items.Add("Thread baru", null, (_, _) => Dispatcher.BeginInvoke(
             () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync)));
-        menu.Items.Add("Settings", null, (_, _) => Dispatcher.Invoke(() =>
-        {
-            Show();
-            Activate();
-            SetSettingsVisible(true);
-        }));
+        menu.Items.Add(L("tray.settings"), null, (_, _) => Dispatcher.Invoke(() => OpenSettingsWindow()));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Keluar", null, (_, _) => Dispatcher.Invoke(() =>
         {
@@ -2933,8 +3199,7 @@ public partial class MainWindow : Window, INotchHost
         PromptBox.Focus();
     }
 
-    private void SettingsButton_Click(object sender, RoutedEventArgs e) =>
-        SetSettingsVisible(SettingsPanel.Visibility != Visibility.Visible);
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettingsWindow();
 
     private void CloseSettingsButton_Click(object sender, RoutedEventArgs e) => SetSettingsVisible(false);
 
