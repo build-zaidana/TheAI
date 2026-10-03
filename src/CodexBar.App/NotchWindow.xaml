@@ -516,6 +516,19 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Prompts waiting for the current turn to finish. -->
+                    <StackPanel x:Name="QueueBox" Margin="0,10,0,0" Visibility="Collapsed">
+                        <Grid Height="22" Margin="2,0,0,2">
+                            <TextBlock VerticalAlignment="Center">
+                                <Run x:Name="QueueTitleRun" Text="Antrean" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText3}" />
+                                <Run x:Name="QueueStateRun" FontSize="11" Foreground="{StaticResource NotchOrange}" />
+                            </TextBlock>
+                            <Button x:Name="QueueSendNowButton" Style="{StaticResource NotchTextLink}" HorizontalAlignment="Right"
+                                    Click="QueueSendNow_Click" Content="Kirim sekarang" Visibility="Collapsed" />
+                        </Grid>
+                        <StackPanel x:Name="QueueList" />
+                    </StackPanel>
+
                     <Grid Margin="0,14,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />

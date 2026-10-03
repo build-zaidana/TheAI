@@ -45,7 +45,13 @@ internal interface INotchHost
     int AddAttachments(IEnumerable<string> paths);
     void RemoveAttachment(ProviderInputAttachment attachment);
     void CaptureScreenshot();
+    /// <summary>Submit now, or queue behind the running turn when busy.</summary>
     Task SubmitFromNotchAsync(string prompt);
+
+    /// <summary>Prompts waiting for the running turn (display text, oldest first).</summary>
+    IReadOnlyList<string> QueuedPrompts { get; }
+    void RemoveQueuedPrompt(int index);
+    Task SendNextQueuedAsync();
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
     Task OpenThreadFromNotchAsync(ProviderThreadSummary thread);
@@ -966,6 +972,7 @@ public partial class NotchWindow : Window
         WaitIndicator.Visibility = _state == NotchState.Waiting ? Visibility.Visible : Visibility.Collapsed;
         ErrorIndicator.Visibility = _state == NotchState.Error ? Visibility.Visible : Visibility.Collapsed;
         ApplyQuotaRing();
+        ApplyQueueState();
 
         if (_state == NotchState.Working)
         {
@@ -977,10 +984,13 @@ public partial class NotchWindow : Window
         }
 
         var busy = _host.IsBusy || _state is NotchState.Working or NotchState.Waiting;
-        StopGlyph.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-        SendGlyph.Visibility = busy ? Visibility.Collapsed : Visibility.Visible;
-        ActionButton.IsEnabled = busy || FollowUpInput.Text.Trim().Length > 0;
-        System.Windows.Automation.AutomationProperties.SetName(ActionButton, busy ? L("notch.stop") : L("notch.send"));
+        var typed = FollowUpInput.Text.Trim().Length > 0;
+        var stop = busy && !typed;
+        StopGlyph.Visibility = stop ? Visibility.Visible : Visibility.Collapsed;
+        SendGlyph.Visibility = stop ? Visibility.Collapsed : Visibility.Visible;
+        ActionButton.IsEnabled = busy || typed;
+        System.Windows.Automation.AutomationProperties.SetName(ActionButton,
+            stop ? L("notch.stop") : busy ? L("notch.queueButton") : L("notch.send"));
         FollowUpPlaceholder.Text = busy ? L("notch.followUp.busy") : L("notch.followUp.idle");
     }
 
@@ -1105,8 +1115,16 @@ public partial class NotchWindow : Window
     private async Task SubmitAsync(string prompt)
     {
         prompt = prompt.Trim();
-        if ((prompt.Length == 0 && _host.Attachments.Count == 0) || _host.IsBusy)
+        if (prompt.Length == 0 && _host.Attachments.Count == 0)
         {
+            return;
+        }
+
+        if (_host.IsBusy)
+        {
+            await _host.SubmitFromNotchAsync(prompt);
+            LauncherInput.Clear();
+            OpenActivity();
             return;
         }
 
@@ -1229,7 +1247,7 @@ public partial class NotchWindow : Window
         {
             e.Handled = true;
             var text = FollowUpInput.Text;
-            if (!_host.IsBusy && text.Trim().Length > 0)
+            if (text.Trim().Length > 0)
             {
                 FollowUpInput.Clear();
                 await SubmitAsync(text);
@@ -1239,7 +1257,8 @@ public partial class NotchWindow : Window
 
     private async void ActionButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_host.IsBusy)
+        // Busy with text typed: the button queues it. Busy and empty: it stops the turn.
+        if (_host.IsBusy && FollowUpInput.Text.Trim().Length == 0)
         {
             await _host.StopFromNotchAsync();
             return;

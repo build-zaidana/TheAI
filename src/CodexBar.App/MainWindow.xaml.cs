@@ -1069,15 +1069,95 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private async Task SendPromptAsync()
     {
         var prompt = PromptBox.Text.Trim();
-        if ((prompt.Length == 0 && _attachments.Count == 0) || _controller.IsBusy)
+        if (prompt.Length == 0 && _attachments.Count == 0)
         {
             return;
+        }
+
+        if (_controller.IsBusy)
+        {
+            // Busy: the prompt waits its turn instead of being dropped.
+            if (EnqueuePrompt(prompt))
+            {
+                PromptBox.Clear();
+            }
+            return;
+        }
+
+        await SendCoreAsync(prompt, _attachments.ToArray(), clearPromptBox: true);
+    }
+
+    // ---- Prompt queue ------------------------------------------------------------------------
+    //
+    // Prompts sent while a turn runs line up here (with the attachments they were sent with) and
+    // go out one by one, each after the previous turn completes normally. A stopped or failed
+    // turn pauses the queue: nothing is sent behind the user's back after an error; the next
+    // successful turn, or "send now" in the notch, picks it up again.
+
+    private const int MaxQueuedPrompts = 10;
+
+    private sealed record QueuedPrompt(string Prompt, ProviderInputAttachment[] Attachments);
+
+    private readonly List<QueuedPrompt> _queue = new();
+
+    private bool EnqueuePrompt(string prompt)
+    {
+        if (_queue.Count >= MaxQueuedPrompts)
+        {
+            ShowError(LF("queue.full", MaxQueuedPrompts));
+            return false;
+        }
+
+        // The attachments travel with the queued prompt; the composer starts empty again.
+        _queue.Add(new QueuedPrompt(prompt, _attachments.ToArray()));
+        _attachments.Clear();
+        RenderAttachments();
+        SetStatus(LF("queue.added", _queue.Count), StatusBusyBrush);
+        _notch?.RefreshQueue();
+        return true;
+    }
+
+    private void RemoveQueuedPrompt(int index)
+    {
+        if (index < 0 || index >= _queue.Count)
+        {
+            return;
+        }
+
+        var removed = _queue[index];
+        _queue.RemoveAt(index);
+        CleanupTemporaryAttachments(removed.Attachments.Select(item => item.Path));
+        _notch?.RefreshQueue();
+    }
+
+    private async Task SendNextQueuedAsync()
+    {
+        if (_controller.IsBusy || _queue.Count == 0)
+        {
+            return;
+        }
+
+        var next = _queue[0];
+        _queue.RemoveAt(0);
+        _notch?.RefreshQueue();
+        if (!await SendCoreAsync(next.Prompt, next.Attachments, clearPromptBox: false))
+        {
+            // Could not start (e.g. provider gone): put it back at the front.
+            _queue.Insert(0, next);
+            _notch?.RefreshQueue();
+        }
+    }
+
+    private async Task<bool> SendCoreAsync(string prompt, ProviderInputAttachment[] pendingAttachments, bool clearPromptBox)
+    {
+        if ((prompt.Length == 0 && pendingAttachments.Length == 0) || _controller.IsBusy)
+        {
+            return false;
         }
 
         DisarmAutoResume();
         _lastPrompt = prompt;
 
-        var pendingAttachments = _attachments.ToArray();
         var attachmentSummary = pendingAttachments.Length == 0
             ? string.Empty
             : string.Join(Environment.NewLine, pendingAttachments.Select(item => $"- 📎 **{item.DisplayName}**"));
@@ -1111,10 +1191,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 $"provider={_controller.ProviderId} model={selectedModel ?? "default"} promptChars={prompt.Length} attachments={pendingAttachments.Length}");
             await _controller.SendAsync(prompt, pendingAttachments, selectedModel, effort);
             _promptHistory.Add(prompt);
-            PromptBox.Clear();
-            _attachments.Clear();
+            if (clearPromptBox)
+            {
+                PromptBox.Clear();
+            }
+            foreach (var sent in pendingAttachments)
+            {
+                _attachments.Remove(sent);
+            }
             CleanupTemporaryAttachments(pendingAttachments.Select(item => item.Path));
             RenderAttachments();
+            return true;
         }
         catch (Exception exception)
         {
@@ -1123,6 +1210,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             SetBusyUi(false);
             _notch?.HandleProviderEvent(new ProviderErrorEvent(exception.Message));
             ShowError(exception.Message);
+            return false;
         }
     }
 
@@ -1659,15 +1747,24 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                             ShowFromExternalActivation();
                         }
                     }
-                    else if (!IsNotchMode && (!IsVisible || !IsActive))
+                    else if (!IsNotchMode && (!IsVisible || !IsActive) && (_queue.Count == 0 || !completedNormally))
                     {
                         _trayIcon.ShowBalloonTip(2500, "CodexBar", L("notification.responseDone"),
                             Forms.ToolTipIcon.Info);
+                    }
+
+                    _notch?.RefreshQueue();
+                    if (completedNormally && _queue.Count > 0)
+                    {
+                        // Let this completion finish rendering before the next turn starts.
+                        _ = Dispatcher.BeginInvoke(() => RunUiTaskAsync(SendNextQueuedAsync),
+                            System.Windows.Threading.DispatcherPriority.Background);
                     }
                     break;
 
                 case ProviderErrorEvent error:
                     DiagnosticsLog.Error("Provider", error.Message);
+                    _notch?.RefreshQueue();
                     if (!error.WillRetry && !_autoResumeArmed && _lastPrompt is { Length: > 0 } &&
                         CodexBar.Core.RateLimit.IsRateLimited(error.Message))
                     {
@@ -2421,6 +2518,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         }
 
+        // CODEXBAR_PREVIEW_QUEUE=1: a running sample turn with two queued prompts (nothing is sent).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_QUEUE") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.OnTurnStarted("Refactor modul pembayaran jadi service terpisah");
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Membaca src/payments"));
+            _queue.Add(new QueuedPrompt("Setelah itu tambahkan unit test untuk PaymentService", []));
+            _queue.Add(new QueuedPrompt("Update README bagian arsitektur", []));
+            _notch.RefreshQueue();
+            _notch.PreviewActivity();
+        }
+
         // CODEXBAR_PREVIEW_QUOTA=1|ring: sample usage (not saved); "1" opens the launcher to show the bars.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_QUOTA") is { Length: > 0 } quotaPreview && _notch is not null)
         {
@@ -2692,9 +2800,22 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     async Task INotchHost.SubmitFromNotchAsync(string prompt)
     {
-        PromptBox.Text = prompt;
-        await SendPromptAsync();
+        // The main window's composer keeps whatever draft it has; attachments are shared.
+        if (_controller.IsBusy)
+        {
+            EnqueuePrompt(prompt);
+            return;
+        }
+
+        await SendCoreAsync(prompt, _attachments.ToArray(), clearPromptBox: false);
     }
+
+    IReadOnlyList<string> INotchHost.QueuedPrompts =>
+        _queue.Select(item => item.Prompt.Length > 0 ? item.Prompt : string.Join(", ", item.Attachments.Select(a => a.DisplayName))).ToArray();
+
+    void INotchHost.RemoveQueuedPrompt(int index) => RemoveQueuedPrompt(index);
+
+    Task INotchHost.SendNextQueuedAsync() => SendNextQueuedAsync();
 
     Task INotchHost.StopFromNotchAsync() => StopCurrentTurnAsync();
 
