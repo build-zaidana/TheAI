@@ -211,9 +211,9 @@ public partial class NotchWindow
         {
             OpenActivity();
         }
-        else if (reopen == NotchView.Request && HasPendingRequest)
+        else if (reopen is NotchView.Request or NotchView.Quick && HasPendingRequest)
         {
-            ShowPendingRequest();
+            ShowPendingRequest(preferQuick: reopen == NotchView.Quick);
         }
     }
 

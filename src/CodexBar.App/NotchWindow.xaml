@@ -445,6 +445,12 @@
                     </Border>
                     <WrapPanel x:Name="AttachmentTray" Margin="0,8,0,0" Visibility="Collapsed" />
 
+                    <!-- A request waiting for the user, with its recommended answer. -->
+                    <StackPanel x:Name="WaitingPanel" Visibility="Collapsed">
+                        <TextBlock x:Name="WaitingHeader" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchOrange}" Margin="12,14,12,6" />
+                        <StackPanel x:Name="WaitingList" />
+                    </StackPanel>
+
                     <!-- Parallel agents (running or finished, until closed). -->
                     <StackPanel x:Name="AgentListPanel" Visibility="Collapsed">
                         <TextBlock x:Name="AgentHeader" Text="Agent paralel" FontSize="11" FontWeight="SemiBold"
@@ -483,6 +489,28 @@
                     <Button x:Name="LauncherGrabber" Style="{StaticResource NotchGrabber}" Margin="0,10,0,0" HorizontalAlignment="Center"
                             Click="LauncherGrabber_Click" PreviewMouseLeftButtonDown="LauncherGrabber_Down"
                             PreviewMouseMove="LauncherGrabber_Move" AutomationProperties.Name="Tutup" />
+                </StackPanel>
+
+                <!-- Quick: a request arriving while the notch is compact; one click for the recommended answer. -->
+                <StackPanel x:Name="QuickPanel" Margin="18,12,16,14" Width="318" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="7" Height="7" Fill="{StaticResource NotchOrange}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="QuickKind" FontSize="11" Foreground="#8CFFFFFF" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="QuickText" Margin="0,8,0,0" FontSize="13" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button x:Name="QuickPrimary" Style="{StaticResource NotchPrimaryPill}" Height="28" Margin="0" Click="QuickPrimary_Click" />
+                        <Button x:Name="QuickSecondary" Style="{StaticResource NotchPill}" Height="28" Margin="6,0,0,0" Click="QuickSecondary_Click" />
+                        <Button x:Name="QuickMore" Style="{StaticResource NotchIconButton}" Margin="4,0,0,0" Click="QuickMore_Click"
+                                ToolTip="Pilihan lain" AutomationProperties.Name="Pilihan lain">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="3.5" Height="3.5" Fill="White" />
+                                <Ellipse Width="3.5" Height="3.5" Fill="White" Margin="3,0,0,0" />
+                                <Ellipse Width="3.5" Height="3.5" Fill="White" Margin="3,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Request: an approval or a question from the agent, answered right here. -->

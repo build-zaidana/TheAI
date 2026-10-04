@@ -66,6 +66,7 @@ public partial class NotchWindow
         NotchView.Launcher => LauncherPanel,
         NotchView.Activity => ActivityPanel,
         NotchView.Request => RequestPanel,
+        NotchView.Quick => QuickPanel,
         _ => CompactPanel
     };
 
@@ -73,6 +74,7 @@ public partial class NotchWindow
     {
         NotchView.Launcher => LauncherWidth,
         NotchView.Activity or NotchView.Request => ActivityWidth,
+        NotchView.Quick => QuickWidth,
         _ => _state == NotchState.Idle ? IdleWidth : CompactWidth
     };
 
@@ -110,7 +112,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

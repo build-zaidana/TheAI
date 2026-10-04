@@ -76,7 +76,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private string? _historyLoadedThreadId;
     private bool _conversationCollapsed;
     private SidebarWindow? _sidebarWindow;
-    private Forms.ToolStripMenuItem? _attentionMenuItem;
+    private string _attentionText = string.Empty;
+    private System.Windows.Media.Color _attentionDot = System.Windows.Media.Color.FromArgb(0x59, 0xFF, 0xFF, 0xFF);
+    private bool _attentionActionable;
+    private TrayMenuWindow? _trayMenu;
 
     private bool _settingsReady;
     private bool _modelsReady;
@@ -159,8 +162,14 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             Icon = LoadAppIcon(),
             Text = "CodexBar",
-            Visible = true,
-            ContextMenuStrip = BuildTrayMenu()
+            Visible = true
+        };
+        _trayIcon.MouseUp += (_, e) =>
+        {
+            if (e.Button == Forms.MouseButtons.Right)
+            {
+                Dispatcher.BeginInvoke(ShowTrayMenu);
+            }
         };
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ToggleOverlay);
         _trayIcon.BalloonTipClicked += (_, _) => Dispatcher.Invoke(ShowFromExternalActivation);
@@ -2522,10 +2531,18 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             OpenSettingsWindow(page);
         }
 
-        // CODEXBAR_PREVIEW_REQUEST=approval|input: show a sample request in the notch (no provider involved).
+        // CODEXBAR_PREVIEW_REQUEST=approval|input[+launcher]: show a sample request in the notch (no provider involved);
+        // "+launcher" then opens the launcher with the request under "Menunggu kamu".
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REQUEST") is { Length: > 0 } request && _notch is not null)
         {
             var raw = System.Text.Json.JsonDocument.Parse("{}").RootElement;
+            var openLauncher = request.EndsWith("+launcher", StringComparison.Ordinal);
+            request = request.Replace("+launcher", string.Empty, StringComparison.Ordinal);
+            if (openLauncher)
+            {
+                _ = Dispatcher.BeginInvoke(() => _notch.ToggleLauncher(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            }
+
             if (request == "input")
             {
                 var question = new ProviderInputQuestion("target", "Target", "Deploy ke lingkungan mana?",
@@ -2542,6 +2559,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
             }
+        }
+
+        // CODEXBAR_PREVIEW_TRAY=1: open the tray menu beside the cursor.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TRAY") is { Length: > 0 })
+        {
+            ShowTrayMenu();
         }
 
         // CODEXBAR_PREVIEW_LAUNCHER=1|menu: the launcher, optionally with the provider menu open.
@@ -3288,14 +3311,14 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         PromptBox.Focus();
     }
 
-    private Forms.ContextMenuStrip BuildTrayMenu()
+    // Tray menu in the notch's style (TrayMenuWindow); the agent status line leads it.
+    private void ShowTrayMenu()
     {
-        var menu = new Forms.ContextMenuStrip();
-        _attentionMenuItem = new Forms.ToolStripMenuItem("Tidak ada agent aktif") { Enabled = false };
-        _attentionMenuItem.Click += (_, _) => Dispatcher.Invoke(ShowAttentionCenter);
-        menu.Items.Add(_attentionMenuItem);
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(L("tray.show"), null, (_, _) => Dispatcher.Invoke(() =>
+        _trayMenu?.Close();
+        var menu = new TrayMenuWindow();
+        menu.AddStatus(_attentionText.Length > 0 ? _attentionText : L("attention.none"), _attentionDot,
+            _attentionActionable ? ShowAttentionCenter : null);
+        menu.AddItem(TrayIcons.Open, L("tray.show"), () =>
         {
             if (IsNotchMode && _notch is not null)
             {
@@ -3305,38 +3328,41 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             {
                 ToggleOverlay();
             }
-        }));
-        var modeMenu = new Forms.ToolStripMenuItem(L("tray.displayMode"));
-        var notchItem = new Forms.ToolStripMenuItem(L("displayMode.notch")) { Checked = _settings.DisplayMode == "notch" };
-        var islandItem = new Forms.ToolStripMenuItem(L("displayMode.island")) { Checked = _settings.DisplayMode == "island" };
-        var barItem = new Forms.ToolStripMenuItem(L("displayMode.bar")) { Checked = _settings.DisplayMode == "bar" };
-        notchItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("notch"));
-        islandItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("island"));
-        barItem.Click += (_, _) => Dispatcher.Invoke(() => SetDisplayMode("bar"));
-        modeMenu.DropDownItems.Add(notchItem);
-        modeMenu.DropDownItems.Add(islandItem);
-        modeMenu.DropDownItems.Add(barItem);
-        modeMenu.DropDownOpening += (_, _) =>
+        }, _settings.Hotkey);
+        menu.AddItem(TrayIcons.NewThread, L("tray.newThread"), () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync));
+        menu.AddItem(TrayIcons.Screenshot, L("tray.screenshot"), CaptureScreenshot, _settings.ScreenshotHotkey);
+        if (IsNotchMode)
         {
-            notchItem.Checked = _settings.DisplayMode == "notch";
-            islandItem.Checked = _settings.DisplayMode == "island";
-            barItem.Checked = _settings.DisplayMode == "bar";
-        };
-        menu.Items.Add(modeMenu);
-        menu.Items.Add(L("tray.recenterNotch"), null, (_, _) => Dispatcher.Invoke(() => _notch?.Recenter()));
-        menu.Items.Add(L("tray.screenshot"), null, (_, _) => Dispatcher.BeginInvoke(CaptureScreenshot));
-        menu.Items.Add("Thread baru", null, (_, _) => Dispatcher.BeginInvoke(
-            () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync)));
-        menu.Items.Add(L("tray.settings"), null, (_, _) => Dispatcher.Invoke(() => OpenSettingsWindow()));
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Keluar", null, (_, _) => Dispatcher.Invoke(() =>
+            menu.AddItem(TrayIcons.Recenter, L("tray.recenterNotch"), () => _notch?.Recenter());
+        }
+
+        menu.AddSeparator();
+        menu.AddSegments(L("tray.displayMode"),
+            [("notch", L("displayMode.notch.short")), ("island", L("displayMode.island.short")), ("bar", L("displayMode.bar.short"))],
+            _settings.DisplayMode,
+            SetDisplayMode);
+        menu.AddSeparator();
+        menu.AddItem(TrayIcons.Settings, L("tray.settings"), () => OpenSettingsWindow());
+        menu.AddItem(TrayIcons.Quit, L("tray.quit"), () =>
         {
             _isExiting = true;
             _trayIcon.Visible = false;
             Close();
             System.Windows.Application.Current.Shutdown();
-        }));
-        return menu;
+        });
+        menu.Closed += (_, _) => _trayMenu = null;
+        _trayMenu = menu;
+        menu.Show();
+    }
+
+    private static class TrayIcons
+    {
+        public const string Open = "M 2.5,4 Q 2.5,2.5 4,2.5 L 12,2.5 Q 13.5,2.5 13.5,4 L 13.5,8 M 2.5,4 L 2.5,12 Q 2.5,13.5 4,13.5 L 8,13.5 M 10,10 L 14,14 M 14,10.5 L 14,14 L 10.5,14";
+        public const string NewThread = "M 8,2.5 L 8,13.5 M 2.5,8 L 13.5,8";
+        public const string Screenshot = "M 2,5 Q 2,4 3,4 L 5,4 L 6,2.5 L 10,2.5 L 11,4 L 13,4 Q 14,4 14,5 L 14,12 Q 14,13 13,13 L 3,13 Q 2,13 2,12 Z M 10.5,8.3 A 2.5,2.5 0 1 1 5.5,8.3 A 2.5,2.5 0 1 1 10.5,8.3 Z";
+        public const string Recenter = "M 8,1.5 L 8,4 M 8,12 L 8,14.5 M 1.5,8 L 4,8 M 12,8 L 14.5,8 M 11,8 A 3,3 0 1 1 5,8 A 3,3 0 1 1 11,8 Z";
+        public const string Settings = "M 8,1.8 L 9.3,3.3 L 11.2,2.9 L 11.7,4.8 L 13.5,5.6 L 12.9,7.5 L 13.9,9.2 L 12.3,10.3 L 12.2,12.3 L 10.2,12.4 L 9,14 L 8,14.2 L 6.9,14 L 5.7,12.4 L 3.7,12.3 L 3.6,10.3 L 2,9.2 L 3,7.5 L 2.4,5.6 L 4.2,4.8 L 4.7,2.9 L 6.6,3.3 Z M 10,8 A 2,2 0 1 1 6,8 A 2,2 0 1 1 10,8 Z";
+        public const string Quit = "M 8,1.8 L 8,7.5 M 4.6,4 A 5.2,5.2 0 1 0 11.4,4";
     }
 
     private void UpdateThreadAttention(ProviderThreadStatusEvent status)
@@ -3355,17 +3381,21 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var active = _threadStatuses.Values.Count(value => value.Status == "active");
         var attention = _threadStatuses.Values.Count(value => value.ActiveFlags.Count > 0);
         var errors = _threadStatuses.Values.Count(value => value.Status == "systemError");
-        if (_attentionMenuItem is not null)
-        {
-            _attentionMenuItem.Text = attention > 0
-                ? LF("attention.needs", attention, active)
-                : errors > 0
-                    ? LF("attention.errors", errors)
-                    : active > 0
-                        ? LF("attention.active", active)
-                        : L("attention.none");
-            _attentionMenuItem.Enabled = active + attention + errors > 0;
-        }
+        _attentionText = attention > 0
+            ? LF("attention.needs", attention, active)
+            : errors > 0
+                ? LF("attention.errors", errors)
+                : active > 0
+                    ? LF("attention.active", active)
+                    : L("attention.none");
+        _attentionDot = attention > 0
+            ? System.Windows.Media.Color.FromRgb(0xFF, 0x9F, 0x0A)
+            : errors > 0
+                ? System.Windows.Media.Color.FromRgb(0xFF, 0x45, 0x3A)
+                : active > 0
+                    ? System.Windows.Media.Color.FromRgb(0x30, 0xD1, 0x58)
+                    : System.Windows.Media.Color.FromArgb(0x59, 0xFF, 0xFF, 0xFF);
+        _attentionActionable = active + attention + errors > 0;
 
         if (!hadAttention && status.ActiveFlags.Count > 0 &&
             !string.Equals(status.ThreadId, _controller.ThreadId, StringComparison.Ordinal))

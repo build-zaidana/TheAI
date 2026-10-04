@@ -87,13 +87,14 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
     private const double CompactWidth = 196;
     private const double LauncherWidth = 560;
     private const double ActivityWidth = 600;
+    private const double QuickWidth = 352;
     private const int MaxSteps = 4;
     private const int MaxOutputChars = 700;
 
@@ -138,7 +139,7 @@ public partial class NotchWindow : Window
             {
                 if (HasPendingRequest)
                 {
-                    ShowPendingRequest();
+                    ShowPendingRequest(preferQuick: true);
                 }
                 else
                 {
@@ -176,7 +177,7 @@ public partial class NotchWindow : Window
 
     public void ToggleLauncher()
     {
-        if (HasPendingRequest)
+        if (HasPendingRequest && !HasQuickAnswer)
         {
             ShowPendingRequest();
             return;
@@ -275,6 +276,7 @@ public partial class NotchWindow : Window
         RefreshAttachments();
         RefreshQuota();
         RenderAgentList();
+        RenderWaiting();
         MicButton.ToolTip = L("voice.micTooltip");
         if (WhisperEngine.IsInstalled(_host.VoiceOptions.Model))
         {
@@ -564,7 +566,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -587,7 +589,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -618,7 +620,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }

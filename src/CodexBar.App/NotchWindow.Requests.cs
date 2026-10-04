@@ -54,6 +54,9 @@ public partial class NotchWindow
         RequestFields.Children.Clear();
         _answerReaders.Clear();
 
+        PrepareQuickApproval(
+            string.Format(Tr.Text("{0} minta izin", "{0} needs permission"), _activity.IsMain ? _host.ProviderName : _activity.Provider),
+            detail.Length > 0 ? detail.Split('\n')[0].Trim() : title);
         RequestPrimary.Content = Tr.Text("Izinkan sekali", "Allow once");
         RequestSecondary.Content = Tr.Text("Izinkan sesi", "Allow for session");
         RequestTertiary.Content = Tr.Text("Tolak", "Decline");
@@ -76,6 +79,7 @@ public partial class NotchWindow
         _inputRequest = input;
         _requestPending = input.IsPending;
 
+        PrepareQuickInput(input);
         RequestKind.Text = Tr.Text("Pertanyaan dari agent", "Question from the agent");
         RequestTitle.Text = input.Title;
         RequestMessage.Text = input.Message;
@@ -104,15 +108,22 @@ public partial class NotchWindow
 
     private bool HasPendingRequest => _approvalSource is not null || _inputSource is not null;
 
-    // Re-show a request that is still waiting (after a drag, a click or the hotkey).
-    private void ShowPendingRequest()
+    // Re-show a request that is still waiting (after a drag, a click or the hotkey); a hover
+    // brings back the small quick card when there is a one-click answer.
+    private void ShowPendingRequest(bool preferQuick = false)
     {
-        if (_view == NotchView.Request)
+        var target = preferQuick && HasQuickAnswer ? NotchView.Quick : NotchView.Request;
+        if (_view == target)
         {
             return;
         }
 
-        _view = NotchView.Request;
+        if (target == NotchView.Quick)
+        {
+            FillQuickPanel();
+        }
+
+        _view = target;
         ApplyView(animate: true);
         UpdateVisibility();
     }
@@ -124,14 +135,20 @@ public partial class NotchWindow
         RequestContext.Text = _activity.IsMain
             ? $"{_host.ProviderName} · {_host.WorkspaceName}"
             : $"{_activity.Provider} · {_activity.Workspace} · {L("notch.agents.parallel")}";
-        if (_view != NotchView.Request)
+        var quick = _view is NotchView.Compact or NotchView.Quick && HasQuickAnswer;
+        if (_view is not (NotchView.Request or NotchView.Quick))
         {
             _viewBeforeRequest = _view == NotchView.Launcher ? NotchView.Activity : _view;
         }
 
         _collapseTimer.Stop();
         _hoverTimer.Stop();
-        _view = NotchView.Request;
+        if (quick)
+        {
+            FillQuickPanel();
+        }
+
+        _view = quick ? NotchView.Quick : NotchView.Request;
         ApplyView(animate: true);
         UpdateVisibility();
 
@@ -380,6 +397,14 @@ public partial class NotchWindow
     // Esc in the Request view: decline the approval / cancel the question.
     private bool HandleRequestEscape()
     {
+        if (_view == NotchView.Quick)
+        {
+            // Esc on the quick card only folds it away; the request keeps waiting (orange dot).
+            _view = NotchView.Compact;
+            ApplyView(animate: true);
+            return true;
+        }
+
         if (_view != NotchView.Request)
         {
             return false;
@@ -480,7 +505,9 @@ public partial class NotchWindow
         _requestTimer?.Stop();
         _requestPending = null;
         _requestDeadline = null;
-        if (_view != NotchView.Request)
+        _quickAnswer = null;
+        RenderWaiting();
+        if (_view is not (NotchView.Request or NotchView.Quick))
         {
             return;
         }
