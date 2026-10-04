@@ -112,7 +112,9 @@ public partial class NotchWindow
         ActivityProviderRun.Text = activity.IsMain ? _host.ProviderName : activity.Provider;
         ActivityContextRun.Text = activity.IsMain
             ? "  " + _host.WorkspaceName
-            : $"  {activity.Workspace} · {L("notch.agents.parallel")}";
+            : activity.Key.StartsWith("cc:", StringComparison.Ordinal)
+                ? "  " + activity.Workspace // "project · Terminal"
+                : $"  {activity.Workspace} · {L("notch.agents.parallel")}";
         RenderOutput();
         RenderChangedFiles();
         RefreshQueue();

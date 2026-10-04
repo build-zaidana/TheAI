@@ -1028,6 +1028,13 @@ public partial class NotchWindow : Window
             stop ? L("notch.stop") : busy ? L("notch.queueButton") : L("notch.send"));
         FollowUpPlaceholder.Text = !busy ? L("notch.followUp.idle")
             : _activity.IsMain ? L("notch.followUp.busy") : L("notch.followUp.working");
+        var external = _activity.Key.StartsWith("cc:", StringComparison.Ordinal);
+        FollowUpInput.IsEnabled = !external;
+        ActionButton.Visibility = external ? Visibility.Collapsed : Visibility.Visible;
+        if (external)
+        {
+            FollowUpPlaceholder.Text = string.Format(L("notch.followUp.external"), _activity.Workspace.Split(" · ").LastOrDefault() ?? "Claude Code");
+        }
     }
 
     private void UpdateVisibility()
@@ -1136,13 +1143,16 @@ public partial class NotchWindow : Window
             : _recent.Where(t => t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                                  t.Preview.Contains(query, StringComparison.OrdinalIgnoreCase)).Take(4);
 
-        var items = matches.Select(t => new RecentItem(
+        var items = matches.Where(t => _recentFilter is null || t.Source == _recentFilter).Select(t => new RecentItem(
             t,
             string.IsNullOrWhiteSpace(t.Title) ? L("notch.untitled") : t.Title,
-            FormatAge(t.UpdatedAt),
+            t.Source is { } source
+                ? $"{(t.WorkspacePath.Length > 0 ? System.IO.Path.GetFileName(t.WorkspacePath.TrimEnd('\\', '/')) + " · " : string.Empty)}{source} · {FormatAge(t.UpdatedAt)}"
+                : FormatAge(t.UpdatedAt),
             t.Status == "active" ? (Brush)TryFindResource("NotchAccent") : t.Status == "idle" ? DotDone : DotIdle)).ToArray();
 
         RecentList.ItemsSource = items;
+        RenderRecentFilters();
         RecentHeader.Text = string.IsNullOrEmpty(query) ? L("notch.launcher.recent") : L("notch.launcher.matches");
         RecentHeader.Visibility = items.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         ChipPanel.Visibility = string.IsNullOrEmpty(query) && ChipPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;

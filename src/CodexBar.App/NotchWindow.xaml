@@ -458,8 +458,12 @@
                         <StackPanel x:Name="AgentList" />
                     </StackPanel>
 
-                    <TextBlock x:Name="RecentHeader" Text="Lanjutkan" FontSize="11" FontWeight="SemiBold"
-                               Foreground="{StaticResource NotchText3}" Margin="12,12,12,4" />
+                    <Grid Margin="12,12,8,4">
+                        <TextBlock x:Name="RecentHeader" Text="Lanjutkan" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
+                        <!-- Source filters when sessions from elsewhere are listed (Terminal · IDE · Desktop · CodexBar). -->
+                        <StackPanel x:Name="RecentFilters" Orientation="Horizontal" HorizontalAlignment="Right" />
+                    </Grid>
                     <ItemsControl x:Name="RecentList" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>

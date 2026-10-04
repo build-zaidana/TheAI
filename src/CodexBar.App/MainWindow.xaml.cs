@@ -241,6 +241,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _notifier.Activated += (action, key) => Dispatcher.BeginInvoke(() => NotificationActivated(action, key));
             await StartupAsync();
             ApplyDisplayMode();
+            StartClaudeSync();
             OpenDevPreviews();
         }
         catch (Exception exception)
@@ -2952,8 +2953,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     Task INotchHost.StopFromNotchAsync() => StopCurrentTurnAsync();
 
-    Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.ListRecentThreadsAsync() =>
-        _controller.ListThreadsAsync(20);
+    async Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.ListRecentThreadsAsync() =>
+        await WithClaudeSessionsAsync(await _controller.ListThreadsAsync(20));
 
     async Task INotchHost.OpenThreadFromNotchAsync(ProviderThreadSummary thread)
     {
@@ -4600,6 +4601,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _screenshotHotKey.Dispose();
         _voiceHotKey.Dispose();
         _voiceEngine.Dispose();
+        _hookServer.Dispose();
         _approvalGate.Dispose();
         CleanupTemporaryAttachments(_temporaryAttachmentPaths.ToArray());
         _trayIcon.Visible = false;

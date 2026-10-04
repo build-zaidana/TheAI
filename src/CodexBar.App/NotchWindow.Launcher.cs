@@ -139,6 +139,61 @@ public partial class NotchWindow
             System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
+    // ---- Source filters for "Lanjutkan" ----------------------------------------------------
+
+    private string? _recentFilter;
+
+    // Chips appear only when the list mixes sources (CodexBar threads and sessions started in the
+    // terminal, an IDE or the desktop app).
+    private void RenderRecentFilters()
+    {
+        RecentFilters.Children.Clear();
+        var sources = _recent.Select(t => t.Source).OfType<string>().Distinct().ToList();
+        if (sources.Count < 2)
+        {
+            _recentFilter = null;
+            return;
+        }
+
+        foreach (var source in new string?[] { null }.Concat(sources))
+        {
+            var selected = source == _recentFilter;
+            var chip = new Button
+            {
+                Content = source ?? L("notch.recent.all"),
+                Height = 22,
+                FontSize = 11,
+                Margin = new Thickness(4, 0, 0, 0),
+                Padding = new Thickness(9, 0, 9, 0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Focusable = false,
+                Foreground = selected ? Brushes.Black : (Brush)FindResource("NotchText2"),
+                Template = FilterChipTemplate(selected),
+                Tag = source
+            };
+            chip.Click += (_, _) =>
+            {
+                _recentFilter = (string?)chip.Tag;
+                RenderRecent();
+            };
+            RecentFilters.Children.Add(chip);
+        }
+    }
+
+    private static ControlTemplate FilterChipTemplate(bool selected)
+    {
+        var template = new ControlTemplate(typeof(Button));
+        var border = new FrameworkElementFactory(typeof(Border));
+        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(11));
+        border.SetValue(Border.BackgroundProperty, selected ? Brushes.White : new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)));
+        border.SetValue(Border.PaddingProperty, new Thickness(9, 0, 9, 0));
+        var text = new FrameworkElementFactory(typeof(ContentPresenter));
+        text.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
+        border.AppendChild(text);
+        template.VisualTree = border;
+        return template;
+    }
+
     // ---- Grabber ---------------------------------------------------------------------------
 
     // The grabber sits on the side away from the screen edge: at the bottom of a notch hanging

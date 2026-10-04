@@ -42,6 +42,7 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyQuickCaptureHotkey(string gesture);
     (bool Ok, string Message) ApplyScreenshotHotkey(string gesture);
     (bool Ok, string Message) ApplyVoiceHotkey(string gesture);
+    (bool Ok, string Message) SetClaudeLiveSessions(bool on);
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
     void OpenLogin();
@@ -144,6 +145,14 @@ public partial class SettingsWindow : Window
         HotkeyField.Text = s.Hotkey;
         QuickHotkeyField.Text = s.QuickCaptureHotkey;
         ShotHotkeyField.Text = s.ScreenshotHotkey;
+        ClaudeLiveSwitch.IsChecked = s.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled();
+        ClaudeImportSwitch.IsChecked = s.ClaudeImportSessions;
+        ClaudeLiveStatus.Text = ClaudeLiveSwitch.IsChecked == true
+            ? Tr.Text("Hooks terpasang di ~/.claude/settings.json", "Hooks installed in ~/.claude/settings.json")
+            : Tr.Text("Memasang hooks di ~/.claude/settings.json", "Adds hooks to ~/.claude/settings.json");
+        ClaudeSyncHint.Text = Tr.Text(
+            "Sesi dari terminal, VS Code, dan aplikasi desktop ikut muncul di notch: langkah kerja, jawaban, dan permintaan izin yang bisa dijawab dari notch (kalau tidak dijawab dalam 30 detik, Claude Code bertanya seperti biasa). Mematikan sakelar ini melepas hooks-nya lagi.",
+            "Sessions from the terminal, VS Code, and the desktop app show up in the notch: steps, answers, and permission requests you can answer from the notch (unanswered after 30 seconds, Claude Code asks as usual). Turning this off removes the hooks again.");
         VoiceHotkeyField.Text = s.VoiceHotkey;
         Select(VoiceLanguagePopup, s.VoiceLanguage);
         VoiceModelBase.Content = Tr.Text("Cepat (base · 57 MB)", "Fast (base · 57 MB)");
@@ -265,6 +274,7 @@ public partial class SettingsWindow : Window
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
+        s.ClaudeImportSessions = ClaudeImportSwitch.IsChecked == true;
         s.VoiceLanguage = TagOf(VoiceLanguagePopup) ?? s.VoiceLanguage;
         s.VoiceModel = TagOf(VoiceModelPopup) ?? s.VoiceModel;
         RenderVoiceStatus();
@@ -468,6 +478,18 @@ public partial class SettingsWindow : Window
         var (ok, message) = _host.ApplyScreenshotHotkey(ShotHotkeyField.Text);
         ShotHotkeyField.Text = _host.Settings.ScreenshotHotkey;
         SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private void ClaudeLive_Click(object sender, RoutedEventArgs e)
+    {
+        var on = ClaudeLiveSwitch.IsChecked == true;
+        var (ok, message) = _host.SetClaudeLiveSessions(on);
+        if (!ok && on)
+        {
+            ClaudeLiveSwitch.IsChecked = ClaudeHooksInstaller.IsInstalled();
+        }
+
+        ClaudeLiveStatus.Text = message;
     }
 
     private void ApplyVoiceHotkey_Click(object sender, RoutedEventArgs e)

@@ -66,6 +66,11 @@ public partial class MainWindow
 
     async Task INotchHost.SendToActivityAsync(string key, string prompt)
     {
+        if (IsExternalKey(key))
+        {
+            throw new InvalidOperationException(L("claudeSync.replyThere"));
+        }
+
         if (_agents.TryGetValue(key, out var agent) && !agent.Controller.IsBusy)
         {
             await SendToAgentAsync(agent, prompt, [], startThread: false);
@@ -89,6 +94,12 @@ public partial class MainWindow
 
     void INotchHost.DismissActivity(string key)
     {
+        if (IsExternalKey(key))
+        {
+            DismissExternal(key);
+            return;
+        }
+
         if (_agents.Remove(key, out var agent))
         {
             _ = DisposeAgentAsync(agent);
@@ -97,6 +108,12 @@ public partial class MainWindow
 
     async Task INotchHost.OpenActivityInWindowAsync(string key)
     {
+        if (IsExternalKey(key))
+        {
+            await OpenExternalInWindowAsync(key);
+            return;
+        }
+
         if (!_agents.TryGetValue(key, out var agent) || agent.Controller.ThreadId is not { } threadId)
         {
             return;

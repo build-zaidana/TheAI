@@ -24,6 +24,12 @@ public sealed class AppSettings
     /// <summary>Model whisper: "base" (cepat) atau "small" (lebih akurat).</summary>
     public string VoiceModel { get; set; } = "base";
 
+    /// <summary>Sesi Claude Code dari terminal/IDE/desktop tampil live di notch (lewat hooks di ~/.claude/settings.json).</summary>
+    public bool ClaudeLiveSessions { get; set; }
+
+    /// <summary>Sesi lama Claude Code (dari ~/.claude/projects) ikut tampil di daftar Lanjutkan.</summary>
+    public bool ClaudeImportSessions { get; set; } = true;
+
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
@@ -104,6 +110,8 @@ public sealed class AppSettings
         VoiceHotkey = source.VoiceHotkey;
         VoiceLanguage = source.VoiceLanguage;
         VoiceModel = source.VoiceModel;
+        ClaudeLiveSessions = source.ClaudeLiveSessions;
+        ClaudeImportSessions = source.ClaudeImportSessions;
         QuickCaptureReveal = source.QuickCaptureReveal;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;

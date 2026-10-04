@@ -440,6 +440,24 @@
                                 <TextBlock x:Name="ApiKeyHint" Style="{StaticResource MacRowHint}" />
                             </StackPanel>
                             <TextBlock x:Name="ProviderHint" Style="{StaticResource MacRowHint}" />
+
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tampilkan sesi Claude Code di notch, En=Show Claude Code sessions in the notch}" />
+                                            <TextBlock x:Name="ClaudeLiveStatus" FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="ClaudeLiveSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="ClaudeLive_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sesi lama Claude Code di Lanjutkan, En=Past Claude Code sessions in Continue}" />
+                                        <CheckBox x:Name="ClaudeImportSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="ClaudeSyncHint" Style="{StaticResource MacRowHint}" />
                         </StackPanel>
 
                         <!-- Model -->

@@ -134,7 +134,9 @@ public partial class NotchWindow
         RequestCountdown.Text = string.Empty;
         RequestContext.Text = _activity.IsMain
             ? $"{_host.ProviderName} · {_host.WorkspaceName}"
-            : $"{_activity.Provider} · {_activity.Workspace} · {L("notch.agents.parallel")}";
+            : _activity.Key.StartsWith("cc:", StringComparison.Ordinal)
+                ? $"{_activity.Provider} · {_activity.Workspace}"
+                : $"{_activity.Provider} · {_activity.Workspace} · {L("notch.agents.parallel")}";
         var quick = _view is NotchView.Compact or NotchView.Quick && HasQuickAnswer;
         if (_view is not (NotchView.Request or NotchView.Quick))
         {

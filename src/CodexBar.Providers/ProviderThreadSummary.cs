@@ -7,6 +7,7 @@ public sealed record ProviderThreadSummary(
     string WorkspacePath,
     DateTimeOffset UpdatedAt,
     string Status = "unknown",
-    IReadOnlyList<string>? ActiveFlags = null);
+    IReadOnlyList<string>? ActiveFlags = null,
+    string? Source = null);
 
 public sealed record ProviderThreadMessage(string Role, string Text);

@@ -959,6 +959,29 @@ static int RunFileChangeTests()
                codexWindows[1].Id == "weekly" && codexWindows[1].ResetsAt is null,
             "RateLimitSnapshot Codex harus dipetakan ke session/weekly.");
 
+        var sessionDir = Path.Combine(Path.GetTempPath(), "codexbar-session-test");
+        Directory.CreateDirectory(sessionDir);
+        var sessionFile = Path.Combine(sessionDir, "11111111-2222-3333-4444-555555555555.jsonl");
+        File.WriteAllLines(sessionFile, new[]
+        {
+            """{"type":"queue-operation","operation":"enqueue","content":"x"}""",
+            """{"type":"user","isMeta":true,"entrypoint":"cli","cwd":"C:\\proj\\web","message":{"role":"user","content":"<command-name>/init</command-name>"}}""",
+            """{"type":"user","entrypoint":"cli","cwd":"C:\\proj\\web","message":{"role":"user","content":"Perbaiki bug login"}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Saya cek dulu."},{"type":"tool_use","id":"t","name":"Read","input":{}}]}}""",
+            """{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t","content":"file"}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Sudah diperbaiki."}]}}""",
+            """{"type":"ai-title","aiTitle":"Bug login","sessionId":"11111111-2222-3333-4444-555555555555"}"""
+        });
+        var info = ClaudeSessionFiles.Parse(new FileInfo(sessionFile));
+        Assert(info is { Cwd: @"C:\proj\web", Entrypoint: "cli", Title: "Bug login", Source: "Terminal" },
+            $"Ringkasan sesi Claude Code salah: {info}");
+        var history = ClaudeSessionFiles.ReadMessages(sessionFile);
+        Assert(history.Count == 2 && history[0] == new ProviderThreadMessage("user", "Perbaiki bug login") &&
+               history[1].Text == "Saya cek dulu.\n\nSudah diperbaiki.",
+            "Riwayat sesi harus berisi prompt manusia dan teks asisten saja.");
+        Assert(ClaudeSessionFiles.ReadEntrypoint(sessionFile) == "cli", "Entrypoint harus terbaca dari baris awal.");
+        Directory.Delete(sessionDir, recursive: true);
+
         Console.WriteLine("PASS file change and quota tests");
         return 0;
     }
