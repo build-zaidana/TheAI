@@ -147,6 +147,17 @@ public sealed class JsonSettingsStore
         {
             settings.ScreenshotHotkey = "Win+Shift+Z";
         }
+        if (string.IsNullOrWhiteSpace(settings.VoiceHotkey))
+        {
+            settings.VoiceHotkey = "Win+Alt+V";
+        }
+        settings.VoiceLanguage = settings.VoiceLanguage?.ToLowerInvariant() switch
+        {
+            "en" => "en",
+            "auto" => "auto",
+            _ => "id"
+        };
+        settings.VoiceModel = settings.VoiceModel?.ToLowerInvariant() == "small" ? "small" : "base";
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;

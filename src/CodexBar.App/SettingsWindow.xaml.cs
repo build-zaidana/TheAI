@@ -41,6 +41,9 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyHotkey(string gesture);
     (bool Ok, string Message) ApplyQuickCaptureHotkey(string gesture);
     (bool Ok, string Message) ApplyScreenshotHotkey(string gesture);
+    (bool Ok, string Message) ApplyVoiceHotkey(string gesture);
+    Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
+    void UninstallVoice();
     void OpenLogin();
     void RunAction(string action);
 
@@ -141,6 +144,15 @@ public partial class SettingsWindow : Window
         HotkeyField.Text = s.Hotkey;
         QuickHotkeyField.Text = s.QuickCaptureHotkey;
         ShotHotkeyField.Text = s.ScreenshotHotkey;
+        VoiceHotkeyField.Text = s.VoiceHotkey;
+        Select(VoiceLanguagePopup, s.VoiceLanguage);
+        VoiceModelBase.Content = Tr.Text("Cepat (base · 57 MB)", "Fast (base · 57 MB)");
+        VoiceModelSmall.Content = Tr.Text("Akurat (small · 181 MB)", "Accurate (small · 181 MB)");
+        Select(VoiceModelPopup, s.VoiceModel);
+        VoiceHint.Text = Tr.Text(
+            "Tahan tombol mic di notch untuk bicara, atau tekan hotkey input suara untuk mulai dan sekali lagi untuk selesai. Suara diproses di PC ini dengan whisper.cpp, tanpa internet.",
+            "Hold the mic button in the notch to talk, or press the voice hotkey to start and again to finish. Speech is processed on this PC with whisper.cpp, offline.");
+        RenderVoiceStatus();
         Select(QuickRevealPopup, s.QuickCaptureReveal);
         DiagnosticsSwitch.IsChecked = s.EnableDiagnosticsLogging;
 
@@ -253,6 +265,9 @@ public partial class SettingsWindow : Window
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
+        s.VoiceLanguage = TagOf(VoiceLanguagePopup) ?? s.VoiceLanguage;
+        s.VoiceModel = TagOf(VoiceModelPopup) ?? s.VoiceModel;
+        RenderVoiceStatus();
         s.CompletionNotification = CompletionNotificationSwitch.IsChecked == true;
         s.AlwaysOnTop = AlwaysOnTopSwitch.IsChecked == true;
         s.NotchHideWhenIdle = HideIdleSwitch.IsChecked == true;
@@ -392,6 +407,7 @@ public partial class SettingsWindow : Window
         {
             "quick" => _host.Settings.QuickCaptureHotkey,
             "shot" => _host.Settings.ScreenshotHotkey,
+            "voice" => _host.Settings.VoiceHotkey,
             _ => _host.Settings.Hotkey
         };
 
@@ -452,6 +468,70 @@ public partial class SettingsWindow : Window
         var (ok, message) = _host.ApplyScreenshotHotkey(ShotHotkeyField.Text);
         ShotHotkeyField.Text = _host.Settings.ScreenshotHotkey;
         SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private void ApplyVoiceHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        var (ok, message) = _host.ApplyVoiceHotkey(VoiceHotkeyField.Text);
+        VoiceHotkeyField.Text = _host.Settings.VoiceHotkey;
+        SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private CancellationTokenSource? _voiceInstall;
+
+    private void RenderVoiceStatus()
+    {
+        if (_voiceInstall is not null)
+        {
+            return;
+        }
+
+        var model = _host.Settings.VoiceModel;
+        var installed = CodexBar.App.Voice.WhisperEngine.IsInstalled(model);
+        VoiceStatusText.Text = installed
+            ? Tr.Text("Siap · offline", "Ready · offline")
+            : string.Format(Tr.Text("Belum diunduh · ±{0} MB", "Not downloaded · about {0} MB"), CodexBar.App.Voice.WhisperEngine.DownloadSizeMb(model));
+        VoiceInstallButton.Content = installed ? Tr.Text("Hapus", "Remove") : Tr.Text("Unduh", "Download");
+    }
+
+    private async void VoiceInstall_Click(object sender, RoutedEventArgs e)
+    {
+        if (_voiceInstall is not null)
+        {
+            _voiceInstall.Cancel();
+            return;
+        }
+
+        if (CodexBar.App.Voice.WhisperEngine.IsInstalled(_host.Settings.VoiceModel))
+        {
+            _host.UninstallVoice();
+            RenderVoiceStatus();
+            return;
+        }
+
+        _voiceInstall = new CancellationTokenSource();
+        VoiceInstallButton.Content = Tr.Text("Batal", "Cancel");
+        var progress = new Progress<double>(value =>
+            VoiceStatusText.Text = string.Format(Tr.Text("Mengunduh… {0}%", "Downloading… {0}%"), Math.Round(value * 100)));
+        try
+        {
+            await _host.InstallVoiceAsync(progress, _voiceInstall.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            VoiceStatusText.Text = exception.Message;
+            _voiceInstall.Dispose();
+            _voiceInstall = null;
+            VoiceInstallButton.Content = Tr.Text("Unduh", "Download");
+            return;
+        }
+
+        _voiceInstall.Dispose();
+        _voiceInstall = null;
+        RenderVoiceStatus();
     }
 
     private void SetHotkeyHint(string text, Brush brush)

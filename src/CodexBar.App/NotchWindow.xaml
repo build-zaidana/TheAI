@@ -127,6 +127,53 @@
             </Setter>
         </Style>
 
+        <Style x:Key="NotchProviderButton" TargetType="Button">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="#14FFFFFF" CornerRadius="12" Padding="9,0,10,0">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#26FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NotchGrabber" TargetType="Button">
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Bar" Width="36" Height="5" CornerRadius="2.5" Background="#47FFFFFF" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bar" Property="Background" Value="#80FFFFFF" />
+                                <Setter TargetName="Bar" Property="Width" Value="44" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="NotchInput" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -310,33 +357,78 @@
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Border Height="44" CornerRadius="16" Background="{StaticResource NotchFill}" Padding="14,0,7,0">
+                    <Border Height="50" CornerRadius="18" Background="{StaticResource NotchFill}" Padding="8,0,8,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="LauncherPlaceholder" Text="Tanya Codex, atau cari thread" FontSize="15"
+                            <!-- Provider dropdown: the real logo, the name, a chevron. -->
+                            <Button x:Name="ProviderButton" Style="{StaticResource NotchProviderButton}" Margin="0,0,12,0"
+                                    Click="ProviderButton_Click" AutomationProperties.Name="Pilih provider">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path x:Name="ProviderLogo" Width="16" Height="16" Stretch="Uniform" Fill="White" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="LauncherProviderText" Text="Codex" Margin="7,0,7,0" VerticalAlignment="Center" />
+                                    <Path Stroke="#8CFFFFFF" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          Data="M 1,1 L 4.5,4.5 L 8,1" VerticalAlignment="Center" Margin="0,1,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <Popup x:Name="ProviderPopup" PlacementTarget="{Binding ElementName=ProviderButton}" Placement="Bottom"
+                                   VerticalOffset="8" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                <Border Background="#FF1C1C1E" CornerRadius="14" Padding="6" MinWidth="230"
+                                        BorderBrush="#33FFFFFF" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ProviderPopupHeader" FontSize="11" Foreground="{StaticResource NotchText3}" Margin="10,6,10,6" />
+                                        <StackPanel x:Name="ProviderList" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                            <TextBlock x:Name="LauncherPlaceholder" Grid.Column="1" Text="Tanya Codex, atau cari thread" FontSize="15"
                                        Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" IsHitTestVisible="False" />
-                            <TextBox x:Name="LauncherInput" Style="{StaticResource NotchInput}" FontSize="15"
+                            <TextBox x:Name="LauncherInput" Grid.Column="1" Style="{StaticResource NotchInput}" FontSize="15"
                                      TextChanged="LauncherInput_TextChanged" PreviewKeyDown="LauncherInput_PreviewKeyDown"
                                      AutomationProperties.Name="Tanya atau cari thread" />
-                            <TextBlock x:Name="LauncherProviderText" Grid.Column="1" Text="Codex" FontSize="12" Margin="10,0,10,0"
-                                       Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
-                            <Button x:Name="ScreenshotButton" Grid.Column="2" Style="{StaticResource NotchIconButton}" Margin="0,0,6,0"
+                            <!-- Recording / transcribing state, drawn over the input. -->
+                            <Grid x:Name="LauncherVoiceHost" Grid.Column="1" Visibility="Collapsed" Background="Transparent" />
+                            <Button x:Name="MicButton" Grid.Column="2" Style="{StaticResource NotchIconButton}" Margin="0,0,2,0"
+                                    PreviewMouseLeftButtonDown="MicButton_Down" PreviewMouseLeftButtonUp="MicButton_Up"
+                                    AutomationProperties.Name="Input suara">
+                                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="14" Height="17" Stretch="None"
+                                      Data="M 7,1.2 Q 9.6,1.2 9.6,3.8 L 9.6,8.2 Q 9.6,10.8 7,10.8 Q 4.4,10.8 4.4,8.2 L 4.4,3.8 Q 4.4,1.2 7,1.2 Z M 1.8,7.6 Q 1.8,13.2 7,13.2 Q 12.2,13.2 12.2,7.6 M 7,13.2 L 7,16" />
+                            </Button>
+                            <Button x:Name="ScreenshotButton" Grid.Column="3" Style="{StaticResource NotchIconButton}" Margin="0,0,6,0"
                                     Click="ScreenshotButton_Click" AutomationProperties.Name="Screenshot">
                                 <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                       StrokeLineJoin="Round" Width="18" Height="16" Stretch="None"
                                       Data="M 1.5,4.5 L 1.5,13 Q 1.5,14.5 3,14.5 L 15,14.5 Q 16.5,14.5 16.5,13 L 16.5,4.5 Q 16.5,3 15,3 L 12.5,3 L 11.3,1.2 L 6.7,1.2 L 5.5,3 L 3,3 Q 1.5,3 1.5,4.5 Z M 12,8.6 A 3,3 0 1 1 6,8.6 A 3,3 0 1 1 12,8.6 Z" />
                             </Button>
-                            <Button x:Name="LauncherSendButton" Grid.Column="3" Style="{StaticResource NotchRoundButton}"
+                            <Button x:Name="LauncherSendButton" Grid.Column="4" Style="{StaticResource NotchRoundButton}" Width="34" Height="34"
                                     Click="LauncherSendButton_Click" IsEnabled="False" AutomationProperties.Name="Kirim">
                                 <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Data="M 7,12 L 7,2 M 2.5,6.5 L 7,2 L 11.5,6.5" Width="14" Height="14" />
                             </Button>
                         </Grid>
+                    </Border>
+
+                    <Border x:Name="VoiceSetup" Margin="0,8,0,0" CornerRadius="14" Background="#12FFFFFF" Padding="14,12" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock x:Name="VoiceSetupTitle" FontSize="13" FontWeight="SemiBold" />
+                            <TextBlock x:Name="VoiceSetupText" FontSize="12" Margin="0,3,0,0" Foreground="{StaticResource NotchText2}" TextWrapping="Wrap" />
+                            <Grid Margin="0,10,0,0">
+                                <Border x:Name="VoiceProgressTrack" Height="4" CornerRadius="2" Background="#1FFFFFFF" VerticalAlignment="Center"
+                                        Visibility="Collapsed" Margin="0,0,12,0">
+                                    <Border x:Name="VoiceProgressFill" HorizontalAlignment="Left" Width="0" CornerRadius="2" Background="White" />
+                                </Border>
+                                <StackPanel x:Name="VoiceSetupButtons" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="VoiceLaterButton" Style="{StaticResource NotchPill}" Click="VoiceLater_Click" />
+                                    <Button x:Name="VoiceDownloadButton" Style="{StaticResource NotchPrimaryPill}" Click="VoiceDownload_Click" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
                     </Border>
 
                     <Border x:Name="DropZone" Margin="0,8,0,0" Height="64" CornerRadius="14" Visibility="Collapsed"
@@ -387,11 +479,10 @@
                     <!-- Subscription usage: one row per limit window. -->
                     <StackPanel x:Name="QuotaPanel" Margin="12,12,12,0" Visibility="Collapsed" />
 
-                    <Grid Margin="12,4,12,2" Height="24">
-                        <TextBlock x:Name="LauncherHint" Text="↵ kirim   Esc tutup" FontSize="11" Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
-                        <TextBlock x:Name="LauncherWorkspaceText" Text="CodexBar" FontSize="11" HorizontalAlignment="Right"
-                                   Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
-                    </Grid>
+                    <!-- Grabber: tap, or pull toward the screen edge, to fold the launcher back into the notch. -->
+                    <Button x:Name="LauncherGrabber" Style="{StaticResource NotchGrabber}" Margin="0,10,0,0" HorizontalAlignment="Center"
+                            Click="LauncherGrabber_Click" PreviewMouseLeftButtonDown="LauncherGrabber_Down"
+                            PreviewMouseMove="LauncherGrabber_Move" AutomationProperties.Name="Tutup" />
                 </StackPanel>
 
                 <!-- Request: an approval or a question from the agent, answered right here. -->
@@ -563,6 +654,7 @@
                                 <TextBox x:Name="FollowUpInput" Style="{StaticResource NotchInput}"
                                          TextChanged="FollowUpInput_TextChanged" PreviewKeyDown="FollowUpInput_PreviewKeyDown"
                                          AutomationProperties.Name="Tambahkan instruksi" />
+                                <Grid x:Name="FollowUpVoiceHost" Visibility="Collapsed" Background="Transparent" />
                             </Grid>
                         </Border>
                         <Button x:Name="ActionButton" Grid.Column="1" Width="38" Height="38" Margin="8,0,0,0"

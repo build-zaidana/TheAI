@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CodexBar.App.Voice;
 using CodexBar.Core;
 using CodexBar.Providers;
 using CodexBar.Windows;
@@ -21,6 +22,10 @@ namespace CodexBar.App;
 internal interface INotchHost
 {
     string ProviderName { get; }
+
+    /// <summary>Active provider id ("codex", "claude-code", …) and switching it.</summary>
+    string ProviderId { get; }
+    void SelectProvider(string providerId);
     string WorkspaceName { get; }
 
     /// <summary>Full path of the workspace folder (empty when none is open).</summary>
@@ -63,6 +68,12 @@ internal interface INotchHost
 
     /// <summary>Open a parallel agent's thread in the main window.</summary>
     Task OpenActivityInWindowAsync(string key);
+
+    /// <summary>Whisper model ("base"/"small") and spoken language ("id"/"en"/"auto").</summary>
+    (string Model, string Language) VoiceOptions { get; }
+    Task InstallVoiceAsync(string model, IProgress<double> progress, CancellationToken cancellationToken);
+    Task WarmUpVoiceAsync();
+    Task<string> TranscribeAsync(byte[] pcm);
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
     Task OpenThreadFromNotchAsync(ProviderThreadSummary thread);
@@ -255,16 +266,20 @@ public partial class NotchWindow : Window
         _collapseTimer.Stop();
         _hoverTimer.Stop();
         var provider = _host.ProviderName;
-        LauncherProviderText.Text = provider;
+        RefreshProvider();
         LauncherPlaceholder.Text = string.Format(L("notch.launcher.placeholder"), provider);
-        LauncherWorkspaceText.Text = _host.WorkspaceName;
         RecentHeader.Text = L("notch.launcher.recent");
-        LauncherHint.Text = L("notch.launcher.hint");
+        PlaceGrabber();
         BuildChips();
         LauncherInput.Text = string.Empty;
         RefreshAttachments();
         RefreshQuota();
         RenderAgentList();
+        MicButton.ToolTip = L("voice.micTooltip");
+        if (WhisperEngine.IsInstalled(_host.VoiceOptions.Model))
+        {
+            _ = _host.WarmUpVoiceAsync(); // load the model while the user is still typing
+        }
         _view = NotchView.Launcher;
         ApplyView(animate: true);
         UpdateVisibility();
@@ -299,6 +314,7 @@ public partial class NotchWindow : Window
 
     private void Collapse()
     {
+        CancelVoice();
         _collapseTimer.Stop();
         _hoverTimer.Stop();
         if (_view == NotchView.Compact)
@@ -1185,7 +1201,7 @@ public partial class NotchWindow : Window
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
-            if (!HandleRequestEscape())
+            if (!CancelVoice() && !HandleRequestEscape())
             {
                 Collapse();
             }
@@ -1221,7 +1237,13 @@ public partial class NotchWindow : Window
 
     private async void LauncherInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (e.Key == Key.Enter && _voice == VoiceState.Recording)
+        {
+            // Enter ends a hands-free voice take instead of sending.
+            e.Handled = true;
+            await FinishVoiceAsync();
+        }
+        else if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             // Ctrl+Enter: run it as a separate agent, next to whatever is running.
             e.Handled = true;
@@ -1279,7 +1301,12 @@ public partial class NotchWindow : Window
 
     private async void FollowUpInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        if (e.Key == Key.Enter && _voice == VoiceState.Recording)
+        {
+            e.Handled = true;
+            await FinishVoiceAsync();
+        }
+        else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
             var text = FollowUpInput.Text;

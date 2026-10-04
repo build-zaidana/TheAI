@@ -61,6 +61,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private readonly GlobalHotKey _hotKey = new();
     private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
     private readonly GlobalHotKey _screenshotHotKey = new(0x4344);
+    private readonly GlobalHotKey _voiceHotKey = new(0x4345);
     private bool _capturingScreen;
     private string? _pendingQuickCaptureReveal;
     private readonly Forms.NotifyIcon _trayIcon;
@@ -703,6 +704,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             // Optional as well; the combo can be taken by another app.
             DiagnosticsLog.Error("ScreenshotHotkey", exception.Message);
+        }
+
+        try
+        {
+            _voiceHotKey.Pressed += (_, _) => VoiceHotKey_Pressed();
+            _voiceHotKey.Register(this, _settings.VoiceHotkey);
+            _settings.VoiceHotkey = _voiceHotKey.CurrentGesture ?? _settings.VoiceHotkey;
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("VoiceHotkey", exception.Message);
         }
     }
 
@@ -2532,6 +2544,49 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         }
 
+        // CODEXBAR_PREVIEW_LAUNCHER=1|menu: the launcher, optionally with the provider menu open.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_LAUNCHER") is { Length: > 0 } launcherPreview && _notch is not null)
+        {
+            if (launcherPreview == "menu")
+            {
+                _notch.PreviewProviderMenu();
+            }
+            else
+            {
+                _notch.ToggleLauncher();
+            }
+        }
+
+        // CODEXBAR_PREVIEW_VOICE=setup|recording: the voice download offer, or the listening state.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_VOICE") is { Length: > 0 } voicePreview && _notch is not null)
+        {
+            _notch.PreviewVoice(voicePreview);
+        }
+
+        // CODEXBAR_TEST_VOICE=<16 kHz mono wav>[|lang]: install the voice engine if needed (real
+        // download + hash check), then transcribe the file twice and log the timings.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_VOICE") is { Length: > 0 } voiceTest)
+        {
+            _ = RunUiTaskAsync(async () =>
+            {
+                var parts = voiceTest.Split('|');
+                var language = parts.Length > 1 ? parts[1] : _settings.VoiceLanguage;
+                var pcm = File.ReadAllBytes(parts[0])[44..];
+                var install = DateTime.UtcNow;
+                await _voiceEngine.InstallAsync(_settings.VoiceModel, new Progress<double>(), CancellationToken.None);
+                DiagnosticsLog.Info("VoiceTest", $"installed in {(DateTime.UtcNow - install).TotalSeconds:0.0}s");
+                var warm = DateTime.UtcNow;
+                await _voiceEngine.WarmUpAsync(_settings.VoiceModel, language);
+                DiagnosticsLog.Info("VoiceTest", $"server warm in {(DateTime.UtcNow - warm).TotalMilliseconds:0} ms");
+                for (var run = 0; run < 2; run++)
+                {
+                    var started = DateTime.UtcNow;
+                    var text = await _voiceEngine.TranscribeAsync(pcm, _settings.VoiceModel, language, CancellationToken.None);
+                    DiagnosticsLog.Info("VoiceTest", $"run {run}: {(DateTime.UtcNow - started).TotalMilliseconds:0} ms -> {text}");
+                }
+            });
+        }
+
         // CODEXBAR_TEST_NOTIFY=1: a sample "done" notification as if nobody was looking.
         if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_NOTIFY") is { Length: > 0 })
         {
@@ -2735,6 +2790,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     };
 
     string INotchHost.WorkspaceName => _workspaceLabel;
+
+    string INotchHost.ProviderId => _controller.ProviderId;
+
+    void INotchHost.SelectProvider(string providerId) => SelectProviderComboItem(providerId);
 
     string INotchHost.WorkspacePath => _settings.WorkspacePath ?? string.Empty;
 
@@ -3900,6 +3959,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             var replacement = _providerFactory(providerId);
             await _controller.SwitchProviderAsync(replacement);
             _notch?.RefreshQuota();
+            _notch?.RefreshProvider();
 
             _settings.Provider = providerId;
             ActiveProviderChanged?.Invoke(replacement);
@@ -4508,6 +4568,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _hotKey.Dispose();
         _quickCaptureHotKey.Dispose();
         _screenshotHotKey.Dispose();
+        _voiceHotKey.Dispose();
+        _voiceEngine.Dispose();
         _approvalGate.Dispose();
         CleanupTemporaryAttachments(_temporaryAttachmentPaths.ToArray());
         _trayIcon.Visible = false;

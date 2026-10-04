@@ -15,6 +15,15 @@ public sealed class AppSettings
     /// <summary>Hotkey screenshot area: pilih bagian layar lalu lampirkan ke prompt berikutnya.</summary>
     public string ScreenshotHotkey { get; set; } = "Win+Shift+Z";
 
+    /// <summary>Hotkey input suara: tekan untuk mulai merekam, tekan lagi untuk berhenti dan mentranskripsi.</summary>
+    public string VoiceHotkey { get; set; } = "Win+Alt+V";
+
+    /// <summary>Bahasa ucapan untuk whisper: "id", "en", atau "auto" (deteksi, lebih lambat).</summary>
+    public string VoiceLanguage { get; set; } = "id";
+
+    /// <summary>Model whisper: "base" (cepat) atau "small" (lebih akurat).</summary>
+    public string VoiceModel { get; set; } = "base";
+
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
@@ -92,6 +101,9 @@ public sealed class AppSettings
         Hotkey = source.Hotkey;
         QuickCaptureHotkey = source.QuickCaptureHotkey;
         ScreenshotHotkey = source.ScreenshotHotkey;
+        VoiceHotkey = source.VoiceHotkey;
+        VoiceLanguage = source.VoiceLanguage;
+        VoiceModel = source.VoiceModel;
         QuickCaptureReveal = source.QuickCaptureReveal;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;

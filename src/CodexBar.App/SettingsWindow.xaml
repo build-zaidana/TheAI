@@ -277,6 +277,40 @@
                                 </StackPanel>
                             </Border>
                             <TextBlock x:Name="NotifyHint" Style="{StaticResource MacRowHint}" />
+
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Bahasa ucapan, En=Spoken language}" />
+                                        <ComboBox x:Name="VoiceLanguagePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="Indonesia" Tag="id" />
+                                            <ComboBoxItem Content="English" Tag="en" />
+                                            <ComboBoxItem Content="{local:Tr Deteksi otomatis (lebih lambat), En=Detect automatically (slower)}" Tag="auto" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Model suara, En=Voice model}" />
+                                        <ComboBox x:Name="VoiceModelPopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem x:Name="VoiceModelBase" Tag="base" />
+                                            <ComboBoxItem x:Name="VoiceModelSmall" Tag="small" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Input suara, En=Voice input}" />
+                                            <TextBlock x:Name="VoiceStatusText" FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" />
+                                        </StackPanel>
+                                        <Button x:Name="VoiceInstallButton" Grid.Column="1" Style="{StaticResource MacButton}" Click="VoiceInstall_Click" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="VoiceHint" Style="{StaticResource MacRowHint}" />
                         </StackPanel>
 
                         <!-- Tampilan -->
@@ -516,6 +550,18 @@
                                         <TextBox x:Name="ShotHotkeyField" Grid.Column="1" Style="{StaticResource MacField}" IsReadOnly="True" IsReadOnlyCaretVisible="False"
                                                  FontFamily="Cascadia Mono, Consolas" PreviewKeyDown="HotkeyField_PreviewKeyDown" Tag="shot" />
                                         <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Terapkan, En=Apply}" Click="ApplyShotHotkey_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Input suara, En=Voice input}" />
+                                        <TextBox x:Name="VoiceHotkeyField" Grid.Column="1" Style="{StaticResource MacField}" IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                                                 FontFamily="Cascadia Mono, Consolas" PreviewKeyDown="HotkeyField_PreviewKeyDown" Tag="voice" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Terapkan, En=Apply}" Click="ApplyVoiceHotkey_Click" />
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
