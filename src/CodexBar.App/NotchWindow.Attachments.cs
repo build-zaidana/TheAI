@@ -68,7 +68,7 @@ public partial class NotchWindow
     private void UpdateLauncherSendState()
     {
         var hasAttachments = _host.Attachments.Count > 0;
-        LauncherSendButton.IsEnabled = LauncherInput.Text.Trim().Length > 0 || hasAttachments;
+        LauncherSendButton.IsEnabled = LauncherInput.Text.Trim().Length > 0 || hasAttachments || SuggestionFor(LauncherInput) is not null;
         LauncherPlaceholder.Text = hasAttachments
             ? L("notch.attachPlaceholder")
             : string.Format(L("notch.launcher.placeholder"), _host.ProviderName);

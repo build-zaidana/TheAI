@@ -281,6 +281,24 @@
                             <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
                                 <StackPanel>
                                     <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tebak prompt berikutnya, En=Suggest the next prompt}" />
+                                        <CheckBox x:Name="SuggestSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sumber tebakan, En=Suggestions from}" />
+                                        <ComboBox x:Name="SuggestSourcePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem x:Name="SuggestHabitItem" Tag="habit" />
+                                            <ComboBoxItem x:Name="SuggestAiItem" Tag="habit+ai" />
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="SuggestHint" Style="{StaticResource MacRowHint}" />
+
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Bahasa ucapan, En=Spoken language}" />
                                         <ComboBox x:Name="VoiceLanguagePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
                                             <ComboBoxItem Content="Indonesia" Tag="id" />

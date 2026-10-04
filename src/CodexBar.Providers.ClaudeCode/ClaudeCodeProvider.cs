@@ -385,6 +385,55 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         return new ProviderFileChange(edit.Path, "update", diff);
     }
 
+    /// <summary>
+    /// One stateless question to a small model through the user's Claude Code login (used for
+    /// next-prompt suggestions). Runs in the temp folder, so the throwaway session never shows
+    /// up among the user's projects; null when the CLI is missing, fails, or times out.
+    /// </summary>
+    public static async Task<string?> AskOnceAsync(string prompt, string model, CancellationToken cancellationToken)
+    {
+        if (ClaudeCodeExecutableLocator.TryLocate() is not { } executable)
+        {
+            return null;
+        }
+
+        // No MCP servers and only user settings: loading the user's plugins and servers would more
+        // than double the start-up time of this one-shot call.
+        var arguments = string.Join(' ', new[]
+        {
+            "-p", "--model", model, "--output-format", "text", "--max-turns", "1",
+            "--strict-mcp-config", "--setting-sources", "user"
+        }.Select(Quote));
+        using var process = new Process { StartInfo = CreateStartInfo(executable, arguments, Path.GetTempPath()) };
+        try
+        {
+            if (!process.Start())
+            {
+                return null;
+            }
+
+            using var registration = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception)
+                {
+                }
+            });
+            await process.StandardInput.WriteAsync(prompt.AsMemory(), cancellationToken).ConfigureAwait(false);
+            process.StandardInput.Close();
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            return process.ExitCode == 0 ? output.Trim() : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private static ProcessStartInfo CreateStartInfo(string executable, string arguments, string workingDirectory)
     {
         var isScript = Path.GetExtension(executable) is ".cmd" or ".bat";

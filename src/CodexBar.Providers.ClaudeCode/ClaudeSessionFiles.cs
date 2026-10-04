@@ -155,6 +155,56 @@ public static class ClaudeSessionFiles
         return messages;
     }
 
+    /// <summary>
+    /// The conversation as exchanges: each human prompt with the agent's text answer and whether
+    /// the agent edited files while answering (Edit / Write / MultiEdit / NotebookEdit).
+    /// </summary>
+    public static IReadOnlyList<(string Prompt, string Answer, bool ChangedFiles)> ReadExchanges(string filePath)
+    {
+        var exchanges = new List<(string, string, bool)>();
+        string? prompt = null;
+        var answer = new StringBuilder();
+        var changed = false;
+
+        void Flush()
+        {
+            if (prompt is not null)
+            {
+                exchanges.Add((prompt, answer.ToString().Trim(), changed));
+            }
+
+            answer.Clear();
+            changed = false;
+        }
+
+        foreach (var line in ReadLines(filePath))
+        {
+            if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal) && HumanPrompt(line) is { } next)
+            {
+                Flush();
+                prompt = next;
+            }
+            else if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal))
+            {
+                if (AssistantText(line) is { } text)
+                {
+                    answer.Append(answer.Length > 0 ? "\n\n" : string.Empty).Append(text);
+                }
+
+                if (line.Contains("\"name\":\"Edit\"", StringComparison.Ordinal) ||
+                    line.Contains("\"name\":\"Write\"", StringComparison.Ordinal) ||
+                    line.Contains("\"name\":\"MultiEdit\"", StringComparison.Ordinal) ||
+                    line.Contains("\"name\":\"NotebookEdit\"", StringComparison.Ordinal))
+                {
+                    changed = true;
+                }
+            }
+        }
+
+        Flush();
+        return exchanges;
+    }
+
     // ---- Summary -----------------------------------------------------------------------------
 
     private static ClaudeSessionInfo? Summary(FileInfo file)

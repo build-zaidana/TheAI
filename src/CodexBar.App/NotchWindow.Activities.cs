@@ -119,6 +119,7 @@ public partial class NotchWindow
         RenderChangedFiles();
         RefreshQueue();
         RenderPager();
+        RenderSuggestion();
         ApplyState();
     }
 

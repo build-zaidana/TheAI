@@ -500,6 +500,7 @@ public static class Strings
         ["claudeSync.installed"] = ("Hooks terpasang di ~/.claude/settings.json", "Hooks installed in ~/.claude/settings.json"),
         ["claudeSync.removed"] = ("Hooks dilepas dari ~/.claude/settings.json", "Hooks removed from ~/.claude/settings.json"),
         ["claudeSync.portBusy"] = ("Port {0} sedang dipakai aplikasi lain; sesi live tidak bisa diterima.", "Port {0} is in use by another app; live sessions can't be received."),
+        ["notch.suggestion.ai"] = ("Saran AI", "AI suggestion"),
         ["notch.followUp.working"] = ("Sedang bekerja…", "Working…"),
         ["notch.agents.title"] = ("Agent paralel", "Parallel agents"),
         ["notch.agents.parallel"] = ("agent paralel", "parallel agent"),

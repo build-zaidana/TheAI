@@ -1018,7 +1018,7 @@ public partial class NotchWindow : Window
         }
 
         var busy = ActivityBusy(_activity);
-        var typed = FollowUpInput.Text.Trim().Length > 0;
+        var typed = FollowUpInput.Text.Trim().Length > 0 || SuggestionFor(FollowUpInput) is not null;
         // Only the main conversation has a queue; a busy parallel agent can only be stopped.
         var stop = busy && (!typed || !_activity.IsMain);
         StopGlyph.Visibility = stop ? Visibility.Visible : Visibility.Collapsed;
@@ -1243,6 +1243,7 @@ public partial class NotchWindow : Window
     {
         var hasText = LauncherInput.Text.Length > 0;
         LauncherPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
+        RenderSuggestion();
         UpdateLauncherSendState();
         RenderRecent();
     }
@@ -1261,10 +1262,14 @@ public partial class NotchWindow : Window
             e.Handled = true;
             await StartParallelAsync(LauncherInput.Text);
         }
+        else if (e.Key == Key.Tab && TakeSuggestion(LauncherInput))
+        {
+            e.Handled = true;
+        }
         else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
-            await SubmitAsync(LauncherInput.Text);
+            await SubmitAsync(LauncherInput.Text.Trim().Length == 0 && SuggestionFor(LauncherInput) is { } suggested ? suggested : LauncherInput.Text);
         }
         else if (e.Key == Key.Down && RecentList.Items.Count > 0)
         {
@@ -1273,7 +1278,8 @@ public partial class NotchWindow : Window
         }
     }
 
-    private async void LauncherSendButton_Click(object sender, RoutedEventArgs e) => await SubmitAsync(LauncherInput.Text);
+    private async void LauncherSendButton_Click(object sender, RoutedEventArgs e) =>
+        await SubmitAsync(LauncherInput.Text.Trim().Length == 0 && SuggestionFor(LauncherInput) is { } suggested ? suggested : LauncherInput.Text);
 
     private async void RecentItem_Click(object sender, RoutedEventArgs e)
     {
@@ -1308,6 +1314,7 @@ public partial class NotchWindow : Window
     private void FollowUpInput_TextChanged(object sender, TextChangedEventArgs e)
     {
         FollowUpPlaceholder.Visibility = FollowUpInput.Text.Length > 0 ? Visibility.Collapsed : Visibility.Visible;
+        RenderSuggestion();
         ApplyState();
     }
 
@@ -1318,10 +1325,14 @@ public partial class NotchWindow : Window
             e.Handled = true;
             await FinishVoiceAsync();
         }
+        else if (e.Key == Key.Tab && TakeSuggestion(FollowUpInput))
+        {
+            e.Handled = true;
+        }
         else if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
-            var text = FollowUpInput.Text;
+            var text = FollowUpInput.Text.Trim().Length == 0 && SuggestionFor(FollowUpInput) is { } suggested ? suggested : FollowUpInput.Text;
             if (text.Trim().Length > 0)
             {
                 await SubmitFollowUpAsync(text);
@@ -1346,7 +1357,7 @@ public partial class NotchWindow : Window
             return;
         }
 
-        await SubmitFollowUpAsync(FollowUpInput.Text);
+        await SubmitFollowUpAsync(FollowUpInput.Text.Trim().Length == 0 && SuggestionFor(FollowUpInput) is { } suggested ? suggested : FollowUpInput.Text);
     }
 
     private async Task SubmitFollowUpAsync(string text)

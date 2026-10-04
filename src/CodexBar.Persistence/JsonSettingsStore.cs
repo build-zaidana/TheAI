@@ -158,6 +158,7 @@ public sealed class JsonSettingsStore
             _ => "id"
         };
         settings.VoiceModel = settings.VoiceModel?.ToLowerInvariant() == "small" ? "small" : "base";
+        settings.PromptSuggestionSource = settings.PromptSuggestionSource?.ToLowerInvariant() == "habit+ai" ? "habit+ai" : "habit";
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;

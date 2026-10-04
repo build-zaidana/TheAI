@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// <summary>Sesi lama Claude Code (dari ~/.claude/projects) ikut tampil di daftar Lanjutkan.</summary>
     public bool ClaudeImportSessions { get; set; } = true;
 
+    /// <summary>Tebak prompt berikutnya setelah agent selesai (teks samar di input notch).</summary>
+    public bool PromptSuggestions { get; set; } = true;
+
+    /// <summary>Sumber tebakan: "habit" (kebiasaan saja) atau "habit+ai" (model kecil saat kebiasaan belum yakin).</summary>
+    public string PromptSuggestionSource { get; set; } = "habit";
+
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
@@ -112,6 +118,8 @@ public sealed class AppSettings
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;
         ClaudeImportSessions = source.ClaudeImportSessions;
+        PromptSuggestions = source.PromptSuggestions;
+        PromptSuggestionSource = source.PromptSuggestionSource;
         QuickCaptureReveal = source.QuickCaptureReveal;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;

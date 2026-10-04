@@ -388,6 +388,19 @@
                             </Popup>
                             <TextBlock x:Name="LauncherPlaceholder" Grid.Column="1" Text="Tanya Codex, atau cari thread" FontSize="15"
                                        Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" IsHitTestVisible="False" />
+                            <Grid x:Name="LauncherSuggestion" Grid.Column="1" IsHitTestVisible="False" Visibility="Collapsed" Margin="0,0,8,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="LauncherSuggestionText" FontSize="15" Foreground="#61FFFFFF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LauncherSuggestionAi" Text="✦" Foreground="#BF9BFF" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <Border Height="20" CornerRadius="6" BorderBrush="#38FFFFFF" BorderThickness="1" Padding="6,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Tab" FontSize="10" Foreground="#99FFFFFF" VerticalAlignment="Center" />
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
                             <TextBox x:Name="LauncherInput" Grid.Column="1" Style="{StaticResource NotchInput}" FontSize="15"
                                      TextChanged="LauncherInput_TextChanged" PreviewKeyDown="LauncherInput_PreviewKeyDown"
                                      AutomationProperties.Name="Tanya atau cari thread" />
@@ -683,6 +696,20 @@
                             <Grid>
                                 <TextBlock x:Name="FollowUpPlaceholder" Text="Tambahkan instruksi…" Foreground="{StaticResource NotchText3}"
                                            VerticalAlignment="Center" IsHitTestVisible="False" />
+                                <!-- Next-prompt suggestion: Tab takes it, Enter sends it. -->
+                                <Grid x:Name="FollowUpSuggestion" IsHitTestVisible="False" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="FollowUpSuggestionText" Foreground="#61FFFFFF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="FollowUpSuggestionAi" Text="✦" Foreground="#BF9BFF" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <Border Height="20" CornerRadius="6" BorderBrush="#38FFFFFF" BorderThickness="1" Padding="6,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Tab" FontSize="10" Foreground="#99FFFFFF" VerticalAlignment="Center" />
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
                                 <TextBox x:Name="FollowUpInput" Style="{StaticResource NotchInput}"
                                          TextChanged="FollowUpInput_TextChanged" PreviewKeyDown="FollowUpInput_PreviewKeyDown"
                                          AutomationProperties.Name="Tambahkan instruksi" />

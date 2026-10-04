@@ -242,6 +242,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             await StartupAsync();
             ApplyDisplayMode();
             StartClaudeSync();
+            if (_settings.PromptSuggestions)
+            {
+                _ = Habits; // seeds the habits from existing conversations on first run
+            }
             OpenDevPreviews();
         }
         catch (Exception exception)
@@ -1180,6 +1184,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
 
         DisarmAutoResume();
+        OnPromptSent(prompt);
         _lastPrompt = prompt;
         _turnStartedAt = DateTimeOffset.Now;
 
@@ -1673,6 +1678,11 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 StoreQuota(_controller.ProviderId, quota, persist: true);
             }
 
+            if (providerEvent is ProviderFileChangeEvent)
+            {
+                _turnChangedFiles = true;
+            }
+
             _notch?.HandleProviderEvent(providerEvent);
             switch (providerEvent)
             {
@@ -1784,6 +1794,11 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     }
 
                     _notch?.RefreshQueue();
+                    if (completedNormally && _queue.Count == 0)
+                    {
+                        OnTurnEnded(_lastPrompt ?? string.Empty, _messages.LastOrDefault(message => !message.IsUser)?.Markdown ?? string.Empty, failed: false);
+                    }
+
                     if (completedNormally && _queue.Count > 0)
                     {
                         // Let this completion finish rendering before the next turn starts.
@@ -1815,6 +1830,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
                     SetBusyUi(false);
                     ShowError(error.Message);
+                    OnTurnEnded(_lastPrompt ?? string.Empty, error.Message, failed: true);
                     break;
 
                 case ProviderApprovalEvent approval:
@@ -2560,6 +2576,33 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
             }
+        }
+
+        // CODEXBAR_PREVIEW_SUGGESTION=activity|launcher: a finished sample turn with habit guesses.
+        // CODEXBAR_TEST_SUGGEST_AI=1: ask the AI for a guess on a sample turn and log it (no UI).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SUGGESTION") is { Length: > 0 } suggestionPreview && _notch is not null)
+        {
+            _notch.OnTurnStarted("Rapikan validasi form login dan tambah test");
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Mengubah 3 file"));
+            _notch.HandleProviderEvent(new ProviderTextDeltaEvent("Validasi email sekarang memakai regex dan menolak input kosong. 6 test baru lulus."));
+            _notch.HandleProviderEvent(new ProviderCompletedEvent("completed"));
+            _notch.SetSuggestion(["commit dulu perubahannya", "lanjut", "jelaskan perubahannya"], fromAi: false);
+            if (suggestionPreview == "launcher")
+            {
+                _notch.ToggleLauncher();
+            }
+            else
+            {
+                _notch.PreviewAgent(NotchWindow.MainActivityKey);
+            }
+        }
+
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_SUGGEST_AI") is { Length: > 0 })
+        {
+            _lastTurnContext = TurnContext.Files;
+            _ = SuggestWithAiAsync(
+                "Rapikan validasi form login dan tambah test untuk kasus email kosong",
+                "Sudah. Validasi email sekarang memakai regex dan menolak input kosong. Saya menambahkan 6 test di LoginForm.test.ts dan semuanya lulus. File yang diubah: LoginForm.tsx, email.ts, login.test.ts.");
         }
 
         // CODEXBAR_PREVIEW_TRAY=1: open the tray menu beside the cursor.

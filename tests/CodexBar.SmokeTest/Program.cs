@@ -982,6 +982,24 @@ static int RunFileChangeTests()
         Assert(ClaudeSessionFiles.ReadEntrypoint(sessionFile) == "cli", "Entrypoint harus terbaca dari baris awal.");
         Directory.Delete(sessionDir, recursive: true);
 
+        var habits = new PromptHabits();
+        Assert(habits.Predict(TurnContext.Files) is null, "Tanpa riwayat tidak boleh ada tebakan.");
+        habits.Record("commit dulu perubahannya", TurnContext.Files);
+        Assert(habits.Predict(TurnContext.Files) is null, "Sekali saja belum cukup yakin.");
+        habits.Record("Commit dulu perubahannya", TurnContext.Files);
+        Assert(habits.Predict(TurnContext.Files) == "Commit dulu perubahannya", "Dua kali dalam konteks yang sama harus ditebak.");
+        Assert(habits.Predict(TurnContext.Question) is null, "Konteks lain belum yakin.");
+        habits.Record("kerjakan #1", TurnContext.Question);
+        habits.Record("kerjakan #2", TurnContext.Question);
+        Assert(habits.Predict(TurnContext.Question) == "kerjakan #3", "Pola bernomor harus lanjut ke nomor berikutnya.");
+        habits.Record("Tolong jelaskan secara detail kenapa test ini gagal dan bagaimana memperbaikinya", TurnContext.Error);
+        habits.Record("Tolong jelaskan secara detail kenapa test ini gagal dan bagaimana memperbaikinya", TurnContext.Error);
+        Assert(habits.Predict(TurnContext.Error) is null, "Prompt panjang bukan kebiasaan.");
+        Assert(PromptHabits.Classify("Mana yang kamu mau?\n1. A\n2. B", false, false) == TurnContext.Question &&
+               PromptHabits.Classify("Selesai.", true, false) == TurnContext.Files &&
+               PromptHabits.Classify("x", true, true) == TurnContext.Error,
+            "Klasifikasi konteks giliran salah.");
+
         Console.WriteLine("PASS file change and quota tests");
         return 0;
     }

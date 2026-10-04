@@ -116,6 +116,13 @@ public partial class SettingsWindow : Window
         LaunchAtLoginSwitch.IsChecked = s.LaunchAtLogin;
         AutoCopySwitch.IsChecked = s.AutoCopyResponse;
         CompletionSoundSwitch.IsChecked = s.CompletionSound;
+        SuggestSwitch.IsChecked = s.PromptSuggestions;
+        SuggestHabitItem.Content = Tr.Text("Kebiasaan saja", "Habits only");
+        SuggestAiItem.Content = Tr.Text("Kebiasaan + AI", "Habits + AI");
+        Select(SuggestSourcePopup, s.PromptSuggestionSource);
+        SuggestHint.Text = Tr.Text(
+            "Setelah agent selesai, kolom input menampilkan tebakan samar: Tab untuk memakai, Enter untuk langsung mengirim. \"Kebiasaan saja\" belajar dari prompt pendek yang sering kamu kirim dan tidak memakai kuota. \"Kebiasaan + AI\" memanggil Claude Haiku lewat Claude Code saat kebiasaanmu belum cukup yakin.",
+            "After the agent finishes, the input shows a faint guess: Tab takes it, Enter sends it. \"Habits only\" learns from the short prompts you often send and uses no quota. \"Habits + AI\" asks Claude Haiku through Claude Code when your habits aren't sure.");
         NotifyHint.Text = Tr.Text(
             "Notifikasi muncul saat jawaban selesai tapi tidak sedang kamu lihat: jendela tertutup, notch tersembunyi, atau giliran yang lama. Mode Fokus Windows tetap dihormati.",
             "A notification appears when an answer finishes while you're not looking: window closed, notch hidden, or a long turn. Windows Focus mode is respected.");
@@ -274,6 +281,8 @@ public partial class SettingsWindow : Window
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
+        s.PromptSuggestions = SuggestSwitch.IsChecked == true;
+        s.PromptSuggestionSource = TagOf(SuggestSourcePopup) ?? s.PromptSuggestionSource;
         s.ClaudeImportSessions = ClaudeImportSwitch.IsChecked == true;
         s.VoiceLanguage = TagOf(VoiceLanguagePopup) ?? s.VoiceLanguage;
         s.VoiceModel = TagOf(VoiceModelPopup) ?? s.VoiceModel;
