@@ -132,8 +132,8 @@ public static class ClaudeSessionFiles
 
         // A session file can hold branches (e.g. a prompt sent from CodexBar while Claude Code
         // kept going): show only the latest one, from its root to its newest message.
-        var lines = ReadLines(filePath).ToList();
-        var branch = LatestBranch(lines);
+        var all = ReadLines(filePath).ToList();
+        var lines = LatestBranch(all) ?? all;
 
         void FlushAssistant()
         {
@@ -150,11 +150,7 @@ public static class ClaudeSessionFiles
 
         foreach (var line in lines)
         {
-            var uuid = branch is null ? null : MessageUuid(line);
-            if (uuid is not null && !branch!.Contains(uuid))
-            {
-                continue;
-            }
+            var uuid = MessageUuid(line);
 
             if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal))
             {
@@ -192,20 +188,6 @@ public static class ClaudeSessionFiles
         return messages;
     }
 
-    // Top-level uuid of any line that has one.
-    private static string? LineUuid(string line)
-    {
-        if (!line.Contains("\"uuid\"", StringComparison.Ordinal) || !TryRead(line, out var document))
-        {
-            return null;
-        }
-
-        using (document)
-        {
-            return Str(document.RootElement, "uuid");
-        }
-    }
-
     // Top-level uuid of a user / assistant line (null for other lines).
     private static string? MessageUuid(string line)
     {
@@ -222,42 +204,13 @@ public static class ClaudeSessionFiles
         }
     }
 
-    /// <summary>
-    /// The uuids on the path from the newest main-chain message back to the root (following
-    /// <c>logicalParentUuid</c> across compactions); null when the file has no uuids.
-    /// </summary>
-    private static HashSet<string>? LatestBranch(IReadOnlyList<string> lines)
+    private sealed record Link(string Uuid, string? Parent, string Line, bool Sidechain);
+
+    // Every line with a uuid is a link in the conversation chain (user, assistant, attachment,
+    // system…); logicalParentUuid bridges a compaction.
+    private static List<Link> Links(IReadOnlyList<string> lines)
     {
-        // Every line with a uuid is a link (user, assistant, attachment, system…); the newest
-        // user/assistant line on the main chain is the tip.
-        var parents = Links(lines);
-        string? leaf = null;
-        foreach (var line in lines)
-        {
-            if (MessageUuid(line) is { } uuid && !line.Contains("\"isSidechain\":true", StringComparison.Ordinal))
-            {
-                leaf = uuid;
-            }
-        }
-
-        if (leaf is null)
-        {
-            return null;
-        }
-
-        var branch = new HashSet<string>(StringComparer.Ordinal);
-        for (var at = leaf; at is not null && branch.Add(at); )
-        {
-            at = parents.TryGetValue(at, out var parent) ? parent : null;
-        }
-
-        return branch;
-    }
-
-    // uuid -> parent uuid for every line that has one (logicalParentUuid bridges a compaction).
-    private static Dictionary<string, string?> Links(IReadOnlyList<string> lines)
-    {
-        var parents = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var links = new List<Link>();
         foreach (var line in lines)
         {
             if (!line.Contains("\"uuid\"", StringComparison.Ordinal) || !TryRead(line, out var document))
@@ -270,12 +223,52 @@ public static class ClaudeSessionFiles
                 var root = document.RootElement;
                 if (Str(root, "uuid") is { Length: > 0 } uuid)
                 {
-                    parents[uuid] = Str(root, "parentUuid") ?? Str(root, "logicalParentUuid");
+                    links.Add(new Link(uuid, Str(root, "parentUuid") ?? Str(root, "logicalParentUuid"), line,
+                        root.TryGetProperty("isSidechain", out var side) && side.ValueKind == JsonValueKind.True));
                 }
             }
         }
 
-        return parents;
+        return links;
+    }
+
+    // The lines from the root to <paramref name="tip"/>, in conversation order.
+    private static List<string> Chain(IReadOnlyList<Link> links, string tip)
+    {
+        var byUuid = new Dictionary<string, Link>(StringComparer.Ordinal);
+        foreach (var link in links)
+        {
+            byUuid[link.Uuid] = link;
+        }
+
+        var chain = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var at = (string?)tip; at is not null && seen.Add(at) && byUuid.TryGetValue(at, out var link); at = link.Parent)
+        {
+            chain.Add(link.Line);
+        }
+
+        chain.Reverse();
+        return chain;
+    }
+
+    /// <summary>
+    /// The latest branch of the conversation, root first: the newest line no other line answers
+    /// (a file can hold branches, e.g. a prompt sent from CodexBar while Claude Code went on).
+    /// Lines are not always written in conversation order, so the chain decides it. Null when the
+    /// file has no uuids (older format: read it in file order).
+    /// </summary>
+    private static List<string>? LatestBranch(IReadOnlyList<string> lines)
+    {
+        var links = Links(lines).Where(link => !link.Sidechain).ToList();
+        if (!links.Any(link => MessageUuid(link.Line) is not null))
+        {
+            return null;
+        }
+
+        var parents = links.Select(link => link.Parent).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var tip = links.LastOrDefault(link => !parents.Contains(link.Uuid)) ?? links[^1];
+        return Chain(links, tip.Uuid);
     }
 
     /// <summary>
@@ -285,32 +278,26 @@ public static class ClaudeSessionFiles
     /// </summary>
     public static string Fork(string filePath, string uptoUuid, string title)
     {
-        var lines = ReadLines(filePath).ToList();
-        var parents = Links(lines);
-
-        var keep = new HashSet<string>(StringComparer.Ordinal);
-        for (var at = (string?)uptoUuid; at is not null && keep.Add(at); )
-        {
-            at = parents.TryGetValue(at, out var parent) ? parent : null;
-        }
-
         var oldId = Path.GetFileNameWithoutExtension(filePath);
         var newId = Guid.NewGuid().ToString();
-        var output = new List<string>();
-        foreach (var line in lines)
-        {
-            if (LineUuid(line) is { } uuid && keep.Contains(uuid))
-            {
-                output.Add(line.Replace($"\"sessionId\":\"{oldId}\"", $"\"sessionId\":\"{newId}\"", StringComparison.Ordinal));
-            }
-        }
+        var output = Chain(Links(ReadLines(filePath).ToList()), uptoUuid)
+            .Select(line => line.Replace($"\"sessionId\":\"{oldId}\"", $"\"sessionId\":\"{newId}\"", StringComparison.Ordinal))
+            .ToList();
 
-        output.Add(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+        // The fork's title line, written by hand (no reflection-based serializer needed).
+        using (var buffer = new MemoryStream())
         {
-            ["type"] = "custom-title",
-            ["customTitle"] = title,
-            ["sessionId"] = newId
-        }));
+            using (var writer = new Utf8JsonWriter(buffer))
+            {
+                writer.WriteStartObject();
+                writer.WriteString("type", "custom-title");
+                writer.WriteString("customTitle", title);
+                writer.WriteString("sessionId", newId);
+                writer.WriteEndObject();
+            }
+
+            output.Add(System.Text.Encoding.UTF8.GetString(buffer.ToArray()));
+        }
         File.WriteAllLines(Path.Combine(Path.GetDirectoryName(filePath)!, newId + ".jsonl"), output);
         return newId;
     }

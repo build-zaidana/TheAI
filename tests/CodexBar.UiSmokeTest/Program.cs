@@ -279,6 +279,13 @@ internal static class Program
                spoken.Contains("Judul") && spoken.Contains("tebal dan kode") && spoken.Contains("tautan") && !spoken.Contains("http"),
             $"Teks yang dibacakan harus tanpa tanda markdown dan kode: '{spoken}'");
 
+        // The Windows voice makes audio for it (made only, not played).
+        using (var synthesizer = new global::Windows.Media.SpeechSynthesis.SpeechSynthesizer())
+        {
+            var audio = synthesizer.SynthesizeTextToStreamAsync(spoken).AsTask().GetAwaiter().GetResult();
+            Assert(audio.Size > 1000, $"Suara Windows harus menghasilkan audio untuk Read aloud (ukuran {audio.Size}).");
+        }
+
         var dir = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR");
         if (!string.IsNullOrEmpty(dir))
         {

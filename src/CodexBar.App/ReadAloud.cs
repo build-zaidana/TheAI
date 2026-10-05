@@ -1,42 +1,63 @@
 using System.Text.RegularExpressions;
+using Windows.Media.Core;
+using Windows.Media.Playback;
+using Windows.Media.SpeechSynthesis;
 
 namespace CodexBar.App;
 
 /// <summary>
-/// "Read aloud" for an answer, with the Windows voice (SAPI): starting another stops the one
-/// playing, and the same answer again stops it. Markdown marks and code blocks are left out.
+/// "Read aloud" for an answer with the Windows voices (every installed voice, including the ones
+/// added in Settings &gt; Speech): starting another stops the one playing, and the same answer
+/// again stops it. A voice for the app's language is used when Windows has one. Markdown marks
+/// and code blocks are left out.
 /// </summary>
 internal static class ReadAloud
 {
-    private const int Async = 1, Purge = 2;
-    private static dynamic? _voice;
+    private static SpeechSynthesizer? _synthesizer;
+    private static MediaPlayer? _player;
     private static string? _current;
 
     /// <summary>The message being read (its key), or null.</summary>
-    public static string? Current => _current is not null && IsSpeaking() ? _current : null;
+    public static string? Current => _current;
 
-    public static void Toggle(string key, string markdown, string language)
+    public static async void Toggle(string key, string markdown, string language)
     {
+        if (_current == key)
+        {
+            Stop();
+            return;
+        }
+
+        Stop();
+        _current = key;
         try
         {
-            _voice ??= CreateVoice(language);
-            if (_voice is null)
+            _synthesizer ??= new SpeechSynthesizer();
+            var prefix = language == "id" ? "id" : "en";
+            if (SpeechSynthesizer.AllVoices.FirstOrDefault(voice => voice.Language.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) is { } voice)
             {
-                return;
+                _synthesizer.Voice = voice;
             }
 
-            if (Current == key)
+            var stream = await _synthesizer.SynthesizeTextToStreamAsync(Plain(markdown));
+            if (_current != key)
             {
-                _voice.Speak(string.Empty, Async | Purge);
-                _current = null;
-                return;
+                return; // stopped (or another answer started) while the speech was being made
             }
 
-            _voice.Speak(Plain(markdown), Async | Purge);
-            _current = key;
+            if (_player is null)
+            {
+                _player = new MediaPlayer();
+                _player.MediaEnded += (_, _) => _current = null;
+                _player.MediaFailed += (_, _) => _current = null;
+            }
+
+            _player.Source = MediaSource.CreateFromStream(stream, stream.ContentType);
+            _player.Play();
         }
         catch (Exception exception)
         {
+            _current = null;
             CodexBar.Core.DiagnosticsLog.Error("ReadAloud", exception.Message);
         }
     }
@@ -45,56 +66,17 @@ internal static class ReadAloud
     {
         try
         {
-            _voice?.Speak(string.Empty, Async | Purge);
+            if (_player is not null)
+            {
+                _player.Pause();
+                _player.Source = null;
+            }
         }
         catch (Exception)
         {
         }
 
         _current = null;
-    }
-
-    private static bool IsSpeaking()
-    {
-        try
-        {
-            return _voice is not null && (int)_voice.Status.RunningState == 2; // SRSEIsSpeaking
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
-
-    // The default voice, or one for the app's language when Windows has it (LCID 421 = Indonesian).
-    private static dynamic? CreateVoice(string language)
-    {
-        if (Type.GetTypeFromProgID("SAPI.SpVoice") is not { } type)
-        {
-            return null;
-        }
-
-        dynamic voice = Activator.CreateInstance(type)!;
-        var wanted = language == "id" ? "421" : "409";
-        try
-        {
-            var voices = voice.GetVoices();
-            for (var i = 0; i < (int)voices.Count; i++)
-            {
-                var candidate = voices.Item(i);
-                if (((string)candidate.GetAttribute("Language")).Split(';').Contains(wanted, StringComparer.OrdinalIgnoreCase))
-                {
-                    voice.Voice = candidate;
-                    break;
-                }
-            }
-        }
-        catch (Exception)
-        {
-            // Keep the default voice.
-        }
-
-        return voice;
     }
 
     // Spoken text: no code blocks, no markdown marks, links as their text.
