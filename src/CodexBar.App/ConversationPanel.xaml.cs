@@ -463,9 +463,15 @@ public partial class ConversationPanel : Window
     }
 
     // Attachments as chips in the composer: image thumbnails or a file pill, each with ×.
+    /// <summary>Compact from the context card: summarize the conversation to free the context.</summary>
+    public event EventHandler? CompactRequested;
+
+    private long _contextTokens, _contextWindow;
+
     /// <summary>The ring under the box: how much of the model's context the conversation fills.</summary>
     public void SetContextUsage(long tokens, long window)
     {
+        (_contextTokens, _contextWindow) = (tokens, window);
         if (window <= 0 || tokens <= 0)
         {
             ContextArc.Data = null;
@@ -481,8 +487,140 @@ public partial class ConversationPanel : Window
             >= 0.75 => Color.FromRgb(0xE8, 0xA1, 0x5B),
             _ => Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF)
         });
-        ContextRing.ToolTip = string.Format(Tr.Text("Konteks {0}% · {1:N0}K dari {2:N0}K token", "Context {0}% · {1:N0}K of {2:N0}K tokens"),
-            (int)Math.Round(ratio * 100), tokens / 1000, window / 1000);
+        ContextRing.ToolTip = string.Format(Tr.Text("{0}% konteks terpakai · {1} / {2}", "{0}% context used · {1} / {2}"),
+            (int)Math.Round(ratio * 100), Tokens(tokens), Tokens(window));
+    }
+
+    private static string Tokens(long count) => count >= 1_000_000
+        ? $"{count / 1_000_000.0:0.#}M"
+        : count >= 1000 ? $"{count / 1000.0:0}K" : count.ToString();
+
+    // Click on the ring, as in Claude Code: a card with the context used, what is left, and Compact.
+    private void ContextRing_Click(object sender, MouseButtonEventArgs e)
+    {
+        var popup = new System.Windows.Controls.Primitives.Popup
+        {
+            PlacementTarget = ContextRing,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Top,
+            HorizontalOffset = -236,
+            VerticalOffset = -8,
+            AllowsTransparency = true,
+            StaysOpen = false
+        };
+        popup.Child = BuildContextCard(() => popup.IsOpen = false);
+        popup.IsOpen = true;
+        e.Handled = true;
+    }
+
+    /// <summary>The context card's content (the click on the ring shows it in a popup).</summary>
+    internal FrameworkElement BuildContextCard(Action close)
+    {
+        var known = _contextWindow > 0 && _contextTokens > 0;
+        var ratio = known ? Math.Clamp((double)_contextTokens / _contextWindow, 0, 1) : 0;
+        var text = (Brush)FindResource("PanelText");
+        var muted = (Brush)FindResource("PanelText2");
+        var accent = Frozen(ratio >= 0.9 ? Color.FromRgb(0xFF, 0x45, 0x3A) : ratio >= 0.75 ? Color.FromRgb(0xE8, 0xA1, 0x5B) : Colors.White);
+
+        var card = new StackPanel { Width = 250 };
+        card.Children.Add(new TextBlock { Text = Tr.Text("Konteks", "Context"), FontSize = 12, Foreground = muted });
+        var headline = new TextBlock { Margin = new Thickness(0, 4, 0, 8), Foreground = text, FontSize = 13 };
+        if (known)
+        {
+            headline.Inlines.Add(new System.Windows.Documents.Run($"{(int)Math.Round(ratio * 100)}%") { FontSize = 22, FontWeight = FontWeights.SemiBold, Foreground = accent });
+            headline.Inlines.Add(new System.Windows.Documents.Run(Tr.Text("  terpakai", "  used")) { Foreground = muted });
+        }
+        else
+        {
+            headline.Text = Tr.Text("Belum diketahui — muncul setelah jawaban berikutnya.", "Not known yet — shows after the next answer.");
+            headline.TextWrapping = TextWrapping.Wrap;
+        }
+
+        card.Children.Add(headline);
+        if (known)
+        {
+            // The bar: used part in the ring's colour.
+            var bar = new Grid { Height = 6, Margin = new Thickness(0, 0, 0, 8) };
+            bar.Children.Add(new Border { CornerRadius = new CornerRadius(3), Background = Frozen(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)) });
+            bar.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(3),
+                Background = accent,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                Width = Math.Max(4, 250 * ratio)
+            });
+            card.Children.Add(bar);
+
+            var numbers = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
+            var left = new TextBlock
+            {
+                Text = string.Format(Tr.Text("{0} tersisa", "{0} left"), Tokens(Math.Max(0, _contextWindow - _contextTokens))),
+                FontSize = 12,
+                Foreground = muted
+            };
+            DockPanel.SetDock(left, Dock.Right);
+            numbers.Children.Add(left);
+            numbers.Children.Add(new TextBlock
+            {
+                Text = $"{Tokens(_contextTokens)} / {Tokens(_contextWindow)} token",
+                FontSize = 12,
+                Foreground = text
+            });
+            card.Children.Add(numbers);
+        }
+
+        card.Children.Add(new TextBlock
+        {
+            Text = Tr.Text("Compact meringkas percakapan sejauh ini supaya ada ruang lagi; agen melanjutkan dari ringkasannya.",
+                "Compacting summarizes the conversation so far to free up space; the agent continues from the summary."),
+            FontSize = 11.5,
+            Foreground = muted,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 10)
+        });
+
+        var compact = new Button
+        {
+            Content = new TextBlock { Text = Tr.Text("Compact sekarang", "Compact now"), FontSize = 12.5, Foreground = System.Windows.Media.Brushes.Black },
+            Style = (Style)FindResource("PanelChoiceButton"),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            IsEnabled = !_busy
+        };
+        compact.Template = PillTemplate();
+        compact.Height = double.NaN; // the pill sizes to its text
+        compact.ToolTip = _busy ? Tr.Text("Tunggu agen selesai dulu", "Wait for the agent to finish") : null;
+        compact.Click += (_, _) =>
+        {
+            close();
+            CompactRequested?.Invoke(this, EventArgs.Empty);
+        };
+        System.Windows.Automation.AutomationProperties.SetName(compact, Tr.Text("Compact sekarang", "Compact now"));
+        card.Children.Add(compact);
+
+        return new Border
+        {
+            Background = Frozen(Color.FromRgb(0x1C, 0x1C, 0x1E)),
+            BorderBrush = Frozen(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(14, 12, 14, 12),
+            Child = card
+        };
+    }
+
+    // A white pill button (dimmed when disabled).
+    private static ControlTemplate PillTemplate()
+    {
+        var template = new ControlTemplate(typeof(Button));
+        var root = new FrameworkElementFactory(typeof(Border), "Bg");
+        root.SetValue(Border.BackgroundProperty, Frozen(Colors.White));
+        root.SetValue(Border.CornerRadiusProperty, new CornerRadius(13));
+        root.SetValue(Border.PaddingProperty, new Thickness(12, 4, 12, 5));
+        root.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));
+        template.VisualTree = root;
+        var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+        disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.4, "Bg"));
+        template.Triggers.Add(disabled);
+        return template;
     }
 
     // An arc around (c, c) with radius r for a fraction of the circle, from 12 o'clock.

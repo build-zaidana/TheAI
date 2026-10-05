@@ -242,6 +242,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         };
         window.PanelWidth = _settings.ChatWidth;
         window.SetContextUsage(_contextUsage.Tokens, _contextUsage.Window);
+        window.CompactRequested += (_, _) => _ = RunUiTaskAsync(CompactFromChatAsync);
         window.WidthCommitted += (_, width) =>
         {
             _settings.ChatWidth = Math.Round(width);
@@ -3993,6 +3994,29 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             _contextWarningShown = false;
         }
+    }
+
+    // Compact from the chat's context card; the history then shows where it was compacted.
+    private async Task CompactFromChatAsync()
+    {
+        if (_controller.IsBusy || _controller.ThreadId is not { } thread)
+        {
+            return;
+        }
+
+        SetStatus(L("status.compacting"), StatusBusyBrush);
+        SetBusyUi(true);
+        try
+        {
+            await _controller.CompactAsync();
+        }
+        finally
+        {
+            SetBusyUi(false);
+        }
+
+        await LoadThreadMessagesAsync(thread);
+        SetStatus(L("provider.status.compacted"), StatusReadyBrush);
     }
 
     private async void CompactButton_Click(object sender, RoutedEventArgs e)

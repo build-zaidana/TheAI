@@ -199,8 +199,43 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         }
     }
 
-    public Task CompactAsync(string threadId, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
+    // Claude Code's own /compact on the session: it summarizes the conversation so far and
+    // continues from the summary.
+    public async Task CompactAsync(string threadId, CancellationToken cancellationToken = default)
+    {
+        var executable = _executable ?? ClaudeCodeExecutableLocator.Locate();
+        Emit(new ProviderStatusEvent(L("provider.status.compacting", "Memadatkan konteks percakapan…")));
+        var arguments = BuildArguments(threadId, resume: true, null, null, _sandboxMode, []);
+        using var process = new Process { StartInfo = CreateStartInfo(executable, arguments, _workspacePath) };
+        if (!process.Start())
+        {
+            throw new InvalidOperationException("claude gagal dijalankan.");
+        }
+
+        _turnProcess = process;
+        try
+        {
+            process.BeginErrorReadLine();
+            await process.StandardInput.WriteAsync("/compact".AsMemory(), cancellationToken).ConfigureAwait(false);
+            process.StandardInput.Close();
+            await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _turnProcess = null;
+        }
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(string.Format(
+                L("claudeCode.error.exit", "Claude Code keluar dengan kode {0}: {1}"), process.ExitCode, "/compact"));
+        }
+
+        _loadedThreadId = null; // the history now has the compaction marker: read it again
+        Emit(new ProviderTokenUsageEvent(0, 0, null));
+        Emit(new ProviderStatusEvent(L("provider.status.compacted", "Konteks percakapan dipadatkan.")));
+    }
 
     public Task CancelAsync(CancellationToken cancellationToken = default)
     {

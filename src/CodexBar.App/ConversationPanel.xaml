@@ -262,7 +262,8 @@
                                 <TextBlock x:Name="EffortText" Foreground="{StaticResource PanelText}" />
                             </Button>
                             <Grid x:Name="ContextRing" Width="14" Height="14" VerticalAlignment="Center" Background="Transparent"
-                                  ToolTip="Konteks belum diketahui">
+                                  Cursor="Hand" MouseLeftButtonUp="ContextRing_Click" ToolTip="Konteks belum diketahui"
+                                  AutomationProperties.Name="Pemakaian konteks">
                                 <Ellipse Stroke="#33FFFFFF" StrokeThickness="2" />
                                 <!-- Context used, clockwise from the top. -->
                                 <Path x:Name="ContextArc" Stroke="#D9FFFFFF" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />

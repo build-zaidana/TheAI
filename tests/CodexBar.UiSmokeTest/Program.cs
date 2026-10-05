@@ -113,6 +113,28 @@ internal static class Program
         Assert(panel.ContextArc.Data is not null && panel.ContextRing.ToolTip?.ToString()?.Contains("25%") == true,
             $"Lingkaran konteks harus menunjukkan pemakaian konteks (tooltip: {panel.ContextRing.ToolTip}).");
 
+        // Clicking the ring shows the context card with Compact.
+        var compacted = false;
+        panel.CompactRequested += (_, _) => compacted = true;
+        var card = panel.BuildContextCard(() => { });
+        card.Measure(new Size(400, 400));
+        card.Arrange(new Rect(card.DesiredSize));
+        card.UpdateLayout();
+        Click(FindVisualChildren<Button>(card).Single());
+        Assert(compacted && FindVisualChildren<TextBlock>(card).Any(t => t.Text.Contains("150K")),
+            "Kartu konteks harus menampilkan sisa token dan tombol Compact yang berfungsi.");
+        var snapshots = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR");
+        if (!string.IsNullOrEmpty(snapshots))
+        {
+            var image = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)Math.Ceiling(card.ActualWidth), (int)Math.Ceiling(card.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            image.Render(card);
+            var cardPng = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            cardPng.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(image));
+            using var output = System.IO.File.Create(System.IO.Path.Combine(snapshots, "context.png"));
+            cardPng.Save(output);
+        }
+
         // Model / effort / mode under the box show the chosen option's label.
         panel.SetComposerChoices(
             [new ConversationPanel.Choice("opus", "Opus 5.5"), new ConversationPanel.Choice("sonnet", "Sonnet 5.5")], "opus", "Claude",

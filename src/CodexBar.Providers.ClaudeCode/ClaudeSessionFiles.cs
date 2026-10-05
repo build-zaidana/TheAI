@@ -150,6 +150,15 @@ public static class ClaudeSessionFiles
 
         foreach (var line in lines)
         {
+            if (line.Contains("\"subtype\":\"compact_boundary\"", StringComparison.Ordinal))
+            {
+                // As in Claude Code: a marker where the conversation was summarized.
+                FlushAssistant();
+                messages.Add(new ProviderThreadMessage("assistant", string.Empty,
+                    [new ProviderActivityStep("note", "Conversation compacted", "*Conversation compacted*", IsText: true)]));
+                continue;
+            }
+
             var uuid = MessageUuid(line);
 
             if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal))
@@ -334,7 +343,11 @@ public static class ClaudeSessionFiles
         long last = 0;
         foreach (var line in LatestBranch(ReadLines(filePath).ToList()) ?? [])
         {
-            if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal) && ContextTokens(line) is > 0 and var tokens)
+            if (line.Contains("\"subtype\":\"compact_boundary\"", StringComparison.Ordinal))
+            {
+                last = 0; // smaller now, but by how much shows with the next answer
+            }
+            else if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal) && ContextTokens(line) is > 0 and var tokens)
             {
                 last = tokens;
             }
@@ -697,6 +710,7 @@ public static class ClaudeSessionFiles
             var root = document.RootElement;
             if (Str(root, "type") != "user" ||
                 root.TryGetProperty("isMeta", out var meta) && meta.ValueKind == JsonValueKind.True ||
+                root.TryGetProperty("isCompactSummary", out var summary) && summary.ValueKind == JsonValueKind.True ||
                 root.TryGetProperty("isSidechain", out var side) && side.ValueKind == JsonValueKind.True ||
                 !root.TryGetProperty("message", out var message) ||
                 !message.TryGetProperty("content", out var content))
