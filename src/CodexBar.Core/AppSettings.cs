@@ -36,6 +36,9 @@ public sealed class AppSettings
     /// <summary>Sumber tebakan: "habit" (kebiasaan saja) atau "habit+ai" (model kecil saat kebiasaan belum yakin).</summary>
     public string PromptSuggestionSource { get; set; } = "habit";
 
+    /// <summary>Sisi chat yang tumbuh dari notch: "auto" (terdekat dengan notch), "right", atau "left".</summary>
+    public string ChatSide { get; set; } = "auto";
+
     /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
     public string QuickCaptureReveal { get; set; } = "done";
     public bool LaunchAtLogin { get; set; }
@@ -120,6 +123,7 @@ public sealed class AppSettings
         ClaudeImportSessions = source.ClaudeImportSessions;
         PromptSuggestions = source.PromptSuggestions;
         PromptSuggestionSource = source.PromptSuggestionSource;
+        ChatSide = source.ChatSide;
         QuickCaptureReveal = source.QuickCaptureReveal;
         LaunchAtLogin = source.LaunchAtLogin;
         HideOnFocusLost = source.HideOnFocusLost;

@@ -159,6 +159,12 @@ public sealed class JsonSettingsStore
         };
         settings.VoiceModel = settings.VoiceModel?.ToLowerInvariant() == "small" ? "small" : "base";
         settings.PromptSuggestionSource = settings.PromptSuggestionSource?.ToLowerInvariant() == "habit+ai" ? "habit+ai" : "habit";
+        settings.ChatSide = settings.ChatSide?.ToLowerInvariant() switch
+        {
+            "right" => "right",
+            "left" => "left",
+            _ => "auto"
+        };
         if (settings.PendingResume is { } pending && string.IsNullOrWhiteSpace(pending.Prompt))
         {
             settings.PendingResume = null;
@@ -183,8 +189,7 @@ public sealed class JsonSettingsStore
         };
         settings.DisplayMode = settings.DisplayMode?.ToLowerInvariant() switch
         {
-            "bar" => "bar",
-            "island" => "island",
+            "island" or "bar" => "island", // the bar mode was removed; the floating island is closest
             _ => "notch"
         };
         settings.ThreadIds = new Dictionary<string, string>(

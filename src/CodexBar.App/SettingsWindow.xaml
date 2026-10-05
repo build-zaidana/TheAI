@@ -347,13 +347,6 @@
                                             <Border Width="26" Height="8" CornerRadius="4" Background="Black" VerticalAlignment="Top" Margin="0,3,0,0" />
                                         </Grid>
                                     </RadioButton>
-                                    <RadioButton x:Name="ModeBar" Style="{StaticResource ModeCard}" Tag="Bar" Checked="Mode_Checked">
-                                        <Grid>
-                                            <Border Height="7" VerticalAlignment="Bottom" Background="#262A30" />
-                                            <Border Width="58" Height="7" CornerRadius="3.5" Background="#F2FFFFFF" VerticalAlignment="Bottom" Margin="0,0,0,11"
-                                                    BorderBrush="#33000000" BorderThickness="0.5" />
-                                        </Grid>
-                                    </RadioButton>
                                 </StackPanel>
                             </Border>
 
@@ -372,35 +365,40 @@
                             </Border>
                             <TextBlock x:Name="NotchHint" Style="{StaticResource MacRowHint}" Text="{local:Tr Seret notch ke tepi atau sudut mana pun untuk memindahkannya. Saat disembunyikan ia muncul lagi begitu agent mulai bekerja., En=Drag the notch to any edge or corner to move it. When hidden it reappears as soon as the agent starts working.}" />
 
-                            <TextBlock Style="{StaticResource MacSectionTitle}" Text="Bar" Margin="10,22,0,7" />
+                            <TextBlock Style="{StaticResource MacSectionTitle}" Text="{local:Tr Percakapan, En=Conversation}" Margin="10,22,0,7" />
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,0,0,10">
+                                <Grid Style="{StaticResource MacRow}">
+                                    <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sisi chat, En=Chat side}" />
+                                    <ComboBox x:Name="ChatSidePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                        <ComboBoxItem Content="{local:Tr Otomatis, En=Automatic}" Tag="auto" />
+                                        <ComboBoxItem Content="{local:Tr Kanan, En=Right}" Tag="right" />
+                                        <ComboBoxItem Content="{local:Tr Kiri, En=Left}" Tag="left" />
+                                    </ComboBox>
+                                </Grid>
+                            </Border>
                             <Border Style="{StaticResource MacGroupBox}">
                                 <StackPanel>
-                                    <Grid Style="{StaticResource MacRow}">
+                                    <Grid Style="{StaticResource MacRow}" Visibility="Collapsed">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Lebar, En=Width}" />
                                         <Slider x:Name="BarWidthSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="500" Maximum="1200" ValueChanged="Slider_Changed" />
                                     </Grid>
-                                    <Border Style="{StaticResource MacSeparator}" />
-                                    <Grid Style="{StaticResource MacRow}">
+                                    <Grid Style="{StaticResource MacRow}" Visibility="Collapsed">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tinggi percakapan, En=Conversation height}" />
                                         <Slider x:Name="BarHeightSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="180" Maximum="900" ValueChanged="Slider_Changed" />
                                     </Grid>
-                                    <Border Style="{StaticResource MacSeparator}" />
-                                    <Grid Style="{StaticResource MacRow}">
+                                    <Grid Style="{StaticResource MacRow}" Visibility="Collapsed">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Ukuran teks input, En=Input text size}" />
                                         <Slider x:Name="InputFontSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="10" Maximum="24" ValueChanged="Slider_Changed" />
                                     </Grid>
-                                    <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Ukuran teks jawaban, En=Answer text size}" />
                                         <Slider x:Name="ResponseFontSlider" Style="{StaticResource MacSlider}" HorizontalAlignment="Right" Minimum="10" Maximum="24" ValueChanged="Slider_Changed" />
                                     </Grid>
-                                    <Border Style="{StaticResource MacSeparator}" />
-                                    <Grid Style="{StaticResource MacRow}">
+                                    <Grid Style="{StaticResource MacRow}" Visibility="Collapsed">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Percakapan menyatu dengan bar, En=Conversation attached to the bar}" />
                                         <CheckBox x:Name="DockedSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>
-                                    <Border Style="{StaticResource MacSeparator}" />
-                                    <Grid Style="{StaticResource MacRow}">
+                                    <Grid Style="{StaticResource MacRow}" Visibility="Collapsed">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Posisi percakapan, En=Conversation position}" />
                                         <ComboBox x:Name="OutputPositionPopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
                                             <ComboBoxItem Content="{local:Tr Di bawah input, En=Below the input}" Tag="below" />

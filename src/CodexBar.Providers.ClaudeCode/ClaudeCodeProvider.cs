@@ -57,7 +57,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         return Task.CompletedTask;
     }
 
-    public Task<string> StartOrResumeThreadAsync(
+    public async Task<string> StartOrResumeThreadAsync(
         string workspacePath,
         string? threadId,
         string sandboxMode,
@@ -75,8 +75,10 @@ public sealed class ClaudeCodeProvider : IAgentProvider
             threadId = Guid.NewGuid().ToString();
         }
 
-        LoadThread(threadId);
-        return Task.FromResult(threadId);
+        // A Claude Code transcript can be tens of megabytes: read it off the caller's (UI) thread.
+        var id = threadId;
+        await Task.Run(() => LoadThread(id), cancellationToken).ConfigureAwait(false);
+        return threadId;
     }
 
     public async Task<ProviderAccountInfo> GetAccountAsync(CancellationToken cancellationToken = default)
@@ -156,7 +158,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
                 return;
             }
 
-            _messages.Add(new ProviderThreadMessage("assistant", outcome.Text));
+            _messages.Add(new ProviderThreadMessage("assistant", outcome.Text, outcome.Steps is { Count: > 0 } ? outcome.Steps : null));
             Save(threadId);
             if (outcome.TotalTokens > 0)
             {
@@ -196,7 +198,8 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
     // ---- Process plumbing --------------------------------------------------------
 
-    private readonly record struct TurnOutcome(string Text, string? Error, long TotalTokens, long OutputTokens);
+    private readonly record struct TurnOutcome(
+        string Text, string? Error, long TotalTokens, long OutputTokens, IReadOnlyList<ProviderActivityStep>? Steps = null);
 
     private async Task<TurnOutcome> RunTurnAsync(
         string executable,
@@ -250,10 +253,15 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         long outputTokens = 0;
         var pendingEdits = new Dictionary<string, ProviderFileChange>(StringComparer.Ordinal);
 
+        // The turn's work as Claude Code lists it, from the complete assistant messages.
+        var parts = new List<(ProviderActivityStep Step, string? ToolId)>();
+        var failed = new HashSet<string>(StringComparer.Ordinal);
+
         string? line;
         while ((line = await process.StandardOutput.ReadLineAsync(token).ConfigureAwait(false)) is not null)
         {
             TrackFileEdits(line, pendingEdits);
+            TrackActivity(line, parts, failed);
             if (line.Contains("\"rate_limit_event\"", StringComparison.Ordinal) && ParseRateLimitEvent(line) is { } quota)
             {
                 Emit(quota);
@@ -317,7 +325,38 @@ public sealed class ClaudeCodeProvider : IAgentProvider
             Emit(new ProviderTextDeltaEvent(resultText));
         }
 
+        if (parts.Any(part => !part.Step.IsText))
+        {
+            var (steps, answer) = ClaudeSessionFiles.SplitTurn(parts, failed);
+            return new TurnOutcome(answer, error, totalTokens, outputTokens, steps);
+        }
+
         return new TurnOutcome(text.ToString(), error, totalTokens, outputTokens);
+    }
+
+    // A tool call (or a failed result) changes the work list: report it with the answer so far.
+    private void TrackActivity(string line, List<(ProviderActivityStep Step, string? ToolId)> parts, HashSet<string> failed)
+    {
+        var changed = false;
+        if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal))
+        {
+            var added = ClaudeSessionFiles.AssistantParts(line).ToArray();
+            parts.AddRange(added);
+            changed = added.Any(part => !part.Step.IsText);
+        }
+        else if (line.Contains("\"is_error\":true", StringComparison.Ordinal))
+        {
+            foreach (var id in ClaudeSessionFiles.FailedToolIds(line))
+            {
+                changed |= failed.Add(id);
+            }
+        }
+
+        if (changed)
+        {
+            var (steps, answer) = ClaudeSessionFiles.SplitTurn(parts, failed);
+            Emit(new ProviderActivityEvent(steps, answer));
+        }
     }
 
     // Edit/Write tool calls arrive in the full assistant message before the tool runs; they are

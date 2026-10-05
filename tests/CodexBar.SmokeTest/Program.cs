@@ -967,18 +967,38 @@ static int RunFileChangeTests()
             """{"type":"queue-operation","operation":"enqueue","content":"x"}""",
             """{"type":"user","isMeta":true,"entrypoint":"cli","cwd":"C:\\proj\\web","message":{"role":"user","content":"<command-name>/init</command-name>"}}""",
             """{"type":"user","entrypoint":"cli","cwd":"C:\\proj\\web","message":{"role":"user","content":"Perbaiki bug login"}}""",
-            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Saya cek dulu."},{"type":"tool_use","id":"t","name":"Read","input":{}}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Saya cek dulu."},{"type":"tool_use","id":"t","name":"Read","input":{"file_path":"C:\\proj\\web\\login.ts"}}]}}""",
             """{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t","content":"file"}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"b","name":"Bash","input":{"command":"npm test"}}]}}""",
+            """{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"b","is_error":true,"content":"fail"}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"e","name":"Edit","input":{"file_path":"C:\\proj\\web\\login.ts","old_string":"a\nb\nc","new_string":"a\nB\nc\nd"}}]}}""",
             """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Sudah diperbaiki."}]}}""",
-            """{"type":"ai-title","aiTitle":"Bug login","sessionId":"11111111-2222-3333-4444-555555555555"}"""
+            """{"type":"ai-title","aiTitle":"Bug login","sessionId":"11111111-2222-3333-4444-555555555555"}""",
+            """{"type":"user","message":{"role":"user","content":[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}},{"type":"text","text":"lihat ini"}]}}""",
+            """{"type":"user","isMeta":true,"message":{"role":"user","content":[{"type":"text","text":"[Image: source: x.png]"}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Saya lihat."},{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"C:\\a.cs"}}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Teks sela."},{"type":"tool_use","id":"r2","name":"Read","input":{"file_path":"C:\\b.cs"}}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Catatan progres."},{"type":"tool_use","id":"r3","name":"Bash","input":{"command":"ls"}}]}}""",
+            """{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Selesai."}]}}"""
         });
+        ClaudeSessionFiles.ImageCacheFolder = Path.Combine(sessionDir, "images");
         var info = ClaudeSessionFiles.Parse(new FileInfo(sessionFile));
         Assert(info is { Cwd: @"C:\proj\web", Entrypoint: "cli", Title: "Bug login", Source: "Terminal" },
             $"Ringkasan sesi Claude Code salah: {info}");
         var history = ClaudeSessionFiles.ReadMessages(sessionFile);
-        Assert(history.Count == 2 && history[0] == new ProviderThreadMessage("user", "Perbaiki bug login") &&
-               history[1].Text == "Saya cek dulu.\n\nSudah diperbaiki.",
-            "Riwayat sesi harus berisi prompt manusia dan teks asisten saja.");
+        Assert(history.Count == 4 && history[2] is { Role: "user", Text: "lihat ini", Images: [var image] } && File.Exists(image) &&
+               history[3] is { Text: "Selesai.", Steps: { Count: 6 } turn } && turn[4].IsNote && turn[4].Detail == "Catatan progres.",
+            $"Gambar di prompt dan catatan progres harus terbaca: {string.Join(" | ", history.Skip(2))}");
+        Assert(history[0] == new ProviderThreadMessage("user", "Perbaiki bug login") &&
+               history[1].Text == "Sudah diperbaiki.",
+            "Riwayat sesi harus berisi prompt manusia dan jawaban akhir asisten.");
+        Assert(history[1].Steps is { Count: 4 } edited && edited[3] is { Verb: "Edited", Target: "login.ts", Added: 2, Removed: 1, IsFileEdit: true },
+            $"Edit harus membawa jumlah baris yang berubah: {(history[1].Steps is { Count: 4 } e ? e[3] : null)}");
+        Assert(history[1].Steps is { Count: 4 } steps &&
+               steps[0] is { IsText: true, Detail: "Saya cek dulu." } &&
+               steps[1] is { Verb: "Read", Target: "login.ts", Failed: false } &&
+               steps[2] is { Verb: "Ran", Target: "a command", Detail: "npm test", Failed: true },
+            $"Langkah kerja agen harus terbaca seperti Claude Code: {string.Join(" | ", history[1].Steps ?? [])}");
         Assert(ClaudeSessionFiles.ReadEntrypoint(sessionFile) == "cli", "Entrypoint harus terbaca dari baris awal.");
         Directory.Delete(sessionDir, recursive: true);
 

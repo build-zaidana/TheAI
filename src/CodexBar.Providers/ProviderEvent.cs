@@ -82,6 +82,13 @@ public sealed record ProviderUserInputEvent(
 /// </summary>
 public sealed record ProviderFileChange(string Path, string Kind, string Diff, string? MovePath = null);
 
+/// <summary>
+/// The current turn's work so far (tool calls and the text between them) and the answer text
+/// written after the last tool call; replaces what was streamed as text until now.
+/// </summary>
+public sealed record ProviderActivityEvent(IReadOnlyList<ProviderActivityStep> Steps, string Answer)
+    : ProviderEvent(DateTimeOffset.Now);
+
 /// <summary>Files changed by a completed edit step of the current turn.</summary>
 public sealed record ProviderFileChangeEvent(IReadOnlyList<ProviderFileChange> Changes)
     : ProviderEvent(DateTimeOffset.Now);

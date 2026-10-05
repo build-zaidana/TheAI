@@ -54,7 +54,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private readonly JsonSettingsStore _settingsStore;
     private readonly ConversationController _controller;
     private readonly Func<string, IAgentProvider> _providerFactory;
-    private OutputWindow? _outputWindow;
+    private ConversationPanel? _outputWindow; // the side conversation panel (replaces the bar's output window)
     private NotchWindow? _notch;
     private SettingsWindow? _settingsWindow;
     private OnboardingWindow? _onboardingWindow;
@@ -199,30 +199,98 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         return Drawing.SystemIcons.Application;
     }
 
-    private ConversationView ActiveConversation =>
-        _settings.OutputDocked ? InlineConversation : GetOutputWindow().Conversation;
+    private ConversationView ActiveConversation => GetOutputWindow().Conversation;
 
-    private OutputWindow GetOutputWindow()
+    private ConversationPanel GetOutputWindow()
     {
         if (_outputWindow is not null)
         {
             return _outputWindow;
         }
 
-        var window = new OutputWindow
+        // The chat is part of the notch: always on top (the bar's "always on top" setting is not for it).
+        var window = new ConversationPanel
         {
-            Width = _settings.Window.Width,
-            Height = Math.Clamp(_settings.Window.MaxExpandedHeight, 180, 900),
-            Topmost = _settings.AlwaysOnTop
+            NotchRect = () => _notch?.ShapeScreenInfo(),
+            Side = _settings.ChatSide
+        };
+        window.Dismissed += (_, _) => _notch?.ResumeAfterChat();
+        window.Opened += (_, _) =>
+        {
+            DiagnosticsLog.Info("Chat", "opened");
+            if (_renderAfterOpen)
+            {
+                _renderAfterOpen = false;
+                RenderConversation();
+            }
         };
         window.OutputScrollChanged += ResponseScroll_ScrollChanged;
         window.JumpLatestRequested += (_, _) => JumpToLatest();
         window.CopyRequested += (_, _) => CopyResponse();
-        window.OpenInCodexRequested += (_, _) => OpenCurrentThread();
-        window.SetContext(_workspaceLabel, StatusText.Text);
+        window.SendRequested += (_, text) => PanelSend(text);
+        window.StopRequested += (_, _) => _ = RunUiTaskAsync(StopCurrentTurnAsync);
+        window.AttachRequested += (_, _) => AttachButton_Click(this, new RoutedEventArgs());
+        window.RemoveAttachmentRequested += (_, path) =>
+        {
+            if (_attachments.FirstOrDefault(item => item.Path == path) is { } attachment)
+            {
+                _attachments.Remove(attachment);
+                CleanupTemporaryAttachments([attachment.Path]);
+                RenderAttachments();
+            }
+        };
+        window.VoiceAvailable = () => CodexBar.App.Voice.WhisperEngine.IsInstalled(_settings.VoiceModel);
+        window.Transcribe = pcm => ((INotchHost)this).TranscribeAsync(pcm);
+        // Ctrl+V with a screenshot or copied files attaches them (plain text pastes as usual).
+        window.PasteAttachment = () => !System.Windows.Clipboard.ContainsText() && TryAttachClipboardContent();
         window.ApplyBackdrop(!IsLightTheme());
+        window.SetBusy(_controller.IsBusy);
+        window.SetAttachments(_attachments.Select(item => (item.DisplayName, item.Path)).ToArray());
         _outputWindow = window;
         return window;
+    }
+
+    // Sent from the panel's own input: queued while a turn runs, otherwise sent with the
+    // attachments that are waiting.
+    private void PanelSend(string text)
+    {
+        if (_controller.IsBusy)
+        {
+            EnqueuePrompt(text);
+            return;
+        }
+
+        _ = RunUiTaskAsync(() => SendCoreAsync(text, _attachments.ToArray(), clearPromptBox: false));
+    }
+
+    private void UpdatePanelHeader()
+    {
+        if (_outputWindow is null)
+        {
+            return;
+        }
+
+        var first = _messages.FirstOrDefault(message => message.IsUser)?.Markdown ?? string.Empty;
+        var title = first.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? string.Empty;
+        if (title.Length > 60)
+        {
+            title = title[..60].TrimEnd() + "…";
+        }
+
+        var model = (ModelCombo.SelectedItem as ProviderModelInfo)?.DisplayName;
+        var provider = ((INotchHost)this).ProviderName;
+        var mode = _settings.ApprovalPolicy switch
+        {
+            "untrusted" => "Ask",
+            "on-failure" => "On failure",
+            "never" => "Never ask",
+            _ => "Auto"
+        };
+        var effort = _settings.ReasoningEffort is { Length: > 0 } level ? char.ToUpperInvariant(level[0]) + level[1..] : string.Empty;
+        _outputWindow.SetComposerInfo(mode, model is { Length: > 0 } ? model : provider, effort);
+        _outputWindow.SetHeader(
+            title.Length > 0 ? title : L("panel.newConversation"),
+            string.Join(" · ", new[] { provider, model is { Length: > 0 } && model != provider ? model : null, _workspaceLabel }.Where(part => part is { Length: > 0 })));
     }
 
     private double EffectiveResponseFontSize =>
@@ -981,7 +1049,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _messages.Add(new ChatMessage
             {
                 IsUser = message.Role == "user",
-                Markdown = message.Text.Trim()
+                Markdown = message.Text.Trim(),
+                Steps = message.Steps ?? [],
+                Images = message.Images ?? []
             });
         }
 
@@ -1196,7 +1266,20 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             : attachmentSummary.Length == 0
                 ? prompt
                 : $"{prompt}{Environment.NewLine}{Environment.NewLine}{attachmentSummary}";
-        var userMessage = new ChatMessage { IsUser = true, Markdown = userMarkdown };
+        // Images show as thumbnails (kept in the cache: pasted screenshots are temporary files).
+        var sentImages = pendingAttachments
+            .Where(item => item.Kind == ProviderAttachmentKind.LocalImage)
+            .Select(item => ImageThumb.KeepCopy(item.Path))
+            .OfType<string>()
+            .ToArray();
+        if (sentImages.Length > 0)
+        {
+            var others = pendingAttachments.Where(item => item.Kind != ProviderAttachmentKind.LocalImage)
+                .Select(item => $"- 📎 **{item.DisplayName}**").ToArray();
+            userMarkdown = string.Join($"{Environment.NewLine}{Environment.NewLine}",
+                new[] { prompt, string.Join(Environment.NewLine, others) }.Where(part => part.Length > 0));
+        }
+        var userMessage = new ChatMessage { IsUser = true, Markdown = userMarkdown, Images = sentImages };
         _historyLoadedThreadId = _controller.ThreadId;
         _messages.Add(userMessage);
         _notch?.OnTurnStarted(prompt.Length > 0 ? prompt : attachmentSummary);
@@ -1655,6 +1738,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
 
         AttachmentBar.Visibility = _attachments.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _outputWindow?.SetAttachments(_attachments.Select(item => (item.DisplayName, item.Path)).ToArray());
         UpdateSendButtonState();
         _notch?.RefreshAttachments();
     }
@@ -1704,6 +1788,27 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     if (!_autoFollow)
                     {
                         SetJumpLatestVisible(true);
+                    }
+                    break;
+
+                case ProviderActivityEvent activity:
+                    // The text streamed so far moved into the work list; the answer starts over.
+                    if (_streamingAgent is null)
+                    {
+                        _streamingAgent = new ChatMessage { IsUser = false };
+                        _messages.Add(_streamingAgent);
+                        _streamingAgent.Steps = activity.Steps;
+                        _streamingAgent.Markdown = activity.Answer;
+                        if (HasVisibleConversationSurface)
+                        {
+                            RenderConversation();
+                        }
+                    }
+                    else
+                    {
+                        _streamingAgent.Steps = activity.Steps;
+                        _streamingAgent.Markdown = activity.Answer;
+                        _renderPending = true;
                     }
                     break;
 
@@ -1971,6 +2076,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private void SetBusyUi(bool busy)
     {
+        _outputWindow?.SetBusy(busy);
         SendButton.Visibility = busy ? Visibility.Collapsed : Visibility.Visible;
         StopButton.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         UpdateSendButtonState();
@@ -2004,6 +2110,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
+    private bool _renderAfterOpen;
+
     private void RenderConversation()
     {
         if (!HasVisibleConversationSurface)
@@ -2011,7 +2119,16 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             return;
         }
 
+        if (_outputWindow is { IsOpening: true })
+        {
+            // Rendering a long history blocks the UI thread; the content is hidden while the
+            // chat grows anyway, so render once the motion has finished.
+            _renderAfterOpen = true;
+            return;
+        }
+
         ActiveConversation.Render(_messages, BuildChatTheme());
+        UpdatePanelHeader();
         UpdateLayout(force: false);
 
         if (_autoFollow)
@@ -2021,7 +2138,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    private bool HasVisibleConversationSurface => IsVisible || _outputWindow is { IsVisible: true };
+    private bool HasVisibleConversationSurface => _outputWindow is { IsVisible: true };
 
     private void MainWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -2043,17 +2160,25 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private ChatTheme BuildChatTheme()
     {
-        var dark = !IsLightTheme();
-        Brush userBubble = new SolidColorBrush(Color.FromRgb(0x2F, 0x7B, 0xF6));
-        Brush agentBubble = new SolidColorBrush(
-            dark ? Color.FromRgb(0x2A, 0x2F, 0x38) : Color.FromRgb(0xEC, 0xEF, 0xF4));
+        // The conversation lives in the notch-black chat: white text on black, always.
+        Brush muted = new SolidColorBrush(Color.FromArgb(0x8C, 0xFF, 0xFF, 0xFF));
         return new ChatTheme(
-            BuildMarkdownStyle(),
-            UserBubble: userBubble,
+            new MarkdownStyle(
+                Primary: new SolidColorBrush(Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF)),
+                Muted: muted,
+                InlineCodeForeground: new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xEB)),
+                CodeForeground: new SolidColorBrush(Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF)),
+                CodeBackground: new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+                CodeBorder: new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
+                QuoteBar: new SolidColorBrush(Color.FromArgb(0x47, 0xFF, 0xFF, 0xFF)),
+                CodeFont: ResolveCodeFont(),
+                FontSize: EffectiveResponseFontSize,
+                CodeWrap: _settings.Appearance.CodeWordWrap),
+            UserBubble: new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
             UserText: Brushes.White,
-            AgentBubble: agentBubble,
-            Placeholder: _mutedText,
-            ReasoningText: _mutedText,
+            AgentBubble: Brushes.Transparent,
+            Placeholder: muted,
+            ReasoningText: muted,
             ShowReasoning: _settings.ShowReasoning);
     }
 
@@ -2163,7 +2288,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             SettingsPanel.BorderBrush = new SolidColorBrush(Color.FromRgb(220, 224, 230));
             _primaryText = new SolidColorBrush(Color.FromRgb(28, 32, 40));
             _mutedText = new SolidColorBrush(Color.FromRgb(82, 91, 108));
-            _inlineCode = new SolidColorBrush(Color.FromRgb(10, 90, 170));
+            _inlineCode = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3F)); // neutral, like Claude Code
             _codeBackground = new SolidColorBrush(Color.FromArgb(0x55, 0xE5, 0xE9, 0xF0));
             _codeBorder = new SolidColorBrush(Color.FromArgb(0x33, 0x00, 0x00, 0x00));
             _quoteBar = new SolidColorBrush(Color.FromRgb(62, 123, 250));
@@ -2181,7 +2306,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             SettingsPanel.BorderBrush = new SolidColorBrush(Color.FromRgb(58, 63, 72));
             _primaryText = new SolidColorBrush(Color.FromRgb(236, 238, 244));
             _mutedText = new SolidColorBrush(Color.FromRgb(208, 214, 224));
-            _inlineCode = new SolidColorBrush(Color.FromRgb(158, 203, 255));
+            _inlineCode = new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xEB));
             _codeBackground = new SolidColorBrush(Color.FromArgb(0x40, 0x10, 0x14, 0x1C));
             _codeBorder = new SolidColorBrush(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
             _quoteBar = new SolidColorBrush(Color.FromRgb(62, 123, 250));
@@ -2276,7 +2401,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var displayModeBefore = _settings.DisplayMode;
         _settings.DisplayMode = (DisplayModeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
         {
-            "bar" => "bar",
             "island" => "island",
             _ => "notch"
         };
@@ -2298,11 +2422,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         _suppressSizeSave = true;
         Width = _settings.Window.Width;
-        if (_outputWindow is not null)
-        {
-            _outputWindow.Width = _settings.Window.Width;
-            _outputWindow.Height = _settings.Window.MaxExpandedHeight;
-        }
         _suppressSizeSave = false;
 
         PromptBox.FontSize = _settings.Appearance.InputFontSize;
@@ -2313,7 +2432,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             // Pindahkan konten ke permukaan output yang aktif.
             if (_settings.OutputDocked)
             {
-                _outputWindow?.Hide();
+                _outputWindow?.Dismiss();
             }
             else if (_messages.Count > 0)
             {
@@ -2341,9 +2460,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     // ---- Display mode (notch / bar) -------------------------------------------------------
 
     // "notch" and "island" share the same surface; only the shape differs.
-    private bool IsNotchMode => _settings.DisplayMode is "notch" or "island";
+    // Notch or Island: the bar mode was removed (old "bar" settings load as Island).
+    private bool IsNotchMode => true;
 
-    private static int DisplayModeIndex(string mode) => mode switch { "island" => 1, "bar" => 2, _ => 0 };
+    private static int DisplayModeIndex(string mode) => mode switch { "island" => 1, _ => 0 };
 
     private void SetDisplayMode(string mode)
     {
@@ -2603,6 +2723,23 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _ = SuggestWithAiAsync(
                 "Rapikan validasi form login dan tambah test untuk kasus email kosong",
                 "Sudah. Validasi email sekarang memakai regex dan menolak input kosong. Saya menambahkan 6 test di LoginForm.test.ts dan semuanya lulus. File yang diubah: LoginForm.tsx, email.ts, login.test.ts.");
+        }
+
+        // CODEXBAR_PREVIEW_PANEL=1: open the conversation panel on the current thread.
+        // "cycle" also folds the chat back into the notch after 4 seconds.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PANEL") is { Length: > 0 } panelPreview)
+        {
+            ((INotchHost)this).OpenConversationWindow();
+            if (panelPreview == "cycle")
+            {
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    _outputWindow?.Dismiss();
+                };
+                timer.Start();
+            }
         }
 
         // CODEXBAR_PREVIEW_TRAY=1: open the tray menu beside the cursor.
@@ -3011,8 +3148,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _ = RunUiTaskAsync(async () =>
         {
             await EnsureHistoryLoadedAsync();
-            RenderConversation();
-            ShowOutputSurface();
+            RenderConversation(); // deferred to the end of the opening motion when it is still running
         });
     }
 
@@ -3258,15 +3394,21 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private void ShowOutputSurface()
     {
         _conversationCollapsed = false;
-        if (_settings.OutputDocked)
+        var panel = GetOutputWindow();
+        panel.Side = _settings.ChatSide;
+        var opening = !panel.IsVisible;
+        if (!panel.IsVisible)
         {
-            InlineResponseArea.Visibility = Visibility.Visible;
-            UpdateLayout(force: true);
+            DiagnosticsLog.Info("Chat", "opening");
         }
-        else
+
+        panel.ShowNear(this); // grows out of the notch's current shape…
+        if (opening)
         {
-            GetOutputWindow().ShowNear(this);
+            _notch?.SuspendForChat(); // …which steps aside while the chat is open
         }
+
+        RenderConversation();
     }
 
     private void UpdateLayout(bool force)
@@ -3319,7 +3461,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
         else if (_outputWindow is { IsVisible: true })
         {
-            _outputWindow.Hide();
+            _outputWindow.Dismiss();
         }
         else
         {
@@ -3344,15 +3486,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         PromptBox.Focus();
     }
 
+    // The bar is gone: "show CodexBar" from outside (a notification, the single-instance
+    // activation, quick capture) brings up the conversation panel.
     public void ShowFromExternalActivation()
     {
-        _trayIcon.Visible = false;
-        _trayIcon.Visible = true;
-        Show();
-        WindowState = WindowState.Normal;
-        WindowPositioner.PlaceAboveTaskbar(this, _settings.Window.Position);
-        Activate();
-        PromptBox.Focus();
+        ShowOutputSurface();
+        _outputWindow?.FocusInput();
     }
 
     // Tray menu in the notch's style (TrayMenuWindow); the agent status line leads it.
@@ -3382,7 +3521,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         menu.AddSeparator();
         menu.AddSegments(L("tray.displayMode"),
-            [("notch", L("displayMode.notch.short")), ("island", L("displayMode.island.short")), ("bar", L("displayMode.bar.short"))],
+            [("notch", L("displayMode.notch.short")), ("island", L("displayMode.island.short"))],
             _settings.DisplayMode,
             SetDisplayMode);
         menu.AddSeparator();
@@ -3564,17 +3703,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    private void SetJumpLatestVisible(bool visible)
-    {
-        if (_settings.OutputDocked)
-        {
-            JumpLatestButton.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        }
-        else
-        {
-            _outputWindow?.SetJumpLatestVisible(visible);
-        }
-    }
+    private void SetJumpLatestVisible(bool visible) => _outputWindow?.SetJumpLatestVisible(visible);
 
     private void ScrollActiveToEnd() => ActiveConversation.ScrollToEnd();
 
@@ -3735,7 +3864,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         if (_outputWindow is { IsVisible: true })
         {
-            _outputWindow.Hide();
+            _outputWindow.Dismiss();
         }
         else
         {
@@ -3755,8 +3884,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         await OpenWorkspaceAsync(thread.WorkspacePath, requestedThreadId: thread.Id);
         await EnsureHistoryLoadedAsync();
         ShowOutputSurface();
-        Activate();
-        PromptBox.Focus();
+        _outputWindow?.FocusInput();
     }
 
     private async Task CreateThreadFromSidebarAsync()
@@ -3802,11 +3930,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         WidthSlider.Value = 620;
         HeightSlider.Value = 420;
         Width = 620;
-        if (_outputWindow is not null)
-        {
-            _outputWindow.Width = 620;
-            _outputWindow.Height = 420;
-        }
         _suppressSizeSave = false;
         _settings.Window.Width = 620;
         _settings.Window.MaxExpandedHeight = 420;
@@ -4457,10 +4580,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         _settings.AlwaysOnTop = !_settings.AlwaysOnTop;
         Topmost = _settings.AlwaysOnTop;
-        if (_outputWindow is not null)
-        {
-            _outputWindow.Topmost = _settings.AlwaysOnTop;
-        }
         if (_sidebarWindow is not null)
         {
             _sidebarWindow.Topmost = _settings.AlwaysOnTop;

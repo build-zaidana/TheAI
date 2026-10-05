@@ -30,7 +30,7 @@ public sealed record MarkdownStyle(
 public static class MarkdownRenderer
 {
     private static readonly Regex InlineRegex = new(
-        @"(?<code>`[^`]+`)|(?<bold>\*\*[^*]+\*\*)|(?<italic>(?<![\w*])[\*_][^\*_]+[\*_](?![\w]))",
+        @"(?<link>\[(?<ltext>[^\]]+)\]\((?<lurl>[^)\s]+)\))|(?<code>`[^`]+`)|(?<bold>\*\*[^*]+\*\*)|(?<strike>~~[^~]+~~)|(?<italic>(?<![\w*])[\*_][^\*_]+[\*_](?![\w]))",
         RegexOptions.Compiled);
 
     /// <summary>
@@ -68,6 +68,30 @@ public static class MarkdownRenderer
                 continue;
             }
 
+            if (IsRule(line))
+            {
+                root.Children.Add(new Border
+                {
+                    Height = 1,
+                    Background = style.CodeBorder,
+                    Margin = new Thickness(0, 10, 0, 14)
+                });
+                index++;
+                continue;
+            }
+
+            if (IsTableStart(lines, index))
+            {
+                var tableLines = new List<string>();
+                while (index < lines.Length && lines[index].Trim().StartsWith('|'))
+                {
+                    tableLines.Add(lines[index]);
+                    index++;
+                }
+                root.Children.Add(CreateTable(tableLines, style));
+                continue;
+            }
+
             var headingMatch = Regex.Match(line, @"^(#{1,6})\s+(.*)$");
             if (headingMatch.Success)
             {
@@ -75,7 +99,7 @@ public static class MarkdownRenderer
                 var heading = new TextBlock
                 {
                     TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, level <= 2 ? 8 : 5, 0, 3),
+                    Margin = new Thickness(0, level <= 2 ? 12 : 8, 0, 6),
                     FontSize = style.FontSize + (level <= 1 ? 6 : level == 2 ? 4 : 2),
                     FontWeight = FontWeights.SemiBold,
                     Foreground = style.Primary
@@ -109,22 +133,63 @@ public static class MarkdownRenderer
 
             if (IsListItem(line, out _))
             {
-                var ordered = Regex.IsMatch(line.TrimStart(), @"^\d+[\.\)]\s");
-                var number = 1;
+                FrameworkElement? lastRow = null;
                 while (index < lines.Length && IsListItem(lines[index], out var content))
                 {
-                    var row = new TextBlock
+                    var item = lines[index];
+                    var level = Math.Min(3, IndentOf(item) / 2);
+                    var numbered = Regex.Match(item.TrimStart(), @"^(\d+)[\.\)]\s");
+                    string marker;
+                    if (Regex.Match(content, @"^\[( |x|X)\]\s+") is { Success: true } task)
+                    {
+                        // - [ ] / - [x]: a checkbox, like Claude Code's task lists.
+                        marker = task.Groups[1].Value == " " ? "☐" : "☑";
+                        content = content[task.Length..];
+                    }
+                    else
+                    {
+                        marker = numbered.Success ? numbered.Groups[1].Value + "." : (level % 3) switch { 0 => "•", 1 => "◦", _ => "▪" };
+                    }
+
+                    // Marker in its own column, so wrapped lines hang under the text (as in Claude Code);
+                    // nested items step in one marker width per level.
+                    var row = new Grid { Margin = new Thickness(4 + level * 20, 0, 0, 2) };
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(numbered.Success ? 24 : 18) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    var markerText = new TextBlock
+                    {
+                        Text = marker,
+                        FontSize = style.FontSize,
+                        Foreground = numbered.Success ? style.Primary : style.Muted,
+                        LineHeight = style.FontSize * 1.6,
+                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight
+                    };
+                    if (marker is "☐" or "☑")
+                    {
+                        // Symbol font: the ballot boxes stay monochrome instead of turning into emoji.
+                        markerText.FontFamily = new FontFamily("Segoe UI Symbol");
+                    }
+                    row.Children.Add(markerText);
+                    var text = new TextBlock
                     {
                         TextWrapping = TextWrapping.Wrap,
-                        Margin = new Thickness(2, 1, 0, 1),
                         FontSize = style.FontSize,
-                        Foreground = style.Primary
+                        Foreground = style.Primary,
+                        LineHeight = style.FontSize * 1.6,
+                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight
                     };
-                    row.Inlines.Add(new Run(ordered ? $"{number}.  " : "•  ") { Foreground = style.Muted });
-                    AddInlines(row.Inlines, content, style);
+                    AddInlines(text.Inlines, content, style);
+                    Grid.SetColumn(text, 1);
+                    row.Children.Add(text);
                     root.Children.Add(row);
+                    lastRow = row;
                     index++;
-                    number++;
+                }
+
+                if (lastRow is not null)
+                {
+                    var margin = lastRow.Margin;
+                    lastRow.Margin = new Thickness(margin.Left, 0, 0, Math.Round(style.FontSize * 0.7));
                 }
                 continue;
             }
@@ -135,6 +200,8 @@ public static class MarkdownRenderer
                    && !lines[index].TrimStart().StartsWith("```", StringComparison.Ordinal)
                    && !Regex.IsMatch(lines[index], @"^#{1,6}\s")
                    && !lines[index].TrimStart().StartsWith(">", StringComparison.Ordinal)
+                   && !IsRule(lines[index])
+                   && !IsTableStart(lines, index)
                    && !IsListItem(lines[index], out _))
             {
                 if (buffer.Length > 0)
@@ -148,10 +215,11 @@ public static class MarkdownRenderer
             var paragraph = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 2, 0, 2),
+                // Reading rhythm of Claude Code's chat: 1.6 line height, a clear gap between paragraphs.
+                Margin = new Thickness(0, 0, 0, Math.Round(style.FontSize * 0.7)),
                 FontSize = style.FontSize,
                 Foreground = style.Primary,
-                LineHeight = style.FontSize * 1.45,
+                LineHeight = style.FontSize * 1.6,
                 LineStackingStrategy = LineStackingStrategy.BlockLineHeight
             };
             AddInlines(paragraph.Inlines, buffer.ToString(), style);
@@ -209,12 +277,12 @@ public static class MarkdownRenderer
 
         var codeText = new TextBlock
         {
-            Text = code,
             FontFamily = style.CodeFont,
             FontSize = style.FontSize - 0.5,
             Foreground = style.CodeForeground,
             TextWrapping = style.CodeWrap ? TextWrapping.Wrap : TextWrapping.NoWrap
         };
+        CodeHighlighter.Fill(codeText.Inlines, code, language, IsDark(style.Primary));
 
         FrameworkElement codeHost = codeText;
         if (!style.CodeWrap)
@@ -241,6 +309,98 @@ public static class MarkdownRenderer
         };
     }
 
+    private static int IndentOf(string line)
+    {
+        var width = 0;
+        foreach (var c in line)
+        {
+            if (c == ' ') width++;
+            else if (c == '\t') width += 4;
+            else break;
+        }
+        return width;
+    }
+
+    private static bool IsRule(string line) => Regex.IsMatch(line, @"^\s{0,3}([-*_])(\s*\1){2,}\s*$");
+
+    // | a | b |  followed by  |---|:--:|
+    private static bool IsTableStart(string[] lines, int index) =>
+        index + 1 < lines.Length
+        && lines[index].Trim().StartsWith('|')
+        && Regex.IsMatch(lines[index + 1], @"^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$");
+
+    private static string[] SplitRow(string line)
+    {
+        var trimmed = line.Trim();
+        if (trimmed.StartsWith('|')) trimmed = trimmed[1..];
+        if (trimmed.EndsWith('|')) trimmed = trimmed[..^1];
+        return trimmed.Split('|').Select(cell => cell.Trim()).ToArray();
+    }
+
+    // A Markdown table as Claude Code shows it: bold header, hairlines between rows, columns
+    // sized by their content and wrapping when space runs out.
+    private static FrameworkElement CreateTable(List<string> tableLines, MarkdownStyle style)
+    {
+        var header = SplitRow(tableLines[0]);
+        var aligns = SplitRow(tableLines[1]).Select(spec =>
+            spec.StartsWith(':') && spec.EndsWith(':') ? TextAlignment.Center
+            : spec.EndsWith(':') ? TextAlignment.Right
+            : TextAlignment.Left).ToArray();
+        var rows = new List<string[]> { header };
+        rows.AddRange(tableLines.Skip(2).Select(SplitRow));
+        var columns = rows.Max(row => row.Length);
+
+        var grid = new Grid();
+        for (var c = 0; c < columns; c++)
+        {
+            var longest = rows.Max(row => c < row.Length ? row[c].Length : 0);
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Clamp(longest, 4, 40), GridUnitType.Star) });
+        }
+
+        for (var r = 0; r < rows.Count; r++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            for (var c = 0; c < columns; c++)
+            {
+                var cell = new TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize = style.FontSize - 0.5,
+                    Foreground = style.Primary,
+                    FontWeight = r == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+                    TextAlignment = c < aligns.Length ? aligns[c] : TextAlignment.Left,
+                    LineHeight = (style.FontSize - 0.5) * 1.5,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight
+                };
+                AddInlines(cell.Inlines, c < rows[r].Length ? rows[r][c] : string.Empty, style);
+                var box = new Border
+                {
+                    Padding = new Thickness(10, 7, 10, 7),
+                    BorderBrush = style.CodeBorder,
+                    BorderThickness = new Thickness(0, 0, 0, r == rows.Count - 1 ? 0 : 1),
+                    Background = r == 0 ? style.CodeBackground : System.Windows.Media.Brushes.Transparent,
+                    Child = cell
+                };
+                Grid.SetRow(box, r);
+                Grid.SetColumn(box, c);
+                grid.Children.Add(box);
+            }
+        }
+
+        return new Border
+        {
+            BorderBrush = style.CodeBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Margin = new Thickness(0, 4, 0, 12),
+            ClipToBounds = true,
+            Child = grid
+        };
+    }
+
+    private static bool IsDark(Brush text) =>
+        text is SolidColorBrush { Color: var c } && (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) > 128;
+
     private static bool IsListItem(string line, out string content)
     {
         var trimmed = line.TrimStart();
@@ -265,7 +425,32 @@ public static class MarkdownRenderer
                 target.Add(new Run(text[cursor..match.Index]));
             }
 
-            if (match.Groups["code"].Success)
+            if (match.Groups["link"].Success)
+            {
+                // [text](url): web links open in the browser; file links show as link text.
+                var url = match.Groups["lurl"].Value;
+                var label = new Run(match.Groups["ltext"].Value);
+                if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+                {
+                    var link = new Hyperlink(label) { NavigateUri = uri, Foreground = style.InlineCodeForeground };
+                    link.RequestNavigate += (_, e) =>
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    };
+                    target.Add(link);
+                }
+                else
+                {
+                    target.Add(new Underline(label) { Foreground = style.Primary });
+                }
+            }
+            else if (match.Groups["code"].Success)
             {
                 var inner = match.Value.Trim('`');
                 target.Add(new Run(inner)
@@ -274,6 +459,12 @@ public static class MarkdownRenderer
                     Foreground = style.InlineCodeForeground,
                     Background = style.CodeBackground
                 });
+            }
+            else if (match.Groups["strike"].Success)
+            {
+                var struck = new Run(match.Value.Trim('~'));
+                struck.TextDecorations = TextDecorations.Strikethrough;
+                target.Add(struck);
             }
             else if (match.Groups["bold"].Success)
             {

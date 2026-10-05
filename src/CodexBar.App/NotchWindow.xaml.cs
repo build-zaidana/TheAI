@@ -564,6 +564,7 @@ public partial class NotchWindow : Window
             CompactIndicator.VerticalAlignment = VerticalAlignment.Center;
         }
 
+        PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
         foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, CompactPanel })
@@ -617,6 +618,7 @@ public partial class NotchWindow : Window
         CompactGlyph.VerticalAlignment = VerticalAlignment.Center;
         CompactIndicator.HorizontalAlignment = CornerLeft ? System.Windows.HorizontalAlignment.Right : System.Windows.HorizontalAlignment.Left;
         CompactIndicator.VerticalAlignment = VerticalAlignment.Center;
+        PlaceCompactChatButton();
 
         ApplyOutline();
         ApplyRadius(Radius);
@@ -1000,6 +1002,7 @@ public partial class NotchWindow : Window
     private void ApplyState()
     {
         CompactGlyph.Visibility = _state == NotchState.Idle ? Visibility.Collapsed : Visibility.Visible;
+        PlaceCompactChatButton();
         SpinnerIndicator.Visibility = _state == NotchState.Working ? Visibility.Visible : Visibility.Collapsed;
         DoneIndicator.Visibility = _state == NotchState.Done ? Visibility.Visible : Visibility.Collapsed;
         WaitIndicator.Visibility = _state == NotchState.Waiting ? Visibility.Visible : Visibility.Collapsed;
@@ -1039,6 +1042,13 @@ public partial class NotchWindow : Window
 
     private void UpdateVisibility()
     {
+        if (ApplyChatSuspension())
+        {
+            // The side chat is the notch right now; only an approval or a question from the
+            // agent makes the notch visible next to it.
+            return;
+        }
+
         var hide = _view == NotchView.Compact && _state == NotchState.Idle && _host.HideNotchWhenIdle;
         if (hide)
         {

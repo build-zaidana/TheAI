@@ -324,6 +324,14 @@
                             HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed">
                         <Border Width="7" Height="2.5" CornerRadius="0,0,1.5,1.5" Background="Black" VerticalAlignment="Top" />
                     </Border>
+                    <!-- Opens the chat straight from the compact notch, without expanding it first. -->
+                    <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
+                            HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
+                            ToolTip="Buka chat" AutomationProperties.Name="Buka chat">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4"
+                              StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Data="M 3,0.7 L 10,0.7 Q 12.3,0.7 12.3,3 L 12.3,7 Q 12.3,9.3 10,9.3 L 6,9.3 L 3,11.8 L 3,9.3 Q 0.7,9.3 0.7,7 L 0.7,3 Q 0.7,0.7 3,0.7 Z" />
+                    </Button>
                     <!-- How many agents run at once (shown from two). -->
                     <TextBlock x:Name="CompactCount" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,21,0"
                                FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText2}" Visibility="Collapsed" />

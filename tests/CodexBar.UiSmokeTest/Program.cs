@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -23,7 +23,8 @@ internal static class Program
             {
                 Source = new Uri("pack://application:,,,/CodexBar.App;component/Theme.xaml")
             });
-            TestOutputWindowLocalization();
+            TestConversationPanel();
+            TestMarkdownFormatting();
             TestAllApprovalDecisions();
             TestStructuredInputForm();
             TestUrlElicitation();
@@ -50,22 +51,162 @@ internal static class Program
             "Quick capture harus mengabaikan selection kosong.");
     }
 
-    private static void TestOutputWindowLocalization()
+    private static void TestConversationPanel()
     {
-        AppLocalization.Instance.SetLanguage(AppLanguage.En);
-        var window = new OutputWindow();
-        window.Show();
-        window.UpdateLayout();
-        var buttons = FindVisualChildren<Button>(window).ToArray();
-        Assert(window.Title == "Codex output" &&
-               buttons.Any(button => Equals(button.Content, "Copy")) &&
-               buttons.Any(button => Equals(button.Content, "↓ Latest")),
-            "OutputWindow harus menerapkan judul dan aksi bahasa Inggris.");
-        Assert(AutomationProperties.GetName(window) == "Codex output window",
-            "Nama aksesibilitas OutputWindow harus mengikuti bahasa aplikasi.");
-        window.PrepareForExit();
-        window.Close();
-        AppLocalization.Instance.SetLanguage(AppLanguage.Id);
+        var panel = new ConversationPanel();
+        panel.Show();
+        panel.UpdateLayout();
+        string? sent = null;
+        var stopped = false;
+        panel.SendRequested += (_, text) => sent = text;
+        panel.StopRequested += (_, _) => stopped = true;
+
+        panel.Input.Text = "  jalankan test  ";
+        panel.SendButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert(sent == "jalankan test" && panel.Input.Text.Length == 0,
+            "Panel percakapan harus mengirim teks input (dirapikan) lalu mengosongkannya.");
+
+        panel.SetBusy(true);
+        panel.SendButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert(stopped, "Saat agent bekerja dan input kosong, tombol kirim panel harus menghentikan giliran.");
+
+        // Grow out of a notch, wait for the motion to finish, then widen.
+        panel.Hide();
+        var opened = false;
+        panel.Opened += (_, _) => opened = true;
+        panel.NotchRect = () => (new Rect(SystemParameters.WorkArea.Right - 200, 0, 150, 32), new CornerRadius(0, 0, 14, 14));
+        panel.ShowNear(null);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!opened && DateTime.UtcNow < deadline)
+        {
+            Pump();
+        }
+
+        Assert(opened, "Panel percakapan harus selesai terbuka.");
+        panel.UpdateLayout();
+        var narrow = panel.Panel.ActualWidth;
+        Click(panel.ExpandButton);
+        for (var i = 0; i < 90; i++)
+        {
+            Pump();
+        }
+
+        panel.UpdateLayout();
+        Assert(panel.Panel.ActualWidth > narrow + 100,
+            $"Tombol perlebar harus melebarkan panel ({narrow:0} -> {panel.Panel.ActualWidth:0}).");
+
+        // Attachments show as chips in the composer: a thumbnail for an image, a pill for a file.
+        var picture = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "codexbar-ui-thumb.png");
+        var pixels = System.Windows.Media.Imaging.BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgr32, null,
+            new byte[] { 0x57, 0x77, 0xD9, 0, 0x57, 0x77, 0xD9, 0, 0xFF, 0xFF, 0xFF, 0, 0x30, 0x30, 0x30, 0 }, 8);
+        var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(pixels));
+        using (var stream = System.IO.File.Create(picture))
+        {
+            png.Save(stream);
+        }
+
+        string? removed = null;
+        panel.RemoveAttachmentRequested += (_, path) => removed = path;
+        panel.SetAttachments([("Screenshot clipboard.png", picture), ("notes.txt", @"C:\nope\notes.txt")]);
+        Pump();
+        panel.UpdateLayout();
+        Assert(panel.AttachmentChips.Children.Count == 2 && panel.SendButton.IsEnabled, "Lampiran harus tampil sebagai chip dan bisa dikirim.");
+        Click(FindVisualChildren<Button>(panel.AttachmentChips).First());
+        Assert(removed == picture, "Tombol × pada chip harus menghapus lampirannya.");
+
+        var dir = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR");
+        if (!string.IsNullOrEmpty(dir))
+        {
+            panel.Input.Text = "Tolong cek screenshot ini";
+            Pump();
+            var composer = (FrameworkElement)((FrameworkElement)panel.AttachmentChips.Parent).Parent;
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)panel.Panel.ActualWidth, (int)panel.Panel.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(panel.Panel);
+            var at = composer.TransformToAncestor(panel.Panel).Transform(new Point(0, 0));
+            var crop = new System.Windows.Media.Imaging.CroppedBitmap(bitmap, new Int32Rect(
+                0, (int)Math.Max(0, at.Y - 12), (int)panel.Panel.ActualWidth, (int)Math.Min(panel.Panel.ActualHeight - Math.Max(0, at.Y - 12), composer.ActualHeight + 50)));
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(crop));
+            using var file = System.IO.File.Create(System.IO.Path.Combine(dir, "panel.png"));
+            encoder.Save(file);
+        }
+
+        panel.PrepareForExit();
+        panel.Close();
+    }
+
+    private static void TestMarkdownFormatting()
+    {
+        const string markdown = """
+            ## Ringkasan
+
+            Teks dengan **tebal**, *miring*, ~~coret~~ dan `kode`.
+
+            - Satu
+              - Dua bertingkat
+                - Tiga
+            3. Mulai dari tiga
+            4. Empat
+            - [ ] Belum
+            - [x] Sudah
+
+            ---
+
+            | Nama | Nilai |
+            |------|------:|
+            | a    | 1     |
+            | b    | 22    |
+
+            ```go
+            // komentar
+            func main() { fmt.Println("halo", 42) }
+            ```
+            """;
+        var style = new MarkdownStyle(Brushes.White, Brushes.Gray, Brushes.White, Brushes.White,
+            new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)), new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
+            Brushes.Gray, new FontFamily("Cascadia Mono, Consolas"), 14, false);
+        var panel = new StackPanel();
+        panel.Children.Add(ActivityList.Build(
+        [
+            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Failed: true),
+            new ProviderActivityStep("Ran", "a command", "dotnet build"),
+            new ProviderActivityStep("Read", "markdown.png", "C:/x/markdown.png"),
+            new ProviderActivityStep(string.Empty, "Tinggal satu perbaikan kecil: font simbol hanya dipakai untuk kotak checklist, supaya penanda daftar biasa tidak ikut mengecil.", "Tinggal satu perbaikan kecil: font simbol hanya dipakai untuk kotak checklist, supaya penanda daftar biasa tidak ikut mengecil.", IsText: true)
+        ], style));
+        panel.Children.Add(MarkdownRenderer.BuildPanel(markdown, style));
+        var summary = ActivityList.BuildSummary(
+        [
+            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Added: 104),
+            new ProviderActivityStep("Edited", "MarkdownRenderer.cs", "C:/x/MarkdownRenderer.cs", Added: 8, Removed: 4),
+            new ProviderActivityStep("Edited", "Broken.cs", "C:/x/Broken.cs", Failed: true, Added: 9)
+        ], style);
+        Assert(summary is not null, "Giliran yang mengubah file harus punya ringkasan.");
+        panel.Children.Add(summary!);
+        var host = new Border { Background = Brushes.Black, Padding = new Thickness(16), Width = 440, Child = panel };
+        host.Measure(new Size(440, double.PositiveInfinity));
+        host.Arrange(new Rect(host.DesiredSize));
+        host.UpdateLayout();
+
+        var texts = FindVisualChildren<TextBlock>(host).Select(t => new System.Windows.Documents.TextRange(t.ContentStart, t.ContentEnd).Text).ToArray();
+        Assert(texts.Contains("3."), "Daftar bernomor harus memakai nomor aslinya.");
+        Assert(texts.Any(t => t.StartsWith("+112 −4")) && texts.Contains("Edited 2 files") && !texts.Contains("Broken.cs"), "Ringkasan harus menjumlahkan file yang berhasil saja.");
+        Assert(texts.Contains("◦") && texts.Contains("☐") && texts.Contains("☑"), "Daftar bertingkat dan checklist harus punya penanda.");
+        Assert(texts.Contains("Nama") && texts.Contains("22"), "Tabel harus dirender per sel.");
+        Assert(!texts.Any(t => t.Contains("|---") || t.Trim() == "---"), "Pemisah tabel dan garis tidak boleh tampil sebagai teks.");
+
+        var dir = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR");
+        if (!string.IsNullOrEmpty(dir))
+        {
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)Math.Ceiling(host.ActualWidth), (int)Math.Ceiling(host.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(host);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using var file = System.IO.File.Create(System.IO.Path.Combine(dir, "markdown.png"));
+            encoder.Save(file);
+        }
     }
 
     private static void TestAllApprovalDecisions()
@@ -232,6 +373,16 @@ internal static class Program
                 yield return descendant;
             }
         }
+    }
+
+    private static void Pump()
+    {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Background,
+            () => frame.Continue = false);
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        Thread.Sleep(16);
     }
 
     private static void Click(Button button) =>

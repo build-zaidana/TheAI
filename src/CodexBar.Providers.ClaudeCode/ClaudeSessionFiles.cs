@@ -118,41 +118,293 @@ public static class ClaudeSessionFiles
     public static ClaudeSessionInfo? Find(string sessionId) =>
         FindFile(sessionId) is { } path ? Summary(new FileInfo(path)) : null;
 
-    /// <summary>The conversation as user / assistant text (tool calls and results left out).</summary>
+    /// <summary>
+    /// The conversation as user / assistant messages. Each agent turn keeps the work before its
+    /// answer (tool calls, text in between, failures) as steps; the text after the last tool call
+    /// is the answer.
+    /// </summary>
     public static IReadOnlyList<ProviderThreadMessage> ReadMessages(string filePath)
     {
         var messages = new List<ProviderThreadMessage>();
-        var assistant = new StringBuilder();
+        var parts = new List<(ProviderActivityStep Step, string? ToolId)>();
+        var failed = new HashSet<string>(StringComparer.Ordinal);
 
         void FlushAssistant()
         {
-            if (assistant.Length > 0)
+            if (parts.Count == 0)
             {
-                messages.Add(new ProviderThreadMessage("assistant", assistant.ToString().Trim()));
-                assistant.Clear();
+                return;
             }
+
+            var (steps, answer) = SplitTurn(parts, failed);
+            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null));
+            parts.Clear();
+            failed.Clear();
         }
 
         foreach (var line in ReadLines(filePath))
         {
-            if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal) && HumanPrompt(line) is { } prompt)
+            if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal))
             {
-                FlushAssistant();
-                messages.Add(new ProviderThreadMessage("user", prompt));
-            }
-            else if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal) && AssistantText(line) is { } text)
-            {
-                if (assistant.Length > 0)
+                var images = line.Contains("\"type\":\"image\"", StringComparison.Ordinal) ? HumanImages(line) : [];
+                if (HumanPrompt(line) is { } prompt)
                 {
-                    assistant.Append("\n\n");
+                    FlushAssistant();
+                    messages.Add(new ProviderThreadMessage("user", prompt, Images: images.Count > 0 ? images : null));
                 }
-
-                assistant.Append(text);
+                else if (images.Count > 0)
+                {
+                    FlushAssistant();
+                    messages.Add(new ProviderThreadMessage("user", string.Empty, Images: images));
+                }
+                else if (line.Contains("\"is_error\":true", StringComparison.Ordinal))
+                {
+                    foreach (var id in FailedToolIds(line))
+                    {
+                        failed.Add(id);
+                    }
+                }
+            }
+            else if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal))
+            {
+                parts.AddRange(AssistantParts(line));
             }
         }
 
         FlushAssistant();
         return messages;
+    }
+
+    /// <summary>
+    /// A turn's parts as Claude Code shows them: everything up to the last tool call is work
+    /// (steps, failures marked), the text after it is the answer.
+    /// </summary>
+    internal static (IReadOnlyList<ProviderActivityStep> Steps, string Answer) SplitTurn(
+        IReadOnlyList<(ProviderActivityStep Step, string? ToolId)> parts, IReadOnlySet<string> failed)
+    {
+        var lastTool = -1;
+        for (var i = parts.Count - 1; i >= 0; i--)
+        {
+            if (!parts[i].Step.IsText || parts[i].Step.IsNote)
+            {
+                lastTool = i;
+                break;
+            }
+        }
+
+        var answer = string.Join("\n\n", parts.Skip(lastTool + 1).Select(part => part.Step.Detail)).Trim();
+        var steps = parts.Take(lastTool + 1)
+            .Select(part => part.ToolId is not null && failed.Contains(part.ToolId) ? part.Step with { Failed = true } : part.Step)
+            .ToArray();
+        return (steps, answer);
+    }
+
+    // Text and tool_use blocks of one assistant line, in order.
+    internal static IEnumerable<(ProviderActivityStep Step, string? ToolId)> AssistantParts(string line)
+    {
+        if (!TryRead(line, out var document))
+        {
+            return [];
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (root.TryGetProperty("isSidechain", out var side) && side.ValueKind == JsonValueKind.True ||
+                !root.TryGetProperty("message", out var message) ||
+                !message.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                return [];
+            }
+
+            var parts = new List<(ProviderActivityStep, string?)>();
+            foreach (var block in content.EnumerateArray())
+            {
+                switch (Str(block, "type"))
+                {
+                    case "thinking" when (Str(block, "thinking") ?? string.Empty).Trim() is { Length: > 0 } note:
+                        // Claude Code keeps its short progress notes to the person here.
+                        parts.Add((new ProviderActivityStep("note", OneLine(note, 160), note, IsText: true), null));
+                        break;
+                    case "text" when (Str(block, "text") ?? string.Empty).Trim() is { Length: > 0 } text:
+                        parts.Add((new ProviderActivityStep(string.Empty, OneLine(text, 160), text, IsText: true), null));
+                        break;
+                    case "tool_use":
+                        parts.Add((DescribeTool(Str(block, "name") ?? "Tool", block.TryGetProperty("input", out var input) ? input : default), Str(block, "id")));
+                        break;
+                }
+            }
+
+            return parts;
+        }
+    }
+
+    /// <summary>Where pasted images from transcripts are kept (one file per image, by content).</summary>
+    public static string ImageCacheFolder { get; set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "cache", "images");
+
+    // Images the person pasted into a prompt, written once to the cache so the chat can show them.
+    private static IReadOnlyList<string> HumanImages(string line)
+    {
+        if (!TryRead(line, out var document))
+        {
+            return [];
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (root.TryGetProperty("isSidechain", out var side) && side.ValueKind == JsonValueKind.True ||
+                !root.TryGetProperty("message", out var message) ||
+                !message.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                return [];
+            }
+
+            var paths = new List<string>();
+            foreach (var block in content.EnumerateArray())
+            {
+                if (Str(block, "type") != "image" || !block.TryGetProperty("source", out var source) ||
+                    Str(source, "type") != "base64" || Str(source, "data") is not { Length: > 0 } data)
+                {
+                    continue;
+                }
+
+                var extension = (Str(source, "media_type") ?? "image/png") switch
+                {
+                    "image/jpeg" => ".jpg",
+                    "image/gif" => ".gif",
+                    "image/webp" => ".webp",
+                    _ => ".png"
+                };
+                try
+                {
+                    var hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.ASCII.GetBytes(data)))[..20];
+                    var path = Path.Combine(ImageCacheFolder, hash + extension);
+                    if (!File.Exists(path))
+                    {
+                        Directory.CreateDirectory(ImageCacheFolder);
+                        File.WriteAllBytes(path, Convert.FromBase64String(data));
+                    }
+
+                    paths.Add(path);
+                }
+                catch (Exception)
+                {
+                    // A broken image is left out; the prompt text still shows.
+                }
+            }
+
+            return paths;
+        }
+    }
+
+    internal static IEnumerable<string> FailedToolIds(string line)
+    {
+        if (!TryRead(line, out var document))
+        {
+            return [];
+        }
+
+        using (document)
+        {
+            if (!document.RootElement.TryGetProperty("message", out var message) ||
+                !message.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                return [];
+            }
+
+            return content.EnumerateArray()
+                .Where(block => Str(block, "type") == "tool_result" &&
+                                block.TryGetProperty("is_error", out var error) && error.ValueKind == JsonValueKind.True)
+                .Select(block => Str(block, "tool_use_id"))
+                .OfType<string>()
+                .ToArray();
+        }
+    }
+
+    private static int LineCount(string text) => text.Length == 0 ? 0 : text.TrimEnd('\n').Split('\n').Length;
+
+    // Lines removed / added by replacing old with new (lines both share at the ends don't count).
+    internal static (int Added, int Removed) LineDelta(string oldText, string newText)
+    {
+        var before = oldText.Length == 0 ? [] : oldText.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
+        var after = newText.Length == 0 ? [] : newText.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
+        var start = 0;
+        while (start < before.Length && start < after.Length && before[start] == after[start])
+        {
+            start++;
+        }
+
+        var end = 0;
+        while (end < before.Length - start && end < after.Length - start &&
+               before[before.Length - 1 - end] == after[after.Length - 1 - end])
+        {
+            end++;
+        }
+
+        // In between: lines kept are the longest common subsequence (as a diff counts them).
+        var m = before.Length - start - end;
+        var n = after.Length - start - end;
+        if (m == 0 || n == 0 || (long)m * n > 4_000_000)
+        {
+            return (n, m);
+        }
+
+        var row = new int[n + 1];
+        for (var i = 0; i < m; i++)
+        {
+            var diagonal = 0;
+            for (var j = 0; j < n; j++)
+            {
+                var above = row[j + 1];
+                row[j + 1] = before[start + i] == after[start + j] ? diagonal + 1 : Math.Max(above, row[j]);
+                diagonal = above;
+            }
+        }
+
+        var kept = row[n];
+        return (n - kept, m - kept);
+    }
+
+    // How Claude Code names a tool call: "Edited Foo.cs", "Ran a command", "Read bar.png"…
+    private static ProviderActivityStep DescribeTool(string name, JsonElement input)
+    {
+        string Arg(string key) => input.ValueKind == JsonValueKind.Object ? Str(input, key) ?? string.Empty : string.Empty;
+        string FileName(string key) => Arg(key) is { Length: > 0 } path ? Path.GetFileName(path.TrimEnd('/', '\\')) : string.Empty;
+
+        var (added, removed) = name switch
+        {
+            "Edit" => LineDelta(Arg("old_string"), Arg("new_string")),
+            "MultiEdit" when input.ValueKind == JsonValueKind.Object && input.TryGetProperty("edits", out var edits) &&
+                             edits.ValueKind == JsonValueKind.Array =>
+                edits.EnumerateArray()
+                    .Select(e => LineDelta(Str(e, "old_string") ?? string.Empty, Str(e, "new_string") ?? string.Empty))
+                    .Aggregate((0, 0), (sum, d) => (sum.Item1 + d.Item1, sum.Item2 + d.Item2)),
+            "Write" => (LineCount(Arg("content")), 0),
+            _ => (0, 0)
+        };
+
+        return name switch
+        {
+            "Edit" or "MultiEdit" => new("Edited", FileName("file_path"), Arg("file_path"), Added: added, Removed: removed),
+            "Write" => new("Wrote", FileName("file_path"), Arg("file_path"), Added: added, Removed: removed),
+            "NotebookEdit" => new("Edited", FileName("notebook_path"), Arg("notebook_path")),
+            "Read" => new("Read", FileName("file_path"), Arg("file_path")),
+            "Bash" or "PowerShell" => new("Ran", "a command", Arg("command")),
+            "Grep" => new("Searched", Arg("pattern"), Arg("path")),
+            "Glob" => new("Found files", Arg("pattern"), Arg("path")),
+            "WebFetch" => new("Fetched", Arg("url")),
+            "WebSearch" => new("Searched the web", Arg("query")),
+            "Task" or "Agent" => new("Ran agent", Arg("description"), Arg("prompt")),
+            "TodoWrite" => new("Updated", "todos"),
+            "Skill" => new("Used skill", Arg("skill")),
+            _ when name.StartsWith("mcp__", StringComparison.Ordinal) => new("Used", name.Split("__").Last()),
+            _ => new("Used", name)
+        };
     }
 
     /// <summary>

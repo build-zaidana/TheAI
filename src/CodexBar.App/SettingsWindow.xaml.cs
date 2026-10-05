@@ -117,6 +117,7 @@ public partial class SettingsWindow : Window
         AutoCopySwitch.IsChecked = s.AutoCopyResponse;
         CompletionSoundSwitch.IsChecked = s.CompletionSound;
         SuggestSwitch.IsChecked = s.PromptSuggestions;
+        Select(ChatSidePopup, s.ChatSide);
         SuggestHabitItem.Content = Tr.Text("Kebiasaan saja", "Habits only");
         SuggestAiItem.Content = Tr.Text("Kebiasaan + AI", "Habits + AI");
         Select(SuggestSourcePopup, s.PromptSuggestionSource);
@@ -131,7 +132,6 @@ public partial class SettingsWindow : Window
 
         ModeNotch.IsChecked = s.DisplayMode == "notch";
         ModeIsland.IsChecked = s.DisplayMode == "island";
-        ModeBar.IsChecked = s.DisplayMode == "bar";
         HideIdleSwitch.IsChecked = s.NotchHideWhenIdle;
         BarWidthSlider.Value = Math.Clamp(s.Window.Width, 500, 1200);
         BarHeightSlider.Value = Math.Clamp(s.Window.MaxExpandedHeight, 180, 900);
@@ -282,6 +282,7 @@ public partial class SettingsWindow : Window
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
         s.PromptSuggestions = SuggestSwitch.IsChecked == true;
+        s.ChatSide = TagOf(ChatSidePopup) ?? s.ChatSide;
         s.PromptSuggestionSource = TagOf(SuggestSourcePopup) ?? s.PromptSuggestionSource;
         s.ClaudeImportSessions = ClaudeImportSwitch.IsChecked == true;
         s.VoiceLanguage = TagOf(VoiceLanguagePopup) ?? s.VoiceLanguage;
@@ -328,15 +329,14 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        _host.Settings.DisplayMode = sender == ModeIsland ? "island" : sender == ModeBar ? "bar" : "notch";
+        _host.Settings.DisplayMode = sender == ModeIsland ? "island" : "notch";
         _host.ApplySettings();
     }
 
     private void UpdateNotchGroup()
     {
-        var notchy = ModeBar.IsChecked != true;
-        NotchGroup.Opacity = notchy ? 1 : 0.45;
-        NotchGroup.IsEnabled = notchy;
+        NotchGroup.Opacity = 1;
+        NotchGroup.IsEnabled = true;
     }
 
     private void Effort_Checked(object sender, RoutedEventArgs e)
