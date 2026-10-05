@@ -253,12 +253,45 @@ public static class ActivityList
 
         var size = style.FontSize - 0.5;
         var list = new StackPanel();
+        var edited = steps.Where(step => step.IsFileEdit && !step.Failed && step.Detail.Length > 0 && !IsScratch(step.Detail)).ToArray();
         list.Children.Add(SummaryRow(
             files.Length == 1 ? "Edited 1 file" : $"Edited {files.Length} files",
             files.Sum(f => f.Added), files.Sum(f => f.Removed), style, size, bold: false, first: true, path: null));
         foreach (var file in files)
         {
             list.Children.Add(SummaryRow(file.Name, file.Added, file.Removed, style, size, bold: false, first: false, path: file.Path));
+        }
+
+        // Undo, as in Claude Code: puts back what this turn's edits replaced.
+        if (edited.Any(step => step.Edits is { Count: > 0 }) && list.Children[0] is Border { Child: DockPanel header })
+        {
+            var undo = new TextBlock
+            {
+                Text = "Undo",
+                FontSize = size - 0.5,
+                Foreground = style.Muted,
+                Margin = new Thickness(0, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = Cursors.Hand,
+                ToolTip = Tr.Text("Kembalikan perubahan file dari giliran ini", "Revert this turn's file changes")
+            };
+            undo.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                if (undo.Tag is "done")
+                {
+                    return;
+                }
+
+                var (done, skipped) = ProviderActivity.Undo(edited);
+                undo.Tag = "done";
+                undo.Cursor = null;
+                undo.Text = skipped == 0
+                    ? Tr.Text("Dikembalikan", "Undone")
+                    : string.Format(Tr.Text("Dikembalikan {0}, {1} dilewati", "Undone {0}, skipped {1}"), done, skipped);
+            };
+            DockPanel.SetDock(undo, Dock.Right);
+            header.Children.Insert(1, undo);
         }
 
         return new Border

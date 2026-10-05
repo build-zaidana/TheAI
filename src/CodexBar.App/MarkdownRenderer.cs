@@ -248,30 +248,10 @@ public static class MarkdownRenderer
             });
         }
 
-        var copyButton = new System.Windows.Controls.Button
-        {
-            Content = CodexBar.Core.Localization.Instance["code.copy"],
-            FontSize = style.FontSize - 3.5,
-            Padding = new Thickness(6, 1, 6, 1),
-            Foreground = style.Muted,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Cursor = System.Windows.Input.Cursors.Hand,
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Right
-        };
+        var copyButton = MessageActions.Copy(() => code, CodexBar.Core.Localization.Instance["code.copy"], style.Muted, style.Primary, 22);
+        copyButton.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+        copyButton.Margin = new Thickness(0, -4, -6, 0);
         Grid.SetColumn(copyButton, 1);
-        copyButton.Click += (_, _) =>
-        {
-            try
-            {
-                System.Windows.Clipboard.SetText(code);
-                copyButton.Content = CodexBar.Core.Localization.Instance["code.copied"];
-            }
-            catch
-            {
-                // Clipboard can be briefly locked by another app; a failed copy is non-fatal.
-            }
-        };
         header.Children.Add(copyButton);
         content.Children.Add(header);
 

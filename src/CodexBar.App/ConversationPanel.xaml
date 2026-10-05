@@ -23,6 +23,23 @@
         Closing="Window_Closing">
 
     <Window.Resources>
+        <!-- Tooltips that match the black chat/notch: dark, rounded, small text. -->
+        <Style TargetType="ToolTip">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="Placement" Value="Bottom" />
+            <Setter Property="VerticalOffset" Value="6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="#F21C1C1E" BorderBrush="#33FFFFFF" BorderThickness="1" CornerRadius="7" Padding="9,5,9,6">
+                            <ContentPresenter TextElement.Foreground="#F5F5F7" TextElement.FontSize="12"
+                                              TextElement.FontFamily="Segoe UI Variable Text, Segoe UI" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <SolidColorBrush x:Key="PanelText" Color="#F5F5F7" />
         <SolidColorBrush x:Key="PanelText2" Color="#A6FFFFFF" />
         <SolidColorBrush x:Key="PanelText3" Color="#66FFFFFF" />
@@ -122,6 +139,7 @@
          transparent (and click-through). -->
     <Grid>
         <Border x:Name="Panel" HorizontalAlignment="Right" VerticalAlignment="Top" Width="420" Height="760"
+                AllowDrop="True" DragOver="Panel_DragOver" Drop="Panel_Drop"
                 Background="Black" BorderBrush="#5CFFFFFF" BorderThickness="1,0,0,1" CornerRadius="0,0,0,22" ClipToBounds="True">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="34" ShadowDepth="8" Direction="250" Opacity="0.35" Color="Black" />
@@ -150,6 +168,11 @@
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="ChaptersButton" Style="{StaticResource PanelRoundButton}" Click="ChaptersButton_Click" ToolTip="Chapters"
+                                AutomationProperties.Name="Chapters" Visibility="Collapsed">
+                            <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Data="M 4,2.5 L 12,2.5 M 4,6.5 L 12,6.5 M 4,10.5 L 12,10.5 M 0.8,2.5 L 1.2,2.5 M 0.8,6.5 L 1.2,6.5 M 0.8,10.5 L 1.2,10.5" />
+                        </Button>
                         <Button x:Name="CopyButton" Style="{StaticResource PanelRoundButton}" Click="CopyButton_Click" ToolTip="Salin jawaban terakhir"
                                 AutomationProperties.Name="Salin jawaban terakhir">
                             <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeLineJoin="Round"
@@ -181,6 +204,9 @@
                         </Button.Template>
                     </Button>
                 </Grid>
+
+                <TextBlock x:Name="NoticeText" Grid.Row="2" Margin="18,6,18,0" FontSize="11.5" Foreground="#E8A15B"
+                           TextWrapping="Wrap" Visibility="Collapsed" />
 
                 <!-- Composer, as in Claude Code: a framed text box with ↵ inside, and under it
                      "+" and the mic (left), model, effort and status (right). -->

@@ -106,12 +106,31 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         CancellationToken cancellationToken = default) =>
         Task.FromResult(LocalConversationStore.ListSummaries(Id, limit, searchTerm));
 
-    public Task<IReadOnlyList<ProviderThreadMessage>> ReadThreadAsync(
+    // The session file is the truth (Claude Code may have moved on since): read it fresh while no
+    // turn of ours is running; the local copy is only a fallback.
+    public async Task<IReadOnlyList<ProviderThreadMessage>> ReadThreadAsync(
         string threadId,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(threadId == _loadedThreadId
-            ? (IReadOnlyList<ProviderThreadMessage>)_messages.ToArray()
-            : LocalConversationStore.Load(Id, threadId));
+        CancellationToken cancellationToken = default)
+    {
+        if (_turnProcess is null && ClaudeSessionFiles.FindFile(threadId) is { } transcript)
+        {
+            var fresh = await Task.Run(() => ClaudeSessionFiles.ReadMessages(transcript), cancellationToken).ConfigureAwait(false);
+            if (fresh.Count > 0)
+            {
+                if (threadId == _loadedThreadId)
+                {
+                    _messages.Clear();
+                    _messages.AddRange(fresh);
+                }
+
+                return fresh;
+            }
+        }
+
+        return threadId == _loadedThreadId
+            ? _messages.ToArray()
+            : LocalConversationStore.Load(Id, threadId);
+    }
 
     public Task<IReadOnlyList<ProviderModelInfo>> ListModelsAsync(
         CancellationToken cancellationToken = default) =>
@@ -327,7 +346,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         if (parts.Any(part => !part.Step.IsText))
         {
-            var (steps, answer) = ClaudeSessionFiles.SplitTurn(parts, failed);
+            var (steps, answer) = ProviderActivity.SplitTurn(parts, failed);
             return new TurnOutcome(answer, error, totalTokens, outputTokens, steps);
         }
 
@@ -354,7 +373,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         if (changed)
         {
-            var (steps, answer) = ClaudeSessionFiles.SplitTurn(parts, failed);
+            var (steps, answer) = ProviderActivity.SplitTurn(parts, failed);
             Emit(new ProviderActivityEvent(steps, answer));
         }
     }
@@ -552,12 +571,16 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         }
 
         _messages.Clear();
-        _messages.AddRange(LocalConversationStore.Load(Id, threadId));
-        if (_messages.Count == 0 && ClaudeSessionFiles.FindFile(threadId) is { } transcript)
+        if (ClaudeSessionFiles.FindFile(threadId) is { } transcript)
         {
-            // A session started elsewhere (terminal, IDE, desktop): show its history and continue
-            // it with --resume, since it has assistant turns.
+            // The session file (ours or one started in a terminal, IDE or the desktop app) is
+            // the history; turns continue it with --resume.
             _messages.AddRange(ClaudeSessionFiles.ReadMessages(transcript));
+        }
+
+        if (_messages.Count == 0)
+        {
+            _messages.AddRange(LocalConversationStore.Load(Id, threadId));
         }
 
         _loadedThreadId = threadId;

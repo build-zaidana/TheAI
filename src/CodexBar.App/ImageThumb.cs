@@ -30,6 +30,7 @@ internal static class ImageThumb
             return null;
         }
 
+        Touch(path);
         BitmapImage bitmap;
         try
         {
@@ -71,6 +72,68 @@ internal static class ImageThumb
             }
         };
         return thumb;
+    }
+
+    private static string CacheFolder => CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.ImageCacheFolder;
+
+    // Shown images count as used, so pruning keeps them.
+    private static void Touch(string path)
+    {
+        try
+        {
+            if (path.StartsWith(CacheFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
+            }
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Keeps the image cache small: images not shown for <paramref name="maxAge"/> go, then the
+    /// oldest until it is under <paramref name="maxBytes"/>. Images still in a conversation come
+    /// back from the transcript the next time they are needed.
+    /// </summary>
+    public static (int Removed, long Bytes) PruneCache(TimeSpan maxAge, long maxBytes)
+    {
+        var removed = 0;
+        long kept = 0;
+        try
+        {
+            var folder = new DirectoryInfo(CacheFolder);
+            if (!folder.Exists)
+            {
+                return (0, 0);
+            }
+
+            var files = folder.GetFiles().OrderByDescending(file => file.LastWriteTimeUtc).ToArray();
+            foreach (var file in files)
+            {
+                var stale = DateTime.UtcNow - file.LastWriteTimeUtc > maxAge;
+                if (stale || kept + file.Length > maxBytes)
+                {
+                    try
+                    {
+                        file.Delete();
+                        removed++;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                else
+                {
+                    kept += file.Length;
+                }
+            }
+        }
+        catch (Exception)
+        {
+        }
+
+        return (removed, kept);
     }
 
     /// <summary>A copy in the image cache (pasted screenshots are temporary); null if not an image.</summary>

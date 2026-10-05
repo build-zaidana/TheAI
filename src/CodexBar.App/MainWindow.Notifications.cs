@@ -17,9 +17,7 @@ public partial class MainWindow
     private void NotifyCompletion(string activityKey, string provider, string workspace, string answer, TimeSpan duration)
     {
         _notifiedAnswers[activityKey] = answer;
-        var looking = IsNotchMode
-            ? _notch?.IsVisible == true && duration < LongTurn
-            : IsVisible && IsActive;
+        var looking = _notch?.IsVisible == true && duration < LongTurn;
 
         if (!looking && _settings.CompletionNotification)
         {
@@ -59,7 +57,7 @@ public partial class MainWindow
             return;
         }
 
-        if (IsNotchMode && _notch is not null)
+        if (_notch is not null)
         {
             _notch.ShowActivityFor(activityKey);
         }

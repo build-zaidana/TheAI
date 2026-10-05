@@ -441,7 +441,6 @@
                         </StackPanel>
                         <CheckBox x:Name="OutputDockedCheck" Content="Output menyatu" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="MenuDockedCheck" Content="Menu menyatu" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
-                        <ToggleButton x:Name="TopmostToggle" Content="Selalu di atas" Margin="0,3,12,3" Style="{StaticResource GlassToggle}" Click="TopmostToggle_Click" />
                         <CheckBox x:Name="WordWrapCheckBox" Content="Wrap kode" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="ShowReasoningCheck" Content="Tampilkan thinking" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />
                         <CheckBox x:Name="PinCheckBox" Content="Pin" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed" />

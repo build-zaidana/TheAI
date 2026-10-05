@@ -240,6 +240,40 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 RenderAttachments();
             }
         };
+        window.PanelWidth = _settings.ChatWidth;
+        window.WidthCommitted += (_, width) =>
+        {
+            _settings.ChatWidth = Math.Round(width);
+            _ = SaveSettingsSafeAsync();
+        };
+        window.FilesDropped += (_, paths) => ((INotchHost)this).AddAttachments(paths);
+        window.Conversation.EditRequested += (_, text) => window.SetInputText(StripAttachmentLines(text));
+        window.Conversation.RetryRequested += (_, answer) => RetryAnswer(answer);
+        window.Conversation.CanFork = message => IsClaudeCodeProvider && message.SourceId is not null && _controller.ThreadId is not null;
+        window.Conversation.ReadingKey = () => ReadAloud.Current;
+        window.Conversation.ReadAloudRequested += (_, message) =>
+            ReadAloud.Toggle(ConversationView.KeyOf(message), message.Markdown, _settings.Language);
+        window.Conversation.PinToggled += (_, message) =>
+        {
+            if (_controller.ThreadId is { } thread)
+            {
+                ChapterStore.Toggle(_controller.ProviderId, thread, ConversationView.KeyOf(message), ConversationView.ChapterTitle(message));
+                RenderConversation();
+            }
+        };
+        window.Conversation.ForkRequested += (_, message) => _ = RunUiTaskAsync(() => ForkFromAsync(message));
+        window.CommandInvoked += (_, command) =>
+        {
+            switch (command)
+            {
+                case "clear":
+                    _ = RunUiTaskAsync(CreateThreadFromSidebarAsync);
+                    break;
+                case "settings":
+                    OpenSettingsWindow();
+                    break;
+            }
+        };
         window.ModelChosen += (_, id) =>
         {
             if ((ModelCombo.ItemsSource as IEnumerable<ProviderModelInfo>)?.FirstOrDefault(m => m.Model == id) is { } picked)
@@ -269,6 +303,43 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     // Sent from the panel's own input: queued while a turn runs, otherwise sent with the
     // attachments that are waiting.
+    // "Fork from here" (Claude Code): a new session with the conversation up to this answer,
+    // opened in the chat so it can go on differently; the original stays as it is.
+    private async Task ForkFromAsync(ChatMessage message)
+    {
+        if (_controller.IsBusy || message.SourceId is not { } upto || _controller.ThreadId is not { } thread ||
+            CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.FindFile(thread) is not { } transcript)
+        {
+            return;
+        }
+
+        var title = "Fork: " + (_outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(message));
+        var forkId = await Task.Run(() => CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Fork(transcript, upto, title));
+        var workspace = CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(forkId)?.Cwd ?? _settings.WorkspacePath;
+        await OpenThreadFromSidebarAsync(new ProviderThreadSummary(forkId, title, string.Empty, workspace, DateTimeOffset.Now));
+        SetStatus(Tr.Text("Fork dibuat", "Forked"), StatusReadyBrush);
+    }
+
+    // Retry under the latest answer: send the prompt that led to it again.
+    private void RetryAnswer(ChatMessage answer)
+    {
+        if (_controller.IsBusy)
+        {
+            return;
+        }
+
+        var index = _messages.IndexOf(answer);
+        var prompt = _messages.Take(index < 0 ? _messages.Count : index).LastOrDefault(message => message.IsUser);
+        if (prompt is not null && StripAttachmentLines(prompt.Markdown) is { Length: > 0 } text)
+        {
+            _ = RunUiTaskAsync(() => SendCoreAsync(text, [], clearPromptBox: false));
+        }
+    }
+
+    // A sent message lists its attachments as "- 📎 **name**" lines; those aren't part of the prompt.
+    private static string StripAttachmentLines(string markdown) =>
+        string.Join("\n", markdown.Replace("\r\n", "\n").Split('\n').Where(line => !line.TrimStart().StartsWith("- 📎", StringComparison.Ordinal))).Trim();
+
     private void PanelSend(string text)
     {
         if (_controller.IsBusy)
@@ -296,6 +367,14 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         var model = (ModelCombo.SelectedItem as ProviderModelInfo)?.DisplayName;
         var provider = ((INotchHost)this).ProviderName;
+        var chapters = ChapterStore.Load(_controller.ProviderId, _controller.ThreadId);
+        _outputWindow.SetChapters(chapters);
+        var pinned = chapters.Select(c => c.Key).ToHashSet(StringComparer.Ordinal);
+        if (!pinned.SetEquals(_outputWindow.Conversation.PinnedKeys))
+        {
+            _outputWindow.Conversation.PinnedKeys = pinned;
+        }
+
         var models = (ModelCombo.ItemsSource as IEnumerable<ProviderModelInfo>)?
             .Select(m => new ConversationPanel.Choice(m.Model, m.DisplayName, m.Description)).ToArray() ?? [];
         _outputWindow.SetComposerChoices(
@@ -390,6 +469,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             await StartupAsync();
             ApplyDisplayMode();
             StartClaudeSync();
+            _ = Task.Run(() => ImageThumb.PruneCache(TimeSpan.FromDays(30), 300L * 1024 * 1024));
             if (_settings.PromptSuggestions)
             {
                 _ = Habits; // seeds the habits from existing conversations on first run
@@ -571,10 +651,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         OnboardingCommand.Text = _onboardingCommand;
         OnboardingPanel.Visibility = Visibility.Visible;
-        if (IsNotchMode)
-        {
-            ShowOnboardingWindow(kind, detail);
-        }
+        ShowOnboardingWindow(kind, detail);
     }
 
     private void HideOnboarding()
@@ -927,15 +1004,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _temporaryAttachmentPaths.Add(path);
             AddAttachment(path, $"Screenshot {DateTime.Now:HH.mm.ss}.png");
             RenderAttachments();
-            if (IsNotchMode && _notch is not null)
-            {
-                _notch.ShowAttachments();
-            }
-            else
-            {
-                ShowFromExternalActivation();
-                PromptBox.Focus();
-            }
+            _notch?.ShowAttachments();
         }
         catch (Exception exception)
         {
@@ -995,7 +1064,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     // quick-capture hotkey's job (see QuickCaptureHotKey_Pressed).
     private void GlobalHotKey_Pressed(object? sender, EventArgs e)
     {
-        if (IsNotchMode && _notch is not null)
+        if (_notch is not null)
         {
             if (OnboardingPanel.Visibility == Visibility.Visible && _onboardingWindow is not null)
             {
@@ -1143,7 +1212,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 IsUser = message.Role == "user",
                 Markdown = message.Text.Trim(),
                 Steps = message.Steps ?? [],
-                Images = message.Images ?? []
+                Images = message.Images ?? [],
+                SourceId = message.Id
             });
         }
 
@@ -1381,7 +1451,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         RenderConversation();
         SetBusyUi(true);
         _outputWindow?.SetContext(_workspaceLabel, "Mengirim…");
-        if (!IsNotchMode || IsVisible)
+        if (IsVisible)
         {
             ShowOutputSurface();
         }
@@ -2065,8 +2135,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 return;
             }
 
-            // Notch mode: the question is answered inside the notch, no window pops up.
-            if (IsNotchMode && _notch is not null)
+            // The question is answered inside the notch, no window pops up.
+            if (_notch is not null)
             {
                 _approvalVisible = true;
                 var answers = await _notch.RequestInputAsync(input, activityKey);
@@ -2124,8 +2194,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 return;
             }
 
-            // Notch mode: approve or decline inside the notch, no dialog and no focus steal.
-            if (IsNotchMode && _notch is not null)
+            // Approve or decline inside the notch, no dialog and no focus steal.
+            if (_notch is not null)
             {
                 _approvalVisible = true;
                 var decision = await _notch.RequestApprovalAsync(approval, activityKey);
@@ -2219,8 +2289,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             return;
         }
 
+        UpdatePanelHeader(); // chapters first: they mark the messages being rendered
         ActiveConversation.Render(_messages, BuildChatTheme());
-        UpdatePanelHeader();
         UpdateLayout(force: false);
 
         if (_autoFollow)
@@ -2293,8 +2363,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         Width = Math.Clamp(_settings.Window.Width, 500, 1200);
         var outputHeight = Math.Clamp(_settings.Window.MaxExpandedHeight, 180, 900);
-        Topmost = _settings.AlwaysOnTop;
-        TopmostToggle.IsChecked = _settings.AlwaysOnTop;
         WidthSlider.Value = Width;
         HeightSlider.Value = outputHeight;
         ActiveOpacitySlider.Value = Math.Clamp(_settings.Appearance.ActiveOpacity, 0.4, 1);
@@ -2553,7 +2621,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     // "notch" and "island" share the same surface; only the shape differs.
     // Notch or Island: the bar mode was removed (old "bar" settings load as Island).
-    private bool IsNotchMode => true;
 
     private static int DisplayModeIndex(string mode) => mode switch { "island" => 1, _ => 0 };
 
@@ -2576,29 +2643,18 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     // "open in window" still surface it. Bar mode is the original taskbar-anchored launcher.
     private void ApplyDisplayMode(bool keepMainVisible = false)
     {
-        if (IsNotchMode)
+        _notch ??= new NotchWindow(this);
+        _notch.SetIsland(_settings.DisplayMode == "island");
+        _notch.ShowIdle();
+        _notch.RefreshQuota();
+        if (!keepMainVisible)
         {
-            _notch ??= new NotchWindow(this);
-            _notch.SetIsland(_settings.DisplayMode == "island");
-            _notch.ShowIdle();
-            _notch.RefreshQuota();
-            if (!keepMainVisible)
-            {
-                Hide();
-            }
-
-            if (OnboardingPanel.Visibility == Visibility.Visible)
-            {
-                ShowOnboardingWindow(_onboardingKind, null);
-            }
+            Hide();
         }
-        else
+
+        if (OnboardingPanel.Visibility == Visibility.Visible)
         {
-            _notch?.Hide();
-            if (!IsVisible)
-            {
-                ShowFromExternalActivation();
-            }
+            ShowOnboardingWindow(_onboardingKind, null);
         }
     }
 
@@ -3239,7 +3295,22 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         ShowFromExternalActivation();
         _ = RunUiTaskAsync(async () =>
         {
-            await EnsureHistoryLoadedAsync();
+            // A Claude Code session may have moved on in the app it is open in: read it again.
+            if (IsClaudeCodeProvider && !_controller.IsBusy && _controller.ThreadId is { } thread)
+            {
+                await LoadThreadMessagesAsync(thread);
+                var elsewhere = await Task.Run(() =>
+                    CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.ActiveElsewhere(thread, TimeSpan.FromMinutes(15)));
+                _outputWindow?.SetNotice(elsewhere
+                    ? Tr.Text("Sesi ini sedang dipakai di Claude Code. Pesan dari sini jadi cabang terpisah yang tidak terlihat di sana.",
+                        "This session is in use in Claude Code. Messages from here become a separate branch it won't see.")
+                    : null);
+            }
+            else
+            {
+                await EnsureHistoryLoadedAsync();
+            }
+
             RenderConversation(); // deferred to the end of the opening motion when it is still running
         });
     }
@@ -3595,7 +3666,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _attentionActionable ? ShowAttentionCenter : null);
         menu.AddItem(TrayIcons.Open, L("tray.show"), () =>
         {
-            if (IsNotchMode && _notch is not null)
+            if (_notch is not null)
             {
                 _notch.ToggleLauncher();
             }
@@ -3606,10 +3677,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }, _settings.Hotkey);
         menu.AddItem(TrayIcons.NewThread, L("tray.newThread"), () => _ = RunUiTaskAsync(CreateThreadFromSidebarAsync));
         menu.AddItem(TrayIcons.Screenshot, L("tray.screenshot"), CaptureScreenshot, _settings.ScreenshotHotkey);
-        if (IsNotchMode)
-        {
-            menu.AddItem(TrayIcons.Recenter, L("tray.recenterNotch"), () => _notch?.Recenter());
-        }
+        menu.AddItem(TrayIcons.Recenter, L("tray.recenterNotch"), () => _notch?.Recenter());
 
         menu.AddSeparator();
         menu.AddSegments(L("tray.displayMode"),
@@ -3740,11 +3808,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             e.Handled = true;
             _responseZoomDelta = 0;
             RenderConversation();
-        }
-        else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.T)
-        {
-            e.Handled = true;
-            ToggleTopmost();
         }
         else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.W)
         {
@@ -4553,7 +4616,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         LaunchAtLoginCheck.Content = loc["settings.launchAtLogin"];
 
         // Controls that were previously left as static XAML text (so they didn't switch language).
-        TopmostToggle.Content = loc["settings.alwaysOnTop"];
         ApplyHotkeyButton.Content = loc["hotkey.apply"];
         QuickCaptureRevealLabel.Text = loc["quickCapture.label"];
         QuickCaptureHotkeyLabel.Text = loc["quickCapture.hotkeyLabel"];
@@ -4664,20 +4726,6 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             ShowError(LF("status.clipboardUnavailable", exception.Message));
         }
-    }
-
-    private void TopmostToggle_Click(object sender, RoutedEventArgs e) => ToggleTopmost();
-
-    private void ToggleTopmost()
-    {
-        _settings.AlwaysOnTop = !_settings.AlwaysOnTop;
-        Topmost = _settings.AlwaysOnTop;
-        if (_sidebarWindow is not null)
-        {
-            _sidebarWindow.Topmost = _settings.AlwaysOnTop;
-        }
-        TopmostToggle.IsChecked = _settings.AlwaysOnTop;
-        _ = SaveSettingsSafeAsync();
     }
 
     private void OpenCurrentThread()

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -20,6 +20,9 @@ public sealed class ChatMessage
 
     /// <summary>The work before the answer (tool calls, text in between), as in Claude Code.</summary>
     public IReadOnlyList<CodexBar.Providers.ProviderActivityStep> Steps { get; set; } = [];
+
+    /// <summary>Where the message is in its source (e.g. the Claude Code transcript), for forking.</summary>
+    public string? SourceId { get; init; }
 
     /// <summary>Images the person sent with the message (local files), shown above the bubble.</summary>
     public IReadOnlyList<string> Images { get; init; } = [];
@@ -53,7 +56,60 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     private Border? _lastAnswerHost;
     private Border? _lastActivityHost;
     private Border? _lastSummaryHost;
-    private Button? _lastCopyButton;
+    private FrameworkElement? _lastActions;
+    private Button? _lastRetryButton;
+
+    /// <summary>Retry on the last answer: send the prompt before it again.</summary>
+    public event EventHandler<ChatMessage>? RetryRequested;
+
+    /// <summary>Edit on one of the person's messages: put its text back in the input.</summary>
+    public event EventHandler<string>? EditRequested;
+
+    /// <summary>"Fork from here", "Pin as chapter" and "Read aloud" from an answer's ⋯ menu.</summary>
+    public event EventHandler<ChatMessage>? ForkRequested;
+    public event EventHandler<ChatMessage>? PinToggled;
+    public event EventHandler<ChatMessage>? ReadAloudRequested;
+
+    /// <summary>Whether an answer can be forked from (the host knows its provider).</summary>
+    public Func<ChatMessage, bool>? CanFork { get; set; }
+
+    /// <summary>Keys of the pinned messages (chapters), shown as dividers above them.</summary>
+    public IReadOnlySet<string> PinnedKeys { get; set; } = new HashSet<string>();
+
+    /// <summary>The message being read aloud (its key), for the menu label.</summary>
+    public Func<string?>? ReadingKey { get; set; }
+
+    private readonly Dictionary<string, FrameworkElement> _anchors = new(StringComparer.Ordinal);
+
+    /// <summary>A stable key for a message: its source id, or a hash of its text.</summary>
+    public static string KeyOf(ChatMessage message) =>
+        message.SourceId ?? "h" + Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(
+            System.Text.Encoding.UTF8.GetBytes((message.IsUser ? "u:" : "a:") + message.Markdown)))[..16];
+
+    /// <summary>A chapter title: the message's first line without markdown marks, shortened.</summary>
+    public static string ChapterTitle(ChatMessage message)
+    {
+        var line = message.Markdown.Replace("\r\n", "\n").Split('\n')
+            .Select(l => l.Trim().TrimStart('#', '>', '-', '*', ' ').Replace("**", string.Empty).Replace("`", string.Empty).Trim())
+            .FirstOrDefault(l => l.Length > 0) ?? Tr.Text("Chapter", "Chapter");
+        return line.Length > 60 ? line[..60].TrimEnd() + "…" : line;
+    }
+
+    /// <summary>Scrolls a pinned message into view (loading older messages when needed).</summary>
+    public void ScrollToKey(string key)
+    {
+        if (!_anchors.ContainsKey(key) && _messages.Any(m => KeyOf(m) == key))
+        {
+            _visibleMessageCount = _messages.Count;
+            RenderVisibleMessages();
+            UpdateLayout();
+        }
+
+        if (_anchors.TryGetValue(key, out var anchor))
+        {
+            anchor.BringIntoView(new Rect(0, 0, 1, Math.Max(1, PART_Scroll.ViewportHeight - 40)));
+        }
+    }
     private IReadOnlyList<CodexBar.Providers.ProviderActivityStep>? _lastSteps;
     private Border? _lastReasoningSection;
     private TextBlock? _lastReasoningBody;
@@ -148,9 +204,17 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         }
 
         var maxWidth = BubbleMaxWidth();
+        _anchors.Clear();
         for (var i = firstVisibleIndex; i < _messages.Count; i++)
         {
             var message = _messages[i];
+            if (PinnedKeys.Count > 0 && PinnedKeys.Contains(KeyOf(message)))
+            {
+                var divider = ChapterDivider(ChapterTitle(message), theme);
+                MessagesPanel.Children.Add(divider);
+                _anchors[KeyOf(message)] = divider;
+            }
+
             var bubble = BuildBubble(message, theme, maxWidth, isLast: i == _messages.Count - 1);
             MessagesPanel.Children.Add(bubble);
             _bubbles.Add(bubble);
@@ -178,9 +242,9 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             FillActivity(message, _theme);
         }
 
-        if (_lastCopyButton is not null)
+        if (_lastActions is not null)
         {
-            _lastCopyButton.Visibility = message.Markdown.Length == 0 && message.Steps.Count > 0
+            _lastActions.Visibility = message.Markdown.Length == 0 && message.Steps.Count > 0
                 ? Visibility.Collapsed
                 : Visibility.Visible;
         }
@@ -202,18 +266,12 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     private Border BuildBubble(ChatMessage message, ChatTheme theme, double maxWidth, bool isLast)
     {
         FrameworkElement inner = message.IsUser
-            ? new TextBlock
-            {
-                Text = message.Markdown,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = theme.UserText,
-                FontSize = theme.Markdown.FontSize
-            }
+            ? BuildUserText(message.Markdown, theme)
             : BuildAgentContent(message, theme, isLast);
 
-        if (message.IsUser && message.Images.Count > 0)
+        if (message.IsUser)
         {
-            return BuildUserWithImages(message, theme, inner, maxWidth);
+            return BuildUserMessage(message, theme, inner, maxWidth);
         }
 
         return new Border
@@ -233,8 +291,69 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         };
     }
 
-    // Like Claude Code: the pasted images as thumbnails above the person's bubble.
-    private static Border BuildUserWithImages(ChatMessage message, ChatTheme theme, FrameworkElement text, double maxWidth)
+    // A pinned chapter: a hairline with its title, as Claude Code marks one.
+    private static FrameworkElement ChapterDivider(string title, ChatTheme theme)
+    {
+        var grid = new Grid { Margin = new Thickness(2, 14, 2, 10) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontSize = Math.Max(11, theme.Markdown.FontSize - 2),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = theme.ReasoningText,
+            Margin = new Thickness(0, 0, 10, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            MaxWidth = 360,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        var line = new Border { Height = 1, Background = theme.Markdown.CodeBorder, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(line, 1);
+        grid.Children.Add(line);
+        return grid;
+    }
+
+    // The person's text; attached files (sent as "- 📎 **name**" lines) as a quiet list under it.
+    private static FrameworkElement BuildUserText(string markdown, ChatTheme theme)
+    {
+        var lines = markdown.Replace("\r\n", "\n").Split('\n');
+        var files = lines.Where(line => line.TrimStart().StartsWith("- 📎", StringComparison.Ordinal))
+            .Select(line => line.TrimStart()[4..].Trim().Trim('*').Trim())
+            .ToArray();
+        var text = string.Join("\n", lines.Where(line => !line.TrimStart().StartsWith("- 📎", StringComparison.Ordinal))).Trim();
+        var block = new TextBlock
+        {
+            Text = text,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = theme.UserText,
+            FontSize = theme.Markdown.FontSize
+        };
+        if (files.Length == 0)
+        {
+            return block;
+        }
+
+        var stack = new StackPanel();
+        if (text.Length > 0)
+        {
+            stack.Children.Add(block);
+        }
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = string.Join("   ", files.Select(name => "📎 " + name)),
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = theme.ReasoningText,
+            FontSize = Math.Max(11, theme.Markdown.FontSize - 2),
+            Margin = new Thickness(0, text.Length > 0 ? 4 : 0, 0, 0)
+        });
+        return stack;
+    }
+
+    // Like Claude: pasted images as thumbnails above the person's bubble, and copy / edit under
+    // it while the pointer is over the message.
+    private Border BuildUserMessage(ChatMessage message, ChatTheme theme, FrameworkElement text, double maxWidth)
     {
         var stack = new StackPanel { HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
         var images = new WrapPanel { HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
@@ -260,14 +379,34 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             });
         }
 
-        return new Border
+        var loc = CodexBar.Core.Localization.Instance;
+        var actions = new StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 3, 0, 0),
+            Opacity = 0
+        };
+        actions.Children.Add(MessageActions.Copy(() => message.Markdown, loc["conversation.copyName"], theme.ReasoningText, theme.Markdown.Primary));
+        var edit = MessageActions.Create(MessageActions.EditIcon, Tr.Text("Edit", "Edit"), theme.ReasoningText, theme.Markdown.Primary);
+        edit.Click += (_, _) => EditRequested?.Invoke(this, message.Markdown);
+        actions.Children.Add(edit);
+        if (message.Markdown.Length > 0)
+        {
+            stack.Children.Add(actions);
+        }
+
+        var host = new Border
         {
             Background = Brushes.Transparent,
-            Margin = new Thickness(44, 6, 2, 10),
+            Margin = new Thickness(44, 6, 2, 4),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             MaxWidth = maxWidth,
             Child = stack
         };
+        host.MouseEnter += (_, _) => actions.Opacity = 1;
+        host.MouseLeave += (_, _) => actions.Opacity = 0;
+        return host;
     }
 
     private FrameworkElement BuildAgentContent(ChatMessage message, ChatTheme theme, bool isLast)
@@ -334,43 +473,45 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         var summaryHost = new Border();
         stack.Children.Add(summaryHost);
 
-        // Tombol salin jawaban (menyalin teks markdown pesan ini).
-        var copyButton = new Button
+        // Under the answer, as in Claude: copy, and retry on the latest answer.
+        var actions = new StackPanel
         {
-            Content = loc["conversation.copy"],
-            Cursor = System.Windows.Input.Cursors.Hand,
-            FontSize = Math.Max(11, theme.Markdown.FontSize - 2.5),
-            Foreground = theme.ReasoningText,
-            Margin = new Thickness(0, 5, 0, 0),
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(0)
+            Margin = new Thickness(-4, 2, 0, 0)
         };
-        System.Windows.Automation.AutomationProperties.SetName(copyButton, loc["conversation.copyName"]);
-        copyButton.Click += (_, _) =>
+        actions.Children.Add(MessageActions.Copy(() => message.Markdown, loc["conversation.copyName"], theme.ReasoningText, theme.Markdown.Primary));
+        var retry = MessageActions.Create(MessageActions.RetryIcon, Tr.Text("Coba lagi", "Retry"), theme.ReasoningText, theme.Markdown.Primary);
+        retry.Click += (_, _) => RetryRequested?.Invoke(this, message);
+        retry.Visibility = isLast ? Visibility.Visible : Visibility.Collapsed;
+        actions.Children.Add(retry);
+        var more = MessageActions.Create(MessageActions.MoreIcon, Tr.Text("Lainnya", "More"), theme.ReasoningText, theme.Markdown.Primary);
+        more.Click += (_, _) =>
         {
-            try
+            var key = KeyOf(message);
+            var items = new List<(string, Action)>();
+            if (CanFork?.Invoke(message) == true)
             {
-                System.Windows.Clipboard.SetText(message.Markdown);
-                copyButton.Content = CodexBar.Core.Localization.Instance["conversation.copied"];
+                items.Add(("Fork from here", () => ForkRequested?.Invoke(this, message)));
             }
-            catch
-            {
-                copyButton.Content = CodexBar.Core.Localization.Instance["conversation.copyFailed"];
-            }
+
+            items.Add((PinnedKeys.Contains(key) ? "Unpin chapter" : "Pin as chapter", () => PinToggled?.Invoke(this, message)));
+            items.Add((ReadingKey?.Invoke() == key ? "Stop reading" : "Read aloud", () => ReadAloudRequested?.Invoke(this, message)));
+            MessageActions.ShowMenu(more, items);
         };
+        actions.Children.Add(more);
         if (message.Markdown.Length == 0 && message.Steps.Count > 0)
         {
-            copyButton.Visibility = Visibility.Collapsed; // still working: nothing to copy yet
+            actions.Visibility = Visibility.Collapsed; // still working: nothing to copy yet
         }
-        stack.Children.Add(copyButton);
+        stack.Children.Add(actions);
 
         // Simpan referensi gelembung agent terbaru untuk update streaming in-place.
         _lastAnswerHost = answerHost;
         _lastActivityHost = activityHost;
         _lastSummaryHost = summaryHost;
-        _lastCopyButton = copyButton;
+        _lastActions = actions;
+        _lastRetryButton = retry;
         _lastSteps = message.Steps;
         FillActivity(message, theme);
         _lastReasoningSection = reasoningSection;

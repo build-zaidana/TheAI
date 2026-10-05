@@ -25,6 +25,7 @@ internal static class Program
             });
             TestConversationPanel();
             TestMarkdownFormatting();
+            TestMessageActions();
             TestAllApprovalDecisions();
             TestStructuredInputForm();
             TestUrlElicitation();
@@ -94,6 +95,18 @@ internal static class Program
         panel.UpdateLayout();
         Assert(panel.Panel.ActualWidth > narrow + 100,
             $"Tombol perlebar harus melebarkan panel ({narrow:0} -> {panel.Panel.ActualWidth:0}).");
+
+        // "/" lists the commands; Enter runs the highlighted one.
+        string? command = null;
+        panel.CommandInvoked += (_, name) => command = name;
+        panel.Input.Text = "/cl";
+        Pump();
+        panel.Input.RaiseEvent(new System.Windows.Input.KeyEventArgs(
+            System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(panel.Input), 0, System.Windows.Input.Key.Enter)
+        {
+            RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent
+        });
+        Assert(command == "clear" && panel.Input.Text.Length == 0, $"Perintah /clear harus dijalankan dari daftar perintah (dapat: {command}).");
 
         // Model / effort / mode under the box show the chosen option's label.
         panel.SetComposerChoices(
@@ -186,7 +199,7 @@ internal static class Program
         panel.Children.Add(MarkdownRenderer.BuildPanel(markdown, style));
         var summary = ActivityList.BuildSummary(
         [
-            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Added: 104),
+            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Added: 104, Edits: [new ProviderTextEdit("a", "b")]),
             new ProviderActivityStep("Edited", "MarkdownRenderer.cs", "C:/x/MarkdownRenderer.cs", Added: 8, Removed: 4),
             new ProviderActivityStep("Edited", "Broken.cs", "C:/x/Broken.cs", Failed: true, Added: 9)
         ], style);
@@ -215,6 +228,80 @@ internal static class Program
             using var file = System.IO.File.Create(System.IO.Path.Combine(dir, "markdown.png"));
             encoder.Save(file);
         }
+    }
+
+    private static void TestMessageActions()
+    {
+        var style = new MarkdownStyle(Brushes.White, Brushes.Gray, Brushes.White, Brushes.White,
+            new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)), new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
+            Brushes.Gray, new FontFamily("Consolas"), 14, false);
+        var theme = new ChatTheme(style, new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)), Brushes.White,
+            Brushes.Transparent, Brushes.Gray, Brushes.Gray, false);
+        var view = new ConversationView();
+        var window = new Window { Width = 460, Height = 400, Content = view, Background = Brushes.Black, ShowInTaskbar = false, Left = -3000 };
+        window.Show();
+        var question = new ChatMessage { IsUser = true, Markdown = "Tolong cek ini\n\n- 📎 **foto.png**" };
+        var answer = new ChatMessage { IsUser = false, Markdown = "Sudah dicek." };
+        view.Render([question, answer], theme);
+        window.UpdateLayout();
+
+        string? edited = null;
+        ChatMessage? retried = null;
+        view.EditRequested += (_, text) => edited = text;
+        view.RetryRequested += (_, message) => retried = message;
+        var buttons = FindVisualChildren<Button>(view).ToArray();
+        string Name(Button b) => AutomationProperties.GetName(b);
+        Assert(buttons.Count(b => Name(b) == AppLocalization.Instance["conversation.copyName"]) == 2 &&
+               buttons.Any(b => Name(b) == "Edit") && buttons.Any(b => Name(b) is "Coba lagi" or "Retry"),
+            $"Pesan harus punya tombol ikon salin, edit, dan coba lagi: {string.Join(", ", buttons.Select(Name))}");
+        Assert(buttons.Where(b => Name(b) is "Edit" or "Coba lagi" or "Retry" || Name(b) == AppLocalization.Instance["conversation.copyName"])
+            .All(b => b.Content is System.Windows.Shapes.Path), "Tombol di bawah pesan harus ikon saja, tanpa tulisan.");
+        Click(buttons.First(b => Name(b) == "Edit"));
+        Click(buttons.First(b => Name(b) is "Coba lagi" or "Retry"));
+        Assert(edited == question.Markdown && retried == answer, "Edit dan coba lagi harus diteruskan ke host.");
+        Assert(buttons.Any(b => Name(b) is "Lainnya" or "More"), "Jawaban harus punya menu lainnya (fork, pin, read aloud).");
+
+        // Pin as chapter: a divider with the title above the pinned message.
+        view.PinnedKeys = new HashSet<string> { ConversationView.KeyOf(answer) };
+        view.Render([question, answer], theme);
+        window.UpdateLayout();
+        Assert(FindVisualChildren<TextBlock>(view).Any(t => t.Text == "Sudah dicek."  && t.FontWeight == FontWeights.SemiBold),
+            "Pesan yang di-pin harus diberi pembatas chapter berjudul.");
+        var spoken = ReadAloud.Plain("""
+            ## Judul
+            **tebal** dan `kode`
+            ```
+            x = 1
+            ```
+            - [tautan](http://a)
+            """);
+        Assert(!spoken.Contains('#') && !spoken.Contains('*') && !spoken.Contains('`') && !spoken.Contains("x = 1") &&
+               spoken.Contains("Judul") && spoken.Contains("tebal dan kode") && spoken.Contains("tautan") && !spoken.Contains("http"),
+            $"Teks yang dibacakan harus tanpa tanda markdown dan kode: '{spoken}'");
+
+        var dir = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR");
+        if (!string.IsNullOrEmpty(dir))
+        {
+            foreach (var host in FindVisualChildren<Border>(view).Where(b => b.MaxWidth < double.PositiveInfinity))
+            {
+                host.RaiseEvent(new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0) { RoutedEvent = UIElement.MouseEnterEvent });
+            }
+            window.UpdateLayout();
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(440, 220, 96, 96, PixelFormats.Pbgra32);
+            var visual = new DrawingVisual();
+            using (var context = visual.RenderOpen())
+            {
+                context.DrawRectangle(Brushes.Black, null, new Rect(0, 0, 440, 220));
+                context.DrawRectangle(new VisualBrush(view) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(0, 0, 440, 220));
+            }
+            bitmap.Render(visual);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using var file = System.IO.File.Create(System.IO.Path.Combine(dir, "actions.png"));
+            encoder.Save(file);
+        }
+
+        window.Close();
     }
 
     private static void TestAllApprovalDecisions()
@@ -360,7 +447,7 @@ internal static class Program
         panel.Arrange(new Rect(0, 0, 800, 600));
 
         var copyButton = FindVisualChildren<Button>(panel)
-            .FirstOrDefault(button => Equals(button.Content, AppLocalization.Instance["code.copy"]));
+            .FirstOrDefault(button => AutomationProperties.GetName(button) == AppLocalization.Instance["code.copy"]);
         Assert(copyButton is not null, "Blok kode harus menampilkan tombol Copy.");
 
         // Clicking must never throw (clipboard access is best-effort/guarded).

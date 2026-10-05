@@ -83,6 +83,22 @@ public partial class ConversationPanel : Window
     public event EventHandler? StopRequested;
     public event EventHandler? AttachRequested;
 
+    /// <summary>Files dropped onto the chat (to attach).</summary>
+    public event EventHandler<string[]>? FilesDropped;
+
+    /// <summary>A slash command from the input ("clear", "settings", …) the host runs.</summary>
+    public event EventHandler<string>? CommandInvoked;
+
+    /// <summary>The chat's width changed by the person (widen button or dragging the edge).</summary>
+    public event EventHandler<double>? WidthCommitted;
+
+    /// <summary>The chat's width in DIPs (0 or less keeps the default).</summary>
+    public double PanelWidth
+    {
+        get => _panelWidth;
+        set => _panelWidth = value > 0 ? value : NarrowWidth;
+    }
+
     /// <summary>The person removed an attached file (its path).</summary>
     public event EventHandler<string>? RemoveAttachmentRequested;
 
@@ -411,6 +427,25 @@ public partial class ConversationPanel : Window
         ContextText.Text = context;
     }
 
+    private IReadOnlyList<Chapter> _chapters = [];
+
+    /// <summary>The pinned chapters, listed by the header's chapters button.</summary>
+    public void SetChapters(IReadOnlyList<Chapter> chapters)
+    {
+        _chapters = chapters;
+        ChaptersButton.Visibility = chapters.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ChaptersButton_Click(object sender, RoutedEventArgs e) =>
+        MessageActions.ShowMenu(ChaptersButton, _chapters.Select(c => (c.Title, (Action)(() => PanelConversation.ScrollToKey(c.Key)))));
+
+    /// <summary>A one-line warning above the box (e.g. the session is open in Claude Code), or none.</summary>
+    public void SetNotice(string? text)
+    {
+        NoticeText.Text = text ?? string.Empty;
+        NoticeText.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     /// <summary>Kept for the host's status updates; the header shows the workspace only.</summary>
     public void SetContext(string workspaceName, string status) { }
 
@@ -527,6 +562,14 @@ public partial class ConversationPanel : Window
 
     public void ScrollToEnd() => PanelConversation.ScrollToEnd();
 
+    /// <summary>Puts text in the input (editing an earlier message) and focuses it, caret at the end.</summary>
+    public void SetInputText(string text)
+    {
+        Input.Text = text;
+        Input.CaretIndex = Input.Text.Length;
+        FocusInput();
+    }
+
     public void FocusInput()
     {
         Activate();
@@ -611,6 +654,7 @@ public partial class ConversationPanel : Window
             ApplySideLayout();
             SnapTo(DockedBounds(), DockedCorners());
             ApplyFrame();
+            WidthCommitted?.Invoke(this, _panelWidth);
         }
         else if (_closing)
         {
@@ -729,8 +773,211 @@ public partial class ConversationPanel : Window
 
     private void ResizeGrip_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_dragging)
+        {
+            WidthCommitted?.Invoke(this, _panelWidth);
+        }
+
         _dragging = false;
         ResizeGrip.ReleaseMouseCapture();
+    }
+
+    // ---- Dropping files ----
+
+    private void Panel_DragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop) ? System.Windows.DragDropEffects.Copy : System.Windows.DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Panel_Drop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] { Length: > 0 } paths)
+        {
+            FilesDropped?.Invoke(this, paths);
+            e.Handled = true;
+        }
+    }
+
+    // ---- Slash commands ----
+
+    private sealed record SlashCommand(string Name, string Hint);
+
+    private static readonly SlashCommand[] SlashCommands =
+    [
+        new("clear", "Mulai percakapan baru"),
+        new("model", "Ganti model"),
+        new("effort", "Ganti effort"),
+        new("mode", "Ganti mode persetujuan"),
+        new("attach", "Lampirkan file atau gambar"),
+        new("voice", "Dikte dengan suara"),
+        new("copy", "Salin jawaban terakhir"),
+        new("wide", "Perlebar / perkecil chat"),
+        new("settings", "Buka pengaturan")
+    ];
+
+    private System.Windows.Controls.Primitives.Popup? _slashPopup;
+    private StackPanel? _slashList;
+    private SlashCommand[] _slashMatches = [];
+    private int _slashIndex;
+
+    private bool SlashOpen => _slashPopup?.IsOpen == true;
+
+    // "/" at the start of an empty-ish input lists the commands, filtered as you type.
+    private void UpdateSlashMenu()
+    {
+        var text = Input.Text;
+        if (!text.StartsWith('/') || text.Contains(' ') || text.Contains('\n'))
+        {
+            CloseSlashMenu();
+            return;
+        }
+
+        var query = text[1..];
+        _slashMatches = SlashCommands.Where(c => c.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (_slashMatches.Length == 0)
+        {
+            CloseSlashMenu();
+            return;
+        }
+
+        if (_slashPopup is null)
+        {
+            _slashList = new StackPanel { MinWidth = 260 };
+            _slashPopup = new System.Windows.Controls.Primitives.Popup
+            {
+                PlacementTarget = InputFrame,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Top,
+                VerticalOffset = -6,
+                AllowsTransparency = true,
+                StaysOpen = false,
+                Child = new Border
+                {
+                    Background = Frozen(Color.FromRgb(0x1C, 0x1C, 0x1E)),
+                    BorderBrush = Frozen(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(10),
+                    Padding = new Thickness(4),
+                    Child = _slashList
+                }
+            };
+        }
+
+        _slashIndex = Math.Clamp(_slashIndex, 0, _slashMatches.Length - 1);
+        RenderSlashMenu();
+        _slashPopup.IsOpen = true;
+    }
+
+    private void RenderSlashMenu()
+    {
+        _slashList!.Children.Clear();
+        for (var i = 0; i < _slashMatches.Length; i++)
+        {
+            var command = _slashMatches[i];
+            var line = new DockPanel();
+            var hint = new TextBlock
+            {
+                Text = command.Hint,
+                FontSize = 12,
+                Foreground = (Brush)FindResource("PanelText2"),
+                Margin = new Thickness(16, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(hint, Dock.Right);
+            line.Children.Add(hint);
+            line.Children.Add(new TextBlock
+            {
+                Text = "/" + command.Name,
+                FontSize = 13,
+                FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas"),
+                Foreground = (Brush)FindResource("PanelText"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var row = new Border
+            {
+                Child = line,
+                Padding = new Thickness(10, 6, 10, 6),
+                CornerRadius = new CornerRadius(6),
+                Background = i == _slashIndex ? (Brush)FindResource("PanelControlHover") : System.Windows.Media.Brushes.Transparent,
+                Cursor = Cursors.Hand
+            };
+            var picked = command;
+            row.MouseLeftButtonUp += (_, _) => RunSlashCommand(picked);
+            _slashList.Children.Add(row);
+        }
+    }
+
+    private void CloseSlashMenu()
+    {
+        if (_slashPopup is not null)
+        {
+            _slashPopup.IsOpen = false;
+        }
+
+        _slashIndex = 0;
+    }
+
+    private bool HandleSlashKey(Key key)
+    {
+        if (!SlashOpen)
+        {
+            return false;
+        }
+
+        switch (key)
+        {
+            case Key.Down:
+                _slashIndex = (_slashIndex + 1) % _slashMatches.Length;
+                RenderSlashMenu();
+                return true;
+            case Key.Up:
+                _slashIndex = (_slashIndex - 1 + _slashMatches.Length) % _slashMatches.Length;
+                RenderSlashMenu();
+                return true;
+            case Key.Enter:
+            case Key.Tab:
+                RunSlashCommand(_slashMatches[_slashIndex]);
+                return true;
+            case Key.Escape:
+                CloseSlashMenu();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void RunSlashCommand(SlashCommand command)
+    {
+        CloseSlashMenu();
+        Input.Clear();
+        switch (command.Name)
+        {
+            case "model":
+                ModelButton_Click(this, new RoutedEventArgs());
+                break;
+            case "effort":
+                EffortButton_Click(this, new RoutedEventArgs());
+                break;
+            case "mode":
+                ModeButton_Click(this, new RoutedEventArgs());
+                break;
+            case "attach":
+                AttachRequested?.Invoke(this, EventArgs.Empty);
+                break;
+            case "voice":
+                MicButton_Click(this, new RoutedEventArgs());
+                break;
+            case "copy":
+                CopyRequested?.Invoke(this, EventArgs.Empty);
+                break;
+            case "wide":
+                ToggleWide();
+                break;
+            default:
+                CommandInvoked?.Invoke(this, command.Name);
+                break;
+        }
     }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e) => CopyRequested?.Invoke(this, EventArgs.Empty);
@@ -752,12 +999,19 @@ public partial class ConversationPanel : Window
 
     private void Input_TextChanged(object sender, TextChangedEventArgs e)
     {
+        UpdateSlashMenu();
         InputPlaceholder.Visibility = Input.Text.Length > 0 ? Visibility.Collapsed : Visibility.Visible;
         SetBusy(_busy);
     }
 
     private void Input_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (HandleSlashKey(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && PasteAttachment?.Invoke() == true)
         {
             e.Handled = true;
@@ -795,6 +1049,12 @@ public partial class ConversationPanel : Window
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
+            if (SlashOpen)
+            {
+                CloseSlashMenu(); // Esc closes the command list first, not the chat
+                return;
+            }
+
             Dismiss();
         }
     }

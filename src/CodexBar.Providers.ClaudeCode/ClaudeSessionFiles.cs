@@ -128,6 +128,12 @@ public static class ClaudeSessionFiles
         var messages = new List<ProviderThreadMessage>();
         var parts = new List<(ProviderActivityStep Step, string? ToolId)>();
         var failed = new HashSet<string>(StringComparer.Ordinal);
+        string? turnEnd = null;
+
+        // A session file can hold branches (e.g. a prompt sent from CodexBar while Claude Code
+        // kept going): show only the latest one, from its root to its newest message.
+        var lines = ReadLines(filePath).ToList();
+        var branch = LatestBranch(lines);
 
         void FlushAssistant()
         {
@@ -137,25 +143,31 @@ public static class ClaudeSessionFiles
             }
 
             var (steps, answer) = SplitTurn(parts, failed);
-            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null));
+            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null, Id: turnEnd));
             parts.Clear();
             failed.Clear();
         }
 
-        foreach (var line in ReadLines(filePath))
+        foreach (var line in lines)
         {
+            var uuid = branch is null ? null : MessageUuid(line);
+            if (uuid is not null && !branch!.Contains(uuid))
+            {
+                continue;
+            }
+
             if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal))
             {
                 var images = line.Contains("\"type\":\"image\"", StringComparison.Ordinal) ? HumanImages(line) : [];
                 if (HumanPrompt(line) is { } prompt)
                 {
                     FlushAssistant();
-                    messages.Add(new ProviderThreadMessage("user", prompt, Images: images.Count > 0 ? images : null));
+                    messages.Add(new ProviderThreadMessage("user", prompt, Images: images.Count > 0 ? images : null, Id: uuid));
                 }
                 else if (images.Count > 0)
                 {
                     FlushAssistant();
-                    messages.Add(new ProviderThreadMessage("user", string.Empty, Images: images));
+                    messages.Add(new ProviderThreadMessage("user", string.Empty, Images: images, Id: uuid));
                 }
                 else if (line.Contains("\"is_error\":true", StringComparison.Ordinal))
                 {
@@ -167,7 +179,12 @@ public static class ClaudeSessionFiles
             }
             else if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal))
             {
-                parts.AddRange(AssistantParts(line));
+                var added = AssistantParts(line).ToArray();
+                parts.AddRange(added);
+                if (added.Length > 0 && uuid is not null)
+                {
+                    turnEnd = uuid; // forking from this answer keeps everything up to here
+                }
             }
         }
 
@@ -175,29 +192,162 @@ public static class ClaudeSessionFiles
         return messages;
     }
 
-    /// <summary>
-    /// A turn's parts as Claude Code shows them: everything up to the last tool call is work
-    /// (steps, failures marked), the text after it is the answer.
-    /// </summary>
-    internal static (IReadOnlyList<ProviderActivityStep> Steps, string Answer) SplitTurn(
-        IReadOnlyList<(ProviderActivityStep Step, string? ToolId)> parts, IReadOnlySet<string> failed)
+    // Top-level uuid of any line that has one.
+    private static string? LineUuid(string line)
     {
-        var lastTool = -1;
-        for (var i = parts.Count - 1; i >= 0; i--)
+        if (!line.Contains("\"uuid\"", StringComparison.Ordinal) || !TryRead(line, out var document))
         {
-            if (!parts[i].Step.IsText || parts[i].Step.IsNote)
+            return null;
+        }
+
+        using (document)
+        {
+            return Str(document.RootElement, "uuid");
+        }
+    }
+
+    // Top-level uuid of a user / assistant line (null for other lines).
+    private static string? MessageUuid(string line)
+    {
+        if (!line.Contains("\"uuid\"", StringComparison.Ordinal) ||
+            !(line.Contains("\"type\":\"user\"", StringComparison.Ordinal) || line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)) ||
+            !TryRead(line, out var document))
+        {
+            return null;
+        }
+
+        using (document)
+        {
+            return Str(document.RootElement, "type") is "user" or "assistant" ? Str(document.RootElement, "uuid") : null;
+        }
+    }
+
+    /// <summary>
+    /// The uuids on the path from the newest main-chain message back to the root (following
+    /// <c>logicalParentUuid</c> across compactions); null when the file has no uuids.
+    /// </summary>
+    private static HashSet<string>? LatestBranch(IReadOnlyList<string> lines)
+    {
+        // Every line with a uuid is a link (user, assistant, attachment, system…); the newest
+        // user/assistant line on the main chain is the tip.
+        var parents = Links(lines);
+        string? leaf = null;
+        foreach (var line in lines)
+        {
+            if (MessageUuid(line) is { } uuid && !line.Contains("\"isSidechain\":true", StringComparison.Ordinal))
             {
-                lastTool = i;
-                break;
+                leaf = uuid;
             }
         }
 
-        var answer = string.Join("\n\n", parts.Skip(lastTool + 1).Select(part => part.Step.Detail)).Trim();
-        var steps = parts.Take(lastTool + 1)
-            .Select(part => part.ToolId is not null && failed.Contains(part.ToolId) ? part.Step with { Failed = true } : part.Step)
-            .ToArray();
-        return (steps, answer);
+        if (leaf is null)
+        {
+            return null;
+        }
+
+        var branch = new HashSet<string>(StringComparer.Ordinal);
+        for (var at = leaf; at is not null && branch.Add(at); )
+        {
+            at = parents.TryGetValue(at, out var parent) ? parent : null;
+        }
+
+        return branch;
     }
+
+    // uuid -> parent uuid for every line that has one (logicalParentUuid bridges a compaction).
+    private static Dictionary<string, string?> Links(IReadOnlyList<string> lines)
+    {
+        var parents = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var line in lines)
+        {
+            if (!line.Contains("\"uuid\"", StringComparison.Ordinal) || !TryRead(line, out var document))
+            {
+                continue;
+            }
+
+            using (document)
+            {
+                var root = document.RootElement;
+                if (Str(root, "uuid") is { Length: > 0 } uuid)
+                {
+                    parents[uuid] = Str(root, "parentUuid") ?? Str(root, "logicalParentUuid");
+                }
+            }
+        }
+
+        return parents;
+    }
+
+    /// <summary>
+    /// A new session holding this one's conversation up to <paramref name="uptoUuid"/> (that
+    /// message and everything before it on its branch), so it can go on differently. Returns the
+    /// new session id.
+    /// </summary>
+    public static string Fork(string filePath, string uptoUuid, string title)
+    {
+        var lines = ReadLines(filePath).ToList();
+        var parents = Links(lines);
+
+        var keep = new HashSet<string>(StringComparer.Ordinal);
+        for (var at = (string?)uptoUuid; at is not null && keep.Add(at); )
+        {
+            at = parents.TryGetValue(at, out var parent) ? parent : null;
+        }
+
+        var oldId = Path.GetFileNameWithoutExtension(filePath);
+        var newId = Guid.NewGuid().ToString();
+        var output = new List<string>();
+        foreach (var line in lines)
+        {
+            if (LineUuid(line) is { } uuid && keep.Contains(uuid))
+            {
+                output.Add(line.Replace($"\"sessionId\":\"{oldId}\"", $"\"sessionId\":\"{newId}\"", StringComparison.Ordinal));
+            }
+        }
+
+        output.Add(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["type"] = "custom-title",
+            ["customTitle"] = title,
+            ["sessionId"] = newId
+        }));
+        File.WriteAllLines(Path.Combine(Path.GetDirectoryName(filePath)!, newId + ".jsonl"), output);
+        return newId;
+    }
+
+    /// <summary>
+    /// True when the session was written by Claude Code itself (terminal, IDE, desktop) in the last
+    /// <paramref name="within"/>: it is probably open there, and a prompt sent from CodexBar
+    /// becomes a branch that app won't see.
+    /// </summary>
+    public static bool ActiveElsewhere(string sessionId, TimeSpan within)
+    {
+        if (FindFile(sessionId) is not { } path)
+        {
+            return false;
+        }
+
+        var file = new FileInfo(path);
+        if (DateTime.UtcNow - file.LastWriteTimeUtc > within)
+        {
+            return false;
+        }
+
+        string? last = null;
+        foreach (var line in ReadLines(path))
+        {
+            if (line.Contains("\"entrypoint\"", StringComparison.Ordinal) && Field(line, "entrypoint") is { } entry)
+            {
+                last = entry;
+            }
+        }
+
+        return last is not null and not "sdk-cli";
+    }
+
+    internal static (IReadOnlyList<ProviderActivityStep> Steps, string Answer) SplitTurn(
+        IReadOnlyList<(ProviderActivityStep Step, string? ToolId)> parts, IReadOnlySet<string> failed) =>
+        ProviderActivity.SplitTurn(parts, failed);
 
     // Text and tool_use blocks of one assistant line, in order.
     internal static IEnumerable<(ProviderActivityStep Step, string? ToolId)> AssistantParts(string line)
@@ -326,49 +476,9 @@ public static class ClaudeSessionFiles
         }
     }
 
-    private static int LineCount(string text) => text.Length == 0 ? 0 : text.TrimEnd('\n').Split('\n').Length;
+    private static int LineCount(string text) => ProviderActivity.LineCount(text);
 
-    // Lines removed / added by replacing old with new (lines both share at the ends don't count).
-    internal static (int Added, int Removed) LineDelta(string oldText, string newText)
-    {
-        var before = oldText.Length == 0 ? [] : oldText.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-        var after = newText.Length == 0 ? [] : newText.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-        var start = 0;
-        while (start < before.Length && start < after.Length && before[start] == after[start])
-        {
-            start++;
-        }
-
-        var end = 0;
-        while (end < before.Length - start && end < after.Length - start &&
-               before[before.Length - 1 - end] == after[after.Length - 1 - end])
-        {
-            end++;
-        }
-
-        // In between: lines kept are the longest common subsequence (as a diff counts them).
-        var m = before.Length - start - end;
-        var n = after.Length - start - end;
-        if (m == 0 || n == 0 || (long)m * n > 4_000_000)
-        {
-            return (n, m);
-        }
-
-        var row = new int[n + 1];
-        for (var i = 0; i < m; i++)
-        {
-            var diagonal = 0;
-            for (var j = 0; j < n; j++)
-            {
-                var above = row[j + 1];
-                row[j + 1] = before[start + i] == after[start + j] ? diagonal + 1 : Math.Max(above, row[j]);
-                diagonal = above;
-            }
-        }
-
-        var kept = row[n];
-        return (n - kept, m - kept);
-    }
+    internal static (int Added, int Removed) LineDelta(string oldText, string newText) => ProviderActivity.LineDelta(oldText, newText);
 
     // How Claude Code names a tool call: "Edited Foo.cs", "Ran a command", "Read bar.png"…
     private static ProviderActivityStep DescribeTool(string name, JsonElement input)
@@ -388,9 +498,23 @@ public static class ClaudeSessionFiles
             _ => (0, 0)
         };
 
+        // The replacements, so the turn can be undone.
+        IReadOnlyList<ProviderTextEdit>? replaced = name switch
+        {
+            "Edit" => [new ProviderTextEdit(Arg("old_string"), Arg("new_string"),
+                input.ValueKind == JsonValueKind.Object && input.TryGetProperty("replace_all", out var all) && all.ValueKind == JsonValueKind.True)],
+            "MultiEdit" when input.ValueKind == JsonValueKind.Object && input.TryGetProperty("edits", out var list) &&
+                             list.ValueKind == JsonValueKind.Array =>
+                list.EnumerateArray()
+                    .Select(e => new ProviderTextEdit(Str(e, "old_string") ?? string.Empty, Str(e, "new_string") ?? string.Empty,
+                        e.TryGetProperty("replace_all", out var each) && each.ValueKind == JsonValueKind.True))
+                    .ToArray(),
+            _ => null
+        };
+
         return name switch
         {
-            "Edit" or "MultiEdit" => new("Edited", FileName("file_path"), Arg("file_path"), Added: added, Removed: removed),
+            "Edit" or "MultiEdit" => new("Edited", FileName("file_path"), Arg("file_path"), Added: added, Removed: removed, Edits: replaced),
             "Write" => new("Wrote", FileName("file_path"), Arg("file_path"), Added: added, Removed: removed),
             "NotebookEdit" => new("Edited", FileName("notebook_path"), Arg("notebook_path")),
             "Read" => new("Read", FileName("file_path"), Arg("file_path")),

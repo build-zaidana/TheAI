@@ -304,6 +304,22 @@ public sealed class CodexProvider : IAgentProvider
         }
 
         var messages = new List<ProviderThreadMessage>();
+        var parts = new List<(ProviderActivityStep Step, string? ToolId)>();
+
+        // An agent turn as Claude Code shows it: its commands and file changes as steps, the
+        // message after the last one as the answer.
+        void FlushAgent()
+        {
+            if (parts.Count == 0)
+            {
+                return;
+            }
+
+            var (steps, answer) = ProviderActivity.SplitTurn(parts, new HashSet<string>());
+            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null));
+            parts.Clear();
+        }
+
         foreach (var turn in turns.EnumerateArray())
         {
             if (!turn.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
@@ -313,24 +329,22 @@ public sealed class CodexProvider : IAgentProvider
 
             foreach (var item in items.EnumerateArray())
             {
-                switch (GetString(item, "type"))
+                if (GetString(item, "type") == "userMessage")
                 {
-                    case "userMessage":
-                        var userText = ReadUserMessage(item);
-                        if (!string.IsNullOrWhiteSpace(userText))
-                        {
-                            messages.Add(new ProviderThreadMessage("user", userText));
-                        }
-                        break;
-
-                    case "agentMessage":
-                        if (GetString(item, "text") is { Length: > 0 } agentText)
-                        {
-                            messages.Add(new ProviderThreadMessage("assistant", agentText));
-                        }
-                        break;
+                    var userText = ReadUserMessage(item);
+                    if (!string.IsNullOrWhiteSpace(userText))
+                    {
+                        FlushAgent();
+                        messages.Add(new ProviderThreadMessage("user", userText));
+                    }
+                }
+                else
+                {
+                    parts.AddRange(ItemParts(item));
                 }
             }
+
+            FlushAgent();
         }
 
         return messages;
@@ -683,6 +697,7 @@ public sealed class CodexProvider : IAgentProvider
                 break;
 
             case "turn/started":
+                _turnParts.Clear();
                 _currentTurnId = GetNestedString(parameters, "turn", "id") ?? _currentTurnId;
                 Emit(new ProviderStatusEvent(L("provider.status.working", "Codex sedang bekerja…")));
                 break;
@@ -739,10 +754,24 @@ public sealed class CodexProvider : IAgentProvider
                 break;
 
             case "item/completed":
-                if (parameters.TryGetProperty("item", out var completedItem) &&
-                    ParseFileChangeItem(completedItem) is { Count: > 0 } changes)
+                if (parameters.TryGetProperty("item", out var completedItem))
                 {
-                    Emit(new ProviderFileChangeEvent(changes));
+                    if (ParseFileChangeItem(completedItem) is { Count: > 0 } changes)
+                    {
+                        Emit(new ProviderFileChangeEvent(changes));
+                    }
+
+                    // Live work list: a finished command / change / tool call joins it.
+                    var added = ItemParts(completedItem).ToArray();
+                    if (added.Length > 0)
+                    {
+                        _turnParts.AddRange(added);
+                        if (added.Any(part => !part.Step.IsText))
+                        {
+                            var (steps, answer) = ProviderActivity.SplitTurn(_turnParts, new HashSet<string>());
+                            Emit(new ProviderActivityEvent(steps, answer));
+                        }
+                    }
                 }
                 break;
         }
@@ -811,6 +840,59 @@ public sealed class CodexProvider : IAgentProvider
         }
 
         return windows;
+    }
+
+    private readonly List<(ProviderActivityStep Step, string? ToolId)> _turnParts = [];
+
+    /// <summary>
+    /// A thread item as steps in Claude Code's activity view: commands, file changes (one per
+    /// file, with line counts), MCP tool calls and web searches; agent messages as text.
+    /// </summary>
+    internal static IEnumerable<(ProviderActivityStep Step, string? ToolId)> ItemParts(JsonElement item)
+    {
+        var status = GetString(item, "status");
+        var failed = status is "failed" or "declined";
+        switch (GetString(item, "type"))
+        {
+            case "agentMessage" when GetString(item, "text") is { Length: > 0 } text:
+                yield return (new ProviderActivityStep(string.Empty, text.Trim().Split('\n')[0], text.Trim(), IsText: true), null);
+                break;
+
+            case "commandExecution":
+                var command = item.TryGetProperty("command", out var commandElement)
+                    ? commandElement.ValueKind == JsonValueKind.Array
+                        ? string.Join(' ', commandElement.EnumerateArray().Select(part => part.GetString()))
+                        : commandElement.GetString() ?? string.Empty
+                    : string.Empty;
+                var exitFailed = item.TryGetProperty("exitCode", out var exit) && exit.ValueKind == JsonValueKind.Number && exit.GetInt32() != 0;
+                yield return (new ProviderActivityStep("Ran", "a command", command, Failed: failed || exitFailed), null);
+                break;
+
+            case "fileChange" when item.TryGetProperty("changes", out var changes) && changes.ValueKind == JsonValueKind.Array:
+                foreach (var change in changes.EnumerateArray())
+                {
+                    if (GetString(change, "path") is not { Length: > 0 } path)
+                    {
+                        continue;
+                    }
+
+                    var kind = change.TryGetProperty("kind", out var kindElement)
+                        ? kindElement.ValueKind == JsonValueKind.String ? kindElement.GetString() : GetString(kindElement, "type")
+                        : "update";
+                    var (added, removed) = ProviderActivity.DiffCounts(GetString(change, "diff") ?? string.Empty);
+                    yield return (new ProviderActivityStep(kind == "add" ? "Wrote" : "Edited", Path.GetFileName(path), path,
+                        Failed: failed, Added: added, Removed: removed), null);
+                }
+                break;
+
+            case "mcpToolCall":
+                yield return (new ProviderActivityStep("Used", GetString(item, "tool") ?? "tool", GetString(item, "server") ?? string.Empty, Failed: failed), null);
+                break;
+
+            case "webSearch":
+                yield return (new ProviderActivityStep("Searched the web", GetString(item, "query") ?? string.Empty), null);
+                break;
+        }
     }
 
     /// <summary>

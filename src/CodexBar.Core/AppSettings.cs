@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// <summary>Hotkey chat: buka chat di samping notch (tekan lagi untuk menutup).</summary>
     public string ChatHotkey { get; set; } = "Win+Alt+C";
 
+    /// <summary>Lebar chat di samping notch (DIP); 0 = bawaan.</summary>
+    public double ChatWidth { get; set; }
+
     /// <summary>Bahasa ucapan untuk whisper: "id", "en", atau "auto" (deteksi, lebih lambat).</summary>
     public string VoiceLanguage { get; set; } = "id";
 
@@ -121,6 +124,7 @@ public sealed class AppSettings
         ScreenshotHotkey = source.ScreenshotHotkey;
         VoiceHotkey = source.VoiceHotkey;
         ChatHotkey = source.ChatHotkey;
+        ChatWidth = source.ChatWidth;
         VoiceLanguage = source.VoiceLanguage;
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;

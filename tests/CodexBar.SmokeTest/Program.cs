@@ -1000,7 +1000,56 @@ static int RunFileChangeTests()
                steps[2] is { Verb: "Ran", Target: "a command", Detail: "npm test", Failed: true },
             $"Langkah kerja agen harus terbaca seperti Claude Code: {string.Join(" | ", history[1].Steps ?? [])}");
         Assert(ClaudeSessionFiles.ReadEntrypoint(sessionFile) == "cli", "Entrypoint harus terbaca dari baris awal.");
+
+        // A file with two branches (a prompt sent from elsewhere while Claude Code went on): only
+        // the latest branch shows; forking keeps the chain up to the chosen message.
+        var branchFile = Path.Combine(sessionDir, "22222222-2222-3333-4444-555555555555.jsonl");
+        File.WriteAllLines(branchFile, new[]
+        {
+            """{"type":"user","uuid":"u1","parentUuid":null,"sessionId":"22222222-2222-3333-4444-555555555555","cwd":"C:\\w","message":{"role":"user","content":"halo"}}""",
+            """{"type":"assistant","uuid":"a1","parentUuid":"u1","message":{"role":"assistant","content":[{"type":"text","text":"Hai."}]}}""",
+            """{"type":"user","uuid":"x1","parentUuid":"a1","entrypoint":"sdk-cli","message":{"role":"user","content":"cabang lain"}}""",
+            """{"type":"assistant","uuid":"x2","parentUuid":"x1","message":{"role":"assistant","content":[{"type":"text","text":"Jawaban cabang."}]}}""",
+            """{"type":"user","uuid":"u2","parentUuid":"a1","sessionId":"22222222-2222-3333-4444-555555555555","message":{"role":"user","content":"lanjut"}}""",
+            """{"type":"assistant","uuid":"a2","parentUuid":"u2","message":{"role":"assistant","content":[{"type":"text","text":"Oke."}]}}"""
+        });
+        var branchHistory = ClaudeSessionFiles.ReadMessages(branchFile);
+        Assert(string.Join("|", branchHistory.Select(m => m.Text)) == "halo|Hai.|lanjut|Oke." && branchHistory[1].Id == "a1",
+            $"Hanya cabang terbaru yang boleh tampil: {string.Join("|", branchHistory.Select(m => m.Text))}");
+        var forkId = ClaudeSessionFiles.Fork(branchFile, "a1", "Fork: halo");
+        var forked = ClaudeSessionFiles.ReadMessages(Path.Combine(sessionDir, forkId + ".jsonl"));
+        Assert(string.Join("|", forked.Select(m => m.Text)) == "halo|Hai." &&
+               File.ReadAllText(Path.Combine(sessionDir, forkId + ".jsonl")).Contains($"\"sessionId\":\"{forkId}\""),
+            $"Fork harus berisi percakapan sampai pesan yang dipilih: {string.Join("|", forked.Select(m => m.Text))}");
+
+        // Undo puts back what a turn's edits replaced (CRLF files too); edits it can't find are skipped.
+        var undoFile = Path.Combine(sessionDir, "undo.txt");
+        File.WriteAllText(undoFile, "satu\r\nDUA\r\ntiga\r\n");
+        var (undone, skipped) = ProviderActivity.Undo(
+        [
+            new ProviderActivityStep("Edited", "undo.txt", undoFile, Edits: [new ProviderTextEdit("dua", "DUA")]),
+            new ProviderActivityStep("Edited", "gone.txt", Path.Combine(sessionDir, "gone.txt"), Edits: [new ProviderTextEdit("a", "b")])
+        ]);
+        Assert(undone == 1 && skipped == 1 && File.ReadAllText(undoFile) == "satu\r\ndua\r\ntiga\r\n",
+            $"Undo harus mengembalikan teks yang diganti: undone={undone} skipped={skipped} '{File.ReadAllText(undoFile)}'");
+        Assert(history[1].Steps![3].Edits is [{ Old: "a\nb\nc", New: "a\nB\nc\nd" }], "Edit Claude Code harus menyimpan teks untuk Undo.");
         Directory.Delete(sessionDir, recursive: true);
+
+        // Codex items as activity steps: a failed command, a file change with diff counts, the answer.
+        Assert(ProviderActivity.DiffCounts("--- a/x\n+++ b/x\n@@ -1 +1,2 @@\n-a\n+b\n+c") == (2, 1), "Hitungan diff Codex salah.");
+        using (var codexTurn = JsonDocument.Parse("""
+            [{"type":"agentMessage","text":"Saya cek."},
+             {"type":"commandExecution","command":"npm test","status":"completed","exitCode":1},
+             {"type":"fileChange","status":"completed","changes":[{"path":"C:/w/a.ts","kind":{"type":"update"},"diff":"@@\n-x\n+y"}]},
+             {"type":"agentMessage","text":"Beres."}]
+            """))
+        {
+            var codexParts = codexTurn.RootElement.EnumerateArray().SelectMany(CodexProvider.ItemParts).ToArray();
+            var (codexSteps, codexAnswer) = ProviderActivity.SplitTurn(codexParts, new HashSet<string>());
+            Assert(codexAnswer == "Beres." && codexSteps.Count == 3 &&
+                   codexSteps[1] is { Verb: "Ran", Failed: true } && codexSteps[2] is { Verb: "Edited", Target: "a.ts", Added: 1, Removed: 1 },
+                $"Langkah Codex harus terbaca seperti Claude Code: {string.Join(" | ", codexSteps)}");
+        }
 
         var habits = new PromptHabits();
         Assert(habits.Predict(TurnContext.Files) is null, "Tanpa riwayat tidak boleh ada tebakan.");

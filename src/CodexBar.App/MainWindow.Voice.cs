@@ -90,7 +90,7 @@ public partial class MainWindow
 
     private void VoiceHotKey_Pressed()
     {
-        if (IsNotchMode && _notch is not null)
+        if (_notch is not null)
         {
             _notch.ToggleVoice();
         }
