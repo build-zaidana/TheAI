@@ -206,6 +206,8 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         var executable = _executable ?? ClaudeCodeExecutableLocator.Locate();
         Emit(new ProviderStatusEvent(L("provider.status.compacting", "Memadatkan konteks percakapan…")));
         var arguments = BuildArguments(threadId, resume: true, null, null, _sandboxMode, []);
+        var before = CompactionCount(threadId);
+        string output;
         using var process = new Process { StartInfo = CreateStartInfo(executable, arguments, _workspacePath) };
         if (!process.Start())
         {
@@ -218,7 +220,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
             process.BeginErrorReadLine();
             await process.StandardInput.WriteAsync("/compact".AsMemory(), cancellationToken).ConfigureAwait(false);
             process.StandardInput.Close();
-            await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -232,9 +234,40 @@ public sealed class ClaudeCodeProvider : IAgentProvider
                 L("claudeCode.error.exit", "Claude Code keluar dengan kode {0}: {1}"), process.ExitCode, "/compact"));
         }
 
+        if (CompactionCount(threadId) <= before)
+        {
+            // Claude Code said why it didn't (e.g. "Not enough messages to compact.").
+            var reason = System.Text.RegularExpressions.Regex.Match(output, @"<local-command-stdout>(.*?)</local-command-stdout>") is { Success: true } said
+                ? said.Groups[1].Value
+                : L("claudeCode.compact.none", "Claude Code tidak memadatkan percakapan ini.");
+            throw new InvalidOperationException(reason);
+        }
+
         _loadedThreadId = null; // the history now has the compaction marker: read it again
         Emit(new ProviderTokenUsageEvent(0, 0, null));
         Emit(new ProviderStatusEvent(L("provider.status.compacted", "Konteks percakapan dipadatkan.")));
+    }
+
+    // How many times the session was compacted (read while Claude Code may still write to it).
+    private static int CompactionCount(string threadId)
+    {
+        if (ClaudeSessionFiles.FindFile(threadId) is not { } path)
+        {
+            return 0;
+        }
+
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(stream);
+        var count = 0;
+        while (reader.ReadLine() is { } line)
+        {
+            if (line.Contains("\"subtype\":\"compact_boundary\"", StringComparison.Ordinal))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     public Task CancelAsync(CancellationToken cancellationToken = default)
