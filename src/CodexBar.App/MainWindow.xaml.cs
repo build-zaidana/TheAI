@@ -4036,7 +4036,11 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             throw new InvalidOperationException(L("busy.switchThread"));
         }
 
-        await OpenWorkspaceAsync(thread.WorkspacePath, requestedThreadId: thread.Id);
+        // Without a folder (an older local copy), use the session's own, else the current one.
+        var workspace = thread.WorkspacePath is { Length: > 0 } path
+            ? path
+            : (IsClaudeCodeProvider ? CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(thread.Id)?.Cwd : null) ?? _settings.WorkspacePath;
+        await OpenWorkspaceAsync(workspace, requestedThreadId: thread.Id);
         await EnsureHistoryLoadedAsync();
         ShowOutputSurface();
         _outputWindow?.FocusInput();

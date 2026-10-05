@@ -348,7 +348,15 @@ public partial class MainWindow
         }
 
         var ownIds = own.Select(thread => thread.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return own.Select(thread => thread with { Source = thread.Source ?? "CodexBar" })
+        var byId = sessions.GroupBy(s => s.SessionId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        // A session continued from CodexBar has a local copy too; the session file knows its folder.
+        return own.Select(thread => thread with
+            {
+                Source = thread.Source ?? "CodexBar",
+                WorkspacePath = thread.WorkspacePath is { Length: > 0 } || !byId.TryGetValue(thread.Id, out var session)
+                    ? thread.WorkspacePath
+                    : session.Cwd
+            })
             .Concat(sessions.Where(s => !ownIds.Contains(s.SessionId)).Select(s =>
                 new ProviderThreadSummary(s.SessionId, s.Title, string.Empty, s.Cwd, s.UpdatedAt, "idle", null, s.Source)))
             .OrderByDescending(thread => thread.UpdatedAt)
