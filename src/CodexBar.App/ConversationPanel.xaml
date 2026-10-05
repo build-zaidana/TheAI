@@ -72,6 +72,28 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Model / effort / mode under the box: plain text, a soft fill on hover. -->
+        <Style x:Key="PanelChoiceButton" TargetType="Button">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="7,0,7,1" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource PanelControl}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="PanelGrabber" TargetType="Button">
             <Setter Property="Width" Value="72" />
             <Setter Property="Height" Value="18" />
@@ -199,12 +221,20 @@
                                 <Path x:Name="MicGlyph" Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       StrokeLineJoin="Round" Data="M 4,1.5 Q 4,0 5.5,0 Q 7,0 7,1.5 L 7,6 Q 7,7.5 5.5,7.5 Q 4,7.5 4,6 Z M 1.5,5 Q 1.5,9.5 5.5,9.5 Q 9.5,9.5 9.5,5 M 5.5,9.5 L 5.5,12" />
                             </Button>
-                            <TextBlock x:Name="ModeText" Margin="8,0,0,1" FontSize="12.5" Foreground="#E8A15B" VerticalAlignment="Center"
-                                       ToolTip="Mode persetujuan (ubah di Pengaturan)" />
+                            <Button x:Name="ModeButton" Style="{StaticResource PanelChoiceButton}" Margin="4,0,0,0" Click="ModeButton_Click"
+                                    ToolTip="Mode persetujuan" AutomationProperties.Name="Mode persetujuan">
+                                <TextBlock x:Name="ModeText" Foreground="#E8A15B" />
+                            </Button>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <TextBlock x:Name="ModelText" FontSize="12.5" Foreground="{StaticResource PanelText}" VerticalAlignment="Center" Margin="0,0,12,1" />
-                            <TextBlock x:Name="EffortText" FontSize="12.5" Foreground="{StaticResource PanelText}" VerticalAlignment="Center" Margin="0,0,12,1" />
+                            <Button x:Name="ModelButton" Style="{StaticResource PanelChoiceButton}" Margin="0,0,2,0" Click="ModelButton_Click"
+                                    ToolTip="Model" AutomationProperties.Name="Model">
+                                <TextBlock x:Name="ModelText" Foreground="{StaticResource PanelText}" />
+                            </Button>
+                            <Button x:Name="EffortButton" Style="{StaticResource PanelChoiceButton}" Margin="0,0,6,0" Click="EffortButton_Click"
+                                    ToolTip="Effort" AutomationProperties.Name="Effort">
+                                <TextBlock x:Name="EffortText" Foreground="{StaticResource PanelText}" />
+                            </Button>
                             <Grid Width="14" Height="14" VerticalAlignment="Center" ToolTip="Status">
                                 <Ellipse Stroke="#33FFFFFF" StrokeThickness="2" />
                                 <Path x:Name="BusyArc" Stroke="#0A84FF" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"

@@ -18,6 +18,9 @@ public sealed class AppSettings
     /// <summary>Hotkey input suara: tekan untuk mulai merekam, tekan lagi untuk berhenti dan mentranskripsi.</summary>
     public string VoiceHotkey { get; set; } = "Win+Alt+V";
 
+    /// <summary>Hotkey chat: buka chat di samping notch (tekan lagi untuk menutup).</summary>
+    public string ChatHotkey { get; set; } = "Win+Alt+C";
+
     /// <summary>Bahasa ucapan untuk whisper: "id", "en", atau "auto" (deteksi, lebih lambat).</summary>
     public string VoiceLanguage { get; set; } = "id";
 
@@ -117,6 +120,7 @@ public sealed class AppSettings
         QuickCaptureHotkey = source.QuickCaptureHotkey;
         ScreenshotHotkey = source.ScreenshotHotkey;
         VoiceHotkey = source.VoiceHotkey;
+        ChatHotkey = source.ChatHotkey;
         VoiceLanguage = source.VoiceLanguage;
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;

@@ -95,6 +95,14 @@ internal static class Program
         Assert(panel.Panel.ActualWidth > narrow + 100,
             $"Tombol perlebar harus melebarkan panel ({narrow:0} -> {panel.Panel.ActualWidth:0}).");
 
+        // Model / effort / mode under the box show the chosen option's label.
+        panel.SetComposerChoices(
+            [new ConversationPanel.Choice("opus", "Opus 5.5"), new ConversationPanel.Choice("sonnet", "Sonnet 5.5")], "opus", "Claude",
+            [new ConversationPanel.Choice("", "Default"), new ConversationPanel.Choice("medium", "Medium")], "medium",
+            [new ConversationPanel.Choice("on-request", "Auto")], "on-request");
+        Assert(panel.ModelText.Text == "Opus 5.5" && panel.EffortText.Text == "Medium" && panel.ModeText.Text == "Auto",
+            "Baris di bawah kotak input harus menampilkan model, effort, dan mode yang dipilih.");
+
         // Attachments show as chips in the composer: a thumbnail for an image, a pill for a file.
         var picture = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "codexbar-ui-thumb.png");
         var pixels = System.Windows.Media.Imaging.BitmapSource.Create(2, 2, 96, 96, PixelFormats.Bgr32, null,

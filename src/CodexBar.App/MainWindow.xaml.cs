@@ -62,6 +62,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private readonly GlobalHotKey _quickCaptureHotKey = new(0x4343);
     private readonly GlobalHotKey _screenshotHotKey = new(0x4344);
     private readonly GlobalHotKey _voiceHotKey = new(0x4345);
+    private readonly GlobalHotKey _chatHotKey = new(0x4346);
     private bool _capturingScreen;
     private string? _pendingQuickCaptureReveal;
     private readonly Forms.NotifyIcon _trayIcon;
@@ -239,6 +240,22 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 RenderAttachments();
             }
         };
+        window.ModelChosen += (_, id) =>
+        {
+            if ((ModelCombo.ItemsSource as IEnumerable<ProviderModelInfo>)?.FirstOrDefault(m => m.Model == id) is { } picked)
+            {
+                ModelCombo.SelectedItem = picked; // saves the setting
+                UpdatePanelHeader();
+            }
+        };
+        window.EffortChosen += (_, id) =>
+        {
+            _settings.ReasoningEffort = id;
+            SelectEffortCombo(id);
+            _ = SaveSettingsSafeAsync();
+            UpdatePanelHeader();
+        };
+        window.ModeChosen += async (_, id) => await ChangeApprovalPolicyAsync(id);
         window.VoiceAvailable = () => CodexBar.App.Voice.WhisperEngine.IsInstalled(_settings.VoiceModel);
         window.Transcribe = pcm => ((INotchHost)this).TranscribeAsync(pcm);
         // Ctrl+V with a screenshot or copied files attaches them (plain text pastes as usual).
@@ -279,18 +296,81 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         var model = (ModelCombo.SelectedItem as ProviderModelInfo)?.DisplayName;
         var provider = ((INotchHost)this).ProviderName;
-        var mode = _settings.ApprovalPolicy switch
-        {
-            "untrusted" => "Ask",
-            "on-failure" => "On failure",
-            "never" => "Never ask",
-            _ => "Auto"
-        };
-        var effort = _settings.ReasoningEffort is { Length: > 0 } level ? char.ToUpperInvariant(level[0]) + level[1..] : string.Empty;
-        _outputWindow.SetComposerInfo(mode, model is { Length: > 0 } ? model : provider, effort);
+        var models = (ModelCombo.ItemsSource as IEnumerable<ProviderModelInfo>)?
+            .Select(m => new ConversationPanel.Choice(m.Model, m.DisplayName, m.Description)).ToArray() ?? [];
+        _outputWindow.SetComposerChoices(
+            models, (ModelCombo.SelectedItem as ProviderModelInfo)?.Model ?? string.Empty, model is { Length: > 0 } ? model : provider,
+            EffortChoices, _settings.ReasoningEffort,
+            ModeChoices, _settings.ApprovalPolicy is { Length: > 0 } policy ? policy : "on-request");
         _outputWindow.SetHeader(
             title.Length > 0 ? title : L("panel.newConversation"),
             string.Join(" · ", new[] { provider, model is { Length: > 0 } && model != provider ? model : null, _workspaceLabel }.Where(part => part is { Length: > 0 })));
+    }
+
+    private static readonly ConversationPanel.Choice[] EffortChoices =
+    [
+        new(string.Empty, "Default", "The model's own setting"),
+        new("minimal", "Minimal"),
+        new("low", "Low"),
+        new("medium", "Medium"),
+        new("high", "High")
+    ];
+
+    private static readonly ConversationPanel.Choice[] ModeChoices =
+    [
+        new("on-request", "Auto", "Asks only when the agent wants to go beyond the sandbox"),
+        new("untrusted", "Ask", "Asks before anything that isn't plainly safe"),
+        new("on-failure", "On failure", "Asks only when a command fails in the sandbox"),
+        new("never", "Never ask", "Never stops to ask")
+    ];
+
+    private void SelectEffortCombo(string effort) =>
+        EffortCombo.SelectedIndex = effort switch
+        {
+            "minimal" => 1,
+            "low" => 2,
+            "medium" => 3,
+            "high" => 4,
+            _ => 0
+        };
+
+    // Approval mode from the chat: applied to the open thread right away, like the sandbox picker.
+    private async Task ChangeApprovalPolicyAsync(string policy)
+    {
+        var previous = _settings.ApprovalPolicy;
+        _settings.ApprovalPolicy = policy;
+        UpdatePanelHeader();
+        try
+        {
+            await _controller.ChangePermissionsAsync(_settings.SandboxMode, policy);
+            ApprovalCombo.SelectedIndex = policy switch
+            {
+                "untrusted" => 0,
+                "on-failure" => 1,
+                "never" => 3,
+                _ => 2
+            };
+            await _settingsStore.SaveAsync(_settings);
+            SetStatus(L("status.permissionUpdated"), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            _settings.ApprovalPolicy = previous;
+            UpdatePanelHeader();
+            ShowError(exception.Message);
+        }
+    }
+
+    // Win+Alt+C: open the chat, or fold it back when it is already open.
+    private void ToggleChatFromHotkey()
+    {
+        if (_outputWindow is { IsVisible: true })
+        {
+            _outputWindow.Dismiss();
+            return;
+        }
+
+        ((INotchHost)this).OpenConversationWindow();
     }
 
     private double EffectiveResponseFontSize =>
@@ -790,6 +870,18 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         try
         {
+            try
+            {
+                _chatHotKey.Pressed += (_, _) => ToggleChatFromHotkey();
+                _chatHotKey.Register(this, _settings.ChatHotkey);
+                _settings.ChatHotkey = _chatHotKey.CurrentGesture ?? _settings.ChatHotkey;
+            }
+            catch (Exception exception)
+            {
+                // Optional: the combo may belong to another app.
+                DiagnosticsLog.Error("ChatHotkey", exception.Message);
+            }
+
             _voiceHotKey.Pressed += (_, _) => VoiceHotKey_Pressed();
             _voiceHotKey.Register(this, _settings.VoiceHotkey);
             _settings.VoiceHotkey = _voiceHotKey.CurrentGesture ?? _settings.VoiceHotkey;
@@ -4762,6 +4854,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _quickCaptureHotKey.Dispose();
         _screenshotHotKey.Dispose();
         _voiceHotKey.Dispose();
+        _chatHotKey.Dispose();
         _voiceEngine.Dispose();
         _hookServer.Dispose();
         _approvalGate.Dispose();

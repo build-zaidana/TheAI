@@ -147,6 +147,11 @@ public sealed class JsonSettingsStore
         {
             settings.ScreenshotHotkey = "Win+Shift+Z";
         }
+        if (string.IsNullOrWhiteSpace(settings.ChatHotkey))
+        {
+            settings.ChatHotkey = "Win+Alt+C";
+        }
+
         if (string.IsNullOrWhiteSpace(settings.VoiceHotkey))
         {
             settings.VoiceHotkey = "Win+Alt+V";

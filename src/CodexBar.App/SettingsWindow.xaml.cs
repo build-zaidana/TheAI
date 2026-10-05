@@ -42,6 +42,7 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyQuickCaptureHotkey(string gesture);
     (bool Ok, string Message) ApplyScreenshotHotkey(string gesture);
     (bool Ok, string Message) ApplyVoiceHotkey(string gesture);
+    (bool Ok, string Message) ApplyChatHotkey(string gesture);
     (bool Ok, string Message) SetClaudeLiveSessions(bool on);
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
@@ -161,6 +162,7 @@ public partial class SettingsWindow : Window
             "Sesi dari terminal, VS Code, dan aplikasi desktop ikut muncul di notch: langkah kerja, jawaban, dan permintaan izin yang bisa dijawab dari notch (kalau tidak dijawab dalam 30 detik, Claude Code bertanya seperti biasa). Mematikan sakelar ini melepas hooks-nya lagi.",
             "Sessions from the terminal, VS Code, and the desktop app show up in the notch: steps, answers, and permission requests you can answer from the notch (unanswered after 30 seconds, Claude Code asks as usual). Turning this off removes the hooks again.");
         VoiceHotkeyField.Text = s.VoiceHotkey;
+        ChatHotkeyField.Text = s.ChatHotkey;
         Select(VoiceLanguagePopup, s.VoiceLanguage);
         VoiceModelBase.Content = Tr.Text("Cepat (base · 57 MB)", "Fast (base · 57 MB)");
         VoiceModelSmall.Content = Tr.Text("Akurat (small · 181 MB)", "Accurate (small · 181 MB)");
@@ -427,6 +429,7 @@ public partial class SettingsWindow : Window
             "quick" => _host.Settings.QuickCaptureHotkey,
             "shot" => _host.Settings.ScreenshotHotkey,
             "voice" => _host.Settings.VoiceHotkey,
+            "chat" => _host.Settings.ChatHotkey,
             _ => _host.Settings.Hotkey
         };
 
@@ -505,6 +508,13 @@ public partial class SettingsWindow : Window
     {
         var (ok, message) = _host.ApplyVoiceHotkey(VoiceHotkeyField.Text);
         VoiceHotkeyField.Text = _host.Settings.VoiceHotkey;
+        SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private void ApplyChatHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        var (ok, message) = _host.ApplyChatHotkey(ChatHotkeyField.Text);
+        ChatHotkeyField.Text = _host.Settings.ChatHotkey;
         SetHotkeyHint(message, ok ? Green : Red);
     }
 

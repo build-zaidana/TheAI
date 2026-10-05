@@ -95,13 +95,121 @@ public partial class ConversationPanel : Window
     /// <summary>Turns recorded 16 kHz mono PCM into text.</summary>
     public Func<byte[], Task<string>>? Transcribe { get; set; }
 
-    /// <summary>The line under the box: approval mode (left), model and effort (right).</summary>
-    public void SetComposerInfo(string mode, string model, string effort)
+    /// <summary>One option in a picker under the box: id, label, and an optional one-line hint.</summary>
+    public sealed record Choice(string Id, string Label, string Hint = "");
+
+    /// <summary>The person picked another model / effort / approval mode (its id).</summary>
+    public event EventHandler<string>? ModelChosen;
+    public event EventHandler<string>? EffortChosen;
+    public event EventHandler<string>? ModeChosen;
+
+    private IReadOnlyList<Choice> _models = [], _efforts = [], _modes = [];
+    private string _model = string.Empty, _effort = string.Empty, _mode = string.Empty;
+
+    /// <summary>The line under the box, as in Claude Code: mode (left), model and effort (right), each a picker.</summary>
+    public void SetComposerChoices(
+        IReadOnlyList<Choice> models, string model, string modelFallback,
+        IReadOnlyList<Choice> efforts, string effort,
+        IReadOnlyList<Choice> modes, string mode)
     {
-        ModeText.Text = mode;
-        ModelText.Text = model;
-        EffortText.Text = effort;
-        EffortText.Visibility = effort.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        (_models, _model, _efforts, _effort, _modes, _mode) = (models, model, efforts, effort, modes, mode);
+        ModelText.Text = models.FirstOrDefault(c => c.Id == model)?.Label ?? modelFallback;
+        EffortText.Text = efforts.FirstOrDefault(c => c.Id == effort)?.Label ?? effort;
+        ModeText.Text = modes.FirstOrDefault(c => c.Id == mode)?.Label ?? mode;
+        ModelButton.Cursor = models.Count > 1 ? Cursors.Hand : null;
+        EffortButton.Visibility = efforts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ModeButton.Visibility = modes.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ModelButton_Click(object sender, RoutedEventArgs e) =>
+        ShowPicker(ModelButton, _models, _model, id => ModelChosen?.Invoke(this, id));
+
+    private void EffortButton_Click(object sender, RoutedEventArgs e) =>
+        ShowPicker(EffortButton, _efforts, _effort, id => EffortChosen?.Invoke(this, id));
+
+    private void ModeButton_Click(object sender, RoutedEventArgs e) =>
+        ShowPicker(ModeButton, _modes, _mode, id => ModeChosen?.Invoke(this, id));
+
+    // A small black list above the label: one row per option, a check on the current one.
+    private void ShowPicker(FrameworkElement anchor, IReadOnlyList<Choice> choices, string current, Action<string> chosen)
+    {
+        if (choices.Count < 2)
+        {
+            return;
+        }
+
+        var popup = new System.Windows.Controls.Primitives.Popup
+        {
+            PlacementTarget = anchor,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Top,
+            VerticalOffset = -6,
+            AllowsTransparency = true,
+            StaysOpen = false,
+            PopupAnimation = System.Windows.Controls.Primitives.PopupAnimation.Fade
+        };
+
+        var list = new StackPanel { MinWidth = 180 };
+        foreach (var choice in choices)
+        {
+            var label = new StackPanel();
+            label.Children.Add(new TextBlock { Text = choice.Label, FontSize = 13, Foreground = (Brush)FindResource("PanelText") });
+            if (choice.Hint.Length > 0)
+            {
+                label.Children.Add(new TextBlock
+                {
+                    Text = choice.Hint,
+                    FontSize = 11.5,
+                    Foreground = (Brush)FindResource("PanelText2"),
+                    Margin = new Thickness(0, 1, 0, 0),
+                    MaxWidth = 260,
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+
+            var check = new TextBlock
+            {
+                Text = choice.Id == current ? "✓" : string.Empty,
+                FontSize = 13,
+                Foreground = (Brush)FindResource("PanelText"),
+                Margin = new Thickness(14, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var line = new DockPanel();
+            DockPanel.SetDock(check, Dock.Right);
+            line.Children.Add(check);
+            line.Children.Add(label);
+
+            var row = new Button
+            {
+                Content = line,
+                Style = (Style)FindResource("PanelChoiceButton"),
+                Height = double.NaN,
+                Padding = new Thickness(10, 6, 10, 6),
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch
+            };
+            System.Windows.Automation.AutomationProperties.SetName(row, choice.Label);
+            var id = choice.Id;
+            row.Click += (_, _) =>
+            {
+                popup.IsOpen = false;
+                if (id != current)
+                {
+                    chosen(id);
+                }
+            };
+            list.Children.Add(row);
+        }
+
+        popup.Child = new Border
+        {
+            Background = Frozen(Color.FromRgb(0x1C, 0x1C, 0x1E)),
+            BorderBrush = Frozen(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(4),
+            Child = list
+        };
+        popup.IsOpen = true;
     }
 
     // ---- Voice: click to dictate, click again to insert the text ----

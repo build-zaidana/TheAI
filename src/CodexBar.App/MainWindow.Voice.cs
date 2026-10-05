@@ -43,6 +43,21 @@ public partial class MainWindow
         return text;
     }
 
+    (bool Ok, string Message) ISettingsHost.ApplyChatHotkey(string gesture)
+    {
+        try
+        {
+            _chatHotKey.ChangeGesture(gesture);
+            _settings.ChatHotkey = _chatHotKey.CurrentGesture ?? _settings.ChatHotkey;
+            _ = SaveSettingsSafeAsync();
+            return (true, LF("hotkey.active", _settings.ChatHotkey));
+        }
+        catch (Exception exception)
+        {
+            return (false, exception.Message);
+        }
+    }
+
     (bool Ok, string Message) ISettingsHost.ApplyVoiceHotkey(string gesture)
     {
         try
