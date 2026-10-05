@@ -108,6 +108,14 @@ internal static class Program
         });
         Assert(command == "clear" && panel.Input.Text.Length == 0, $"Perintah /clear harus dijalankan dari daftar perintah (dapat: {command}).");
 
+        // A notice can carry a link that fixes it ("Lanjutkan di sini").
+        var continued = false;
+        panel.SetNotice("Sesi ini sedang dipakai di Claude Code.", "Lanjutkan di sini →", () => continued = true);
+        var link = panel.NoticeText.Inlines.OfType<System.Windows.Documents.Hyperlink>().Single();
+        link.RaiseEvent(new RoutedEventArgs(System.Windows.Documents.Hyperlink.ClickEvent));
+        Assert(continued && panel.NoticeText.Visibility == Visibility.Visible, "Tautan di peringatan harus menjalankan aksinya.");
+        panel.SetNotice(null);
+
         // The ring under the box shows the context used.
         panel.SetContextUsage(50_000, 200_000);
         Assert(panel.ContextArc.Data is not null && panel.ContextRing.ToolTip?.ToString()?.Contains("25%") == true,
@@ -287,6 +295,28 @@ internal static class Program
         Click(buttons.First(b => Name(b) is "Coba lagi" or "Retry"));
         Assert(edited == question.Markdown && retried == answer, "Edit dan coba lagi harus diteruskan ke host.");
         Assert(buttons.Any(b => Name(b) is "Lainnya" or "More"), "Jawaban harus punya menu lainnya (fork, pin, read aloud).");
+
+        // Find: the matching messages, framed, with the words marked.
+        var matches = view.FindMatches("dicek");
+        Assert(matches.SequenceEqual(new[] { 1 }), $"Pencarian harus menemukan pesan yang cocok: {string.Join(",", matches)}");
+        view.ShowMatch(1, "dicek");
+        window.UpdateLayout();
+        Assert(FindVisualChildren<TextBlock>(view).SelectMany(t => t.Inlines.OfType<System.Windows.Documents.Run>())
+                .Any(r => r.Text.Equals("dicek", StringComparison.OrdinalIgnoreCase) && r.Background is not null),
+            "Kata yang dicari harus ditandai di pesannya.");
+        view.ClearSearch();
+
+        // Toasts: valid XML with one button per action (a broken one would silence every toast).
+        var toast = new System.Xml.XmlDocument();
+        toast.LoadXml(CompletionNotifier.ToastXml("Konteks 92% & <penuh>", "Compact \"sekarang\"", "context", false,
+            [("Compact", "compact"), ("Lihat", "view")]));
+        Assert(toast.SelectNodes("//action")!.Count == 2 && toast.SelectSingleNode("//action")!.Attributes!["arguments"]!.Value == "action=compact;key=context",
+            "XML notifikasi harus valid dan berisi tombol-tombolnya.");
+
+        // Export: the conversation as Markdown.
+        var exported = ConversationExport.Build("Uji", "Claude", [question, answer]);
+        Assert(exported.StartsWith("# Uji") && exported.Contains("Tolong cek ini") && exported.Contains("Sudah dicek."),
+            "Ekspor harus berisi judul dan pesan-pesannya.");
 
         // Pin as chapter: a divider with the title above the pinned message.
         view.PinnedKeys = new HashSet<string> { ConversationView.KeyOf(answer) };

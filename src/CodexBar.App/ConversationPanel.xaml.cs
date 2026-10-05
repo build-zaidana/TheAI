@@ -440,10 +440,104 @@ public partial class ConversationPanel : Window
         MessageActions.ShowMenu(ChaptersButton, _chapters.Select(c => (c.Title, (Action)(() => PanelConversation.ScrollToKey(c.Key)))));
 
     /// <summary>A one-line warning above the box (e.g. the session is open in Claude Code), or none.</summary>
-    public void SetNotice(string? text)
+    /// <summary>
+    /// A one-line warning above the box, optionally with a link that fixes it (e.g. "Lanjutkan di
+    /// sini" for a session open in Claude Code); null clears it.
+    /// </summary>
+    public void SetNotice(string? text, string? actionLabel = null, Action? action = null)
     {
-        NoticeText.Text = text ?? string.Empty;
+        NoticeText.Inlines.Clear();
         NoticeText.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        NoticeText.Inlines.Add(new System.Windows.Documents.Run(text));
+        if (actionLabel is not null && action is not null)
+        {
+            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(actionLabel))
+            {
+                Foreground = Frozen(Colors.White),
+                TextDecorations = null,
+                Cursor = Cursors.Hand
+            };
+            link.Click += (_, _) => action();
+            NoticeText.Inlines.Add(new System.Windows.Documents.Run("  "));
+            NoticeText.Inlines.Add(link);
+        }
+    }
+
+    /// <summary>Export from the header: the host saves the conversation as Markdown.</summary>
+    public event EventHandler? ExportRequested;
+
+    private void ExportButton_Click(object sender, RoutedEventArgs e) => ExportRequested?.Invoke(this, EventArgs.Empty);
+
+    // ---- Find in the conversation (Ctrl+F) ----
+
+    private IReadOnlyList<int> _matches = [];
+    private int _matchIndex = -1;
+
+    public void OpenSearch()
+    {
+        SearchBar.Visibility = Visibility.Visible;
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private void CloseSearch()
+    {
+        SearchBar.Visibility = Visibility.Collapsed;
+        SearchBox.Clear();
+        PanelConversation.ClearSearch();
+        Input.Focus();
+    }
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        SearchPlaceholder.Visibility = SearchBox.Text.Length > 0 ? Visibility.Collapsed : Visibility.Visible;
+        _matches = PanelConversation.FindMatches(SearchBox.Text);
+        _matchIndex = _matches.Count > 0 ? _matches.Count - 1 : -1; // newest first, as you'd look back
+        ShowCurrentMatch();
+    }
+
+    private void ShowCurrentMatch()
+    {
+        if (_matchIndex < 0)
+        {
+            SearchCount.Text = SearchBox.Text.Trim().Length == 0 ? string.Empty : Tr.Text("Tidak ada", "No results");
+            PanelConversation.ClearSearch();
+            return;
+        }
+
+        SearchCount.Text = $"{_matchIndex + 1}/{_matches.Count}";
+        PanelConversation.ShowMatch(_matches[_matchIndex], SearchBox.Text.Trim());
+    }
+
+    private void MoveMatch(int step)
+    {
+        if (_matches.Count == 0)
+        {
+            return;
+        }
+
+        _matchIndex = (_matchIndex + step + _matches.Count) % _matches.Count;
+        ShowCurrentMatch();
+    }
+
+    private void SearchNext_Click(object sender, RoutedEventArgs e) => MoveMatch(1);
+
+    private void SearchPrevious_Click(object sender, RoutedEventArgs e) => MoveMatch(-1);
+
+    private void SearchClose_Click(object sender, RoutedEventArgs e) => CloseSearch();
+
+    private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            MoveMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 1 : -1);
+        }
     }
 
     /// <summary>Kept for the host's status updates; the header shows the workspace only.</summary>
@@ -990,6 +1084,8 @@ public partial class ConversationPanel : Window
         new("voice", "Dikte dengan suara"),
         new("copy", "Salin jawaban terakhir"),
         new("wide", "Perlebar / perkecil chat"),
+        new("find", "Cari di percakapan (Ctrl+F)"),
+        new("export", "Ekspor percakapan ke Markdown"),
         new("settings", "Buka pengaturan")
     ];
 
@@ -1151,6 +1247,12 @@ public partial class ConversationPanel : Window
             case "wide":
                 ToggleWide();
                 break;
+            case "find":
+                OpenSearch();
+                break;
+            case "export":
+                ExportRequested?.Invoke(this, EventArgs.Empty);
+                break;
             default:
                 CommandInvoked?.Invoke(this, command.Name);
                 break;
@@ -1223,12 +1325,25 @@ public partial class ConversationPanel : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            e.Handled = true;
+            OpenSearch();
+            return;
+        }
+
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
             if (SlashOpen)
             {
                 CloseSlashMenu(); // Esc closes the command list first, not the chat
+                return;
+            }
+
+            if (SearchBar.Visibility == Visibility.Visible)
+            {
+                CloseSearch();
                 return;
             }
 

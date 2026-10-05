@@ -39,6 +39,18 @@ public partial class MainWindow
 
     private void NotificationActivated(string action, string activityKey)
     {
+        if (action == "compact")
+        {
+            _ = RunUiTaskAsync(CompactFromChatAsync);
+            return;
+        }
+
+        if (activityKey == "context")
+        {
+            ((INotchHost)this).OpenConversationWindow();
+            return;
+        }
+
         if (action == "copy")
         {
             if (_notifiedAnswers.TryGetValue(activityKey, out var answer) && answer.Length > 0)

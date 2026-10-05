@@ -53,7 +53,13 @@ internal sealed partial class CompletionNotifier
     }
 
     /// <summary>Show a completion toast; false when Windows won't show it (disabled or unavailable).</summary>
-    public bool Show(string title, string body, string activityKey, bool withSound)
+    public bool Show(string title, string body, string activityKey, bool withSound) =>
+        Show(title, body, activityKey, withSound,
+            [(Tr.Text("Lihat", "View"), "view"), (Tr.Text("Salin jawaban", "Copy answer"), "copy")], "done");
+
+    /// <summary>A toast with its own buttons (label, action); the action comes back through <see cref="Activated"/>.</summary>
+    public bool Show(string title, string body, string activityKey, bool withSound,
+        IReadOnlyList<(string Label, string Action)> actions, string group)
     {
         if (_notifier is null)
         {
@@ -62,29 +68,14 @@ internal sealed partial class CompletionNotifier
 
         try
         {
-            var key = SecurityElement.Escape(activityKey);
-            var xml = $"""
-                <toast launch="action=view;key={key}" activationType="foreground">
-                  <visual>
-                    <binding template="ToastGeneric">
-                      <text>{SecurityElement.Escape(title)}</text>
-                      <text>{SecurityElement.Escape(body)}</text>
-                    </binding>
-                  </visual>
-                  <actions>
-                    <action content="{SecurityElement.Escape(Tr.Text("Lihat", "View"))}" arguments="action=view;key={key}" activationType="foreground" />
-                    <action content="{SecurityElement.Escape(Tr.Text("Salin jawaban", "Copy answer"))}" arguments="action=copy;key={key}" activationType="foreground" />
-                  </actions>
-                  <audio src="ms-winsoundevent:Notification.Default" silent="{(withSound ? "false" : "true")}" />
-                </toast>
-                """;
+            var xml = ToastXml(title, body, activityKey, withSound, actions);
             var document = new XmlDocument();
             document.LoadXml(xml);
             var toast = new ToastNotification(document)
             {
                 // A newer answer of the same conversation replaces the older toast.
                 Tag = activityKey.Length > 16 ? activityKey[..16] : activityKey,
-                Group = "done"
+                Group = group
             };
             toast.Activated += Toast_Activated;
             _live.Add(toast);
@@ -101,6 +92,27 @@ internal sealed partial class CompletionNotifier
             DiagnosticsLog.Error("Notifier", $"{exception.GetType().Name} 0x{exception.HResult:X8} {exception.Message}");
             return false;
         }
+    }
+
+    /// <summary>The toast's XML: title, text, one button per action, sound on or off.</summary>
+    internal static string ToastXml(string title, string body, string activityKey, bool withSound,
+        IReadOnlyList<(string Label, string Action)> actions)
+    {
+        var key = SecurityElement.Escape(activityKey);
+        var buttons = string.Concat(actions.Select(a =>
+            $"<action content=\"{SecurityElement.Escape(a.Label)}\" arguments=\"action={SecurityElement.Escape(a.Action)};key={key}\" activationType=\"foreground\" />"));
+        return $"""
+            <toast launch="action=view;key={key}" activationType="foreground">
+              <visual>
+                <binding template="ToastGeneric">
+                  <text>{SecurityElement.Escape(title)}</text>
+                  <text>{SecurityElement.Escape(body)}</text>
+                </binding>
+              </visual>
+              <actions>{buttons}</actions>
+              <audio src="ms-winsoundevent:Notification.Default" silent="{(withSound ? "false" : "true")}" />
+            </toast>
+            """;
     }
 
     public static void PlaySound()

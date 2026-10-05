@@ -173,6 +173,11 @@
                             <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Data="M 4,2.5 L 12,2.5 M 4,6.5 L 12,6.5 M 4,10.5 L 12,10.5 M 0.8,2.5 L 1.2,2.5 M 0.8,6.5 L 1.2,6.5 M 0.8,10.5 L 1.2,10.5" />
                         </Button>
+                        <Button x:Name="ExportButton" Style="{StaticResource PanelRoundButton}" Click="ExportButton_Click" ToolTip="Ekspor ke Markdown"
+                                AutomationProperties.Name="Ekspor ke Markdown">
+                            <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M 6,0.5 L 6,8 M 3,5 L 6,8 L 9,5 M 1,9 L 1,11.5 L 11,11.5 L 11,9" />
+                        </Button>
                         <Button x:Name="CopyButton" Style="{StaticResource PanelRoundButton}" Click="CopyButton_Click" ToolTip="Salin jawaban terakhir"
                                 AutomationProperties.Name="Salin jawaban terakhir">
                             <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeLineJoin="Round"
@@ -193,6 +198,33 @@
 
                 <Grid Grid.Row="1" Margin="12,0,8,0">
                     <local:ConversationView x:Name="PanelConversation" AutomationProperties.Name="Percakapan" />
+                    <!-- Ctrl+F: find in the conversation. -->
+                    <Border x:Name="SearchBar" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,2,4,0"
+                            CornerRadius="10" Background="#F21C1C1E" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10,4,4,4">
+                        <DockPanel>
+                            <Button x:Name="SearchClose" DockPanel.Dock="Right" Style="{StaticResource PanelRoundButton}" Width="24" Height="24"
+                                    Click="SearchClose_Click" ToolTip="Tutup (Esc)" AutomationProperties.Name="Tutup pencarian">
+                                <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 0,0 L 7,7 M 7,0 L 0,7" />
+                            </Button>
+                            <Button x:Name="SearchNext" DockPanel.Dock="Right" Style="{StaticResource PanelRoundButton}" Width="24" Height="24"
+                                    Click="SearchNext_Click" ToolTip="Berikutnya (Enter)" AutomationProperties.Name="Hasil berikutnya">
+                                <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,0 L 4,4 L 8,0" />
+                            </Button>
+                            <Button x:Name="SearchPrevious" DockPanel.Dock="Right" Style="{StaticResource PanelRoundButton}" Width="24" Height="24"
+                                    Click="SearchPrevious_Click" ToolTip="Sebelumnya (Shift+Enter)" AutomationProperties.Name="Hasil sebelumnya">
+                                <Path Stroke="{StaticResource PanelText2}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,4 L 4,0 L 8,4" />
+                            </Button>
+                            <TextBlock x:Name="SearchCount" DockPanel.Dock="Right" FontSize="12" Foreground="{StaticResource PanelText2}"
+                                       VerticalAlignment="Center" Margin="8,0,6,0" />
+                            <Grid>
+                                <TextBlock x:Name="SearchPlaceholder" Text="Cari di percakapan…" Foreground="{StaticResource PanelText3}" FontSize="13"
+                                           VerticalAlignment="Center" IsHitTestVisible="False" />
+                                <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="{StaticResource PanelText}" CaretBrush="White"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="SearchBox_TextChanged" PreviewKeyDown="SearchBox_PreviewKeyDown"
+                                         AutomationProperties.Name="Cari di percakapan" />
+                            </Grid>
+                        </DockPanel>
+                    </Border>
                     <Button x:Name="JumpLatestButton" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,8"
                             Height="28" Padding="12,0" Cursor="Hand" Click="JumpLatestButton_Click" AutomationProperties.Name="Lompat ke jawaban terbaru">
                         <Button.Template>

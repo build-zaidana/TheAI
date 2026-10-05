@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 using Button = System.Windows.Controls.Button;
 using TextBlock = System.Windows.Controls.TextBlock;
 
@@ -80,6 +81,176 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     public Func<string?>? ReadingKey { get; set; }
 
     private readonly Dictionary<string, FrameworkElement> _anchors = new(StringComparer.Ordinal);
+    private readonly Dictionary<ChatMessage, FrameworkElement> _bubbleOf = new(ReferenceEqualityComparer.Instance);
+    private Border? _matchBubble;
+
+    /// <summary>Indexes of the messages containing <paramref name="query"/> (answers, prompts, work).</summary>
+    public IReadOnlyList<int> FindMatches(string query)
+    {
+        query = query.Trim();
+        if (query.Length == 0)
+        {
+            return [];
+        }
+
+        var found = new List<int>();
+        for (var i = 0; i < _messages.Count; i++)
+        {
+            var message = _messages[i];
+            if (message.Markdown.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                message.Steps.Any(step => step.Target.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                                          step.Detail.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            {
+                found.Add(i);
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>Scrolls to a found message, frames it, and marks the words in it.</summary>
+    public void ShowMatch(int index, string query)
+    {
+        if (index < 0 || index >= _messages.Count)
+        {
+            return;
+        }
+
+        if (index < _messages.Count - _visibleMessageCount)
+        {
+            _visibleMessageCount = _messages.Count - index;
+        }
+
+        RenderVisibleMessages(); // fresh text: no marks from the previous match
+        UpdateLayout();
+        if (!_bubbleOf.TryGetValue(_messages[index], out var bubble))
+        {
+            return;
+        }
+
+        if (bubble is Border frame)
+        {
+            frame.BorderBrush = MatchFrame;
+            frame.BorderThickness = new Thickness(1);
+            _matchBubble = frame;
+        }
+
+        foreach (var text in FindChildren<TextBlock>(bubble))
+        {
+            MarkWords(text.Inlines, query);
+        }
+
+        bubble.BringIntoView(new Rect(0, 0, 1, Math.Min(bubble.ActualHeight, Math.Max(1, PART_Scroll.ViewportHeight - 60))));
+    }
+
+    /// <summary>Removes the frame and marks of the last match.</summary>
+    public void ClearSearch()
+    {
+        if (_matchBubble is not null)
+        {
+            RenderVisibleMessages();
+            _matchBubble = null;
+        }
+    }
+
+    private static readonly Brush MatchFrame = FrozenBrush(Color.FromArgb(0x99, 0xE8, 0xA1, 0x5B));
+    private static readonly Brush MatchMark = FrozenBrush(Color.FromArgb(0x80, 0xE8, 0xA1, 0x5B));
+
+    private static Brush FrozenBrush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
+    // Splits runs so each occurrence of the query gets a marker background (inside bold/italic too).
+    private static void MarkWords(System.Windows.Documents.InlineCollection inlines, string query)
+    {
+        foreach (var inline in inlines.ToList())
+        {
+            if (inline is System.Windows.Documents.Span span)
+            {
+                MarkWords(span.Inlines, query);
+                continue;
+            }
+
+            if (inline is not System.Windows.Documents.Run run || run.Text.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                continue;
+            }
+
+            var text = run.Text;
+            var at = 0;
+            var pieces = new List<System.Windows.Documents.Run>();
+            while (text.IndexOf(query, at, StringComparison.OrdinalIgnoreCase) is var hit and >= 0)
+            {
+                if (hit > at)
+                {
+                    pieces.Add(CopyStyle(run, text[at..hit]));
+                }
+
+                var mark = CopyStyle(run, text.Substring(hit, query.Length));
+                mark.Background = MatchMark;
+                pieces.Add(mark);
+                at = hit + query.Length;
+            }
+
+            if (at < text.Length)
+            {
+                pieces.Add(CopyStyle(run, text[at..]));
+            }
+
+            foreach (var piece in pieces)
+            {
+                inlines.InsertBefore(run, piece);
+            }
+
+            inlines.Remove(run);
+        }
+    }
+
+    private static System.Windows.Documents.Run CopyStyle(System.Windows.Documents.Run run, string text)
+    {
+        var copy = new System.Windows.Documents.Run(text)
+        {
+            FontWeight = run.FontWeight,
+            FontStyle = run.FontStyle,
+            TextDecorations = run.TextDecorations
+        };
+        if (run.ReadLocalValue(System.Windows.Documents.TextElement.ForegroundProperty) != DependencyProperty.UnsetValue)
+        {
+            copy.Foreground = run.Foreground;
+        }
+
+        if (run.ReadLocalValue(System.Windows.Documents.TextElement.FontFamilyProperty) != DependencyProperty.UnsetValue)
+        {
+            copy.FontFamily = run.FontFamily;
+        }
+
+        if (run.ReadLocalValue(System.Windows.Documents.TextElement.BackgroundProperty) != DependencyProperty.UnsetValue)
+        {
+            copy.Background = run.Background;
+        }
+
+        return copy;
+    }
+
+    private static IEnumerable<T> FindChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var descendant in FindChildren<T>(child))
+            {
+                yield return descendant;
+            }
+        }
+    }
 
     /// <summary>A stable key for a message: its source id, or a hash of its text.</summary>
     public static string KeyOf(ChatMessage message) =>
@@ -205,6 +376,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
 
         var maxWidth = BubbleMaxWidth();
         _anchors.Clear();
+        _bubbleOf.Clear();
         for (var i = firstVisibleIndex; i < _messages.Count; i++)
         {
             var message = _messages[i];
@@ -218,6 +390,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             var bubble = BuildBubble(message, theme, maxWidth, isLast: i == _messages.Count - 1);
             MessagesPanel.Children.Add(bubble);
             _bubbles.Add(bubble);
+            _bubbleOf[message] = bubble;
             _last = message;
             _lastBubble = bubble;
         }

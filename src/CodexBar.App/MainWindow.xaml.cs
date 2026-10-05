@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -243,6 +243,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         window.PanelWidth = _settings.ChatWidth;
         window.SetContextUsage(_contextUsage.Tokens, _contextUsage.Window);
         window.CompactRequested += (_, _) => _ = RunUiTaskAsync(CompactFromChatAsync);
+        window.ExportRequested += (_, _) => ExportConversation();
         window.WidthCommitted += (_, width) =>
         {
             _settings.ChatWidth = Math.Round(width);
@@ -320,6 +321,39 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var workspace = CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(forkId)?.Cwd ?? _settings.WorkspacePath;
         await OpenThreadFromSidebarAsync(new ProviderThreadSummary(forkId, title, string.Empty, workspace, DateTimeOffset.Now));
         SetStatus(Tr.Text("Fork dibuat", "Forked"), StatusReadyBrush);
+    }
+
+    // Export (header button or /export): the conversation as a Markdown file of your choice.
+    private void ExportConversation()
+    {
+        if (_messages.Count == 0)
+        {
+            SetStatus(Tr.Text("Belum ada percakapan untuk diekspor.", "Nothing to export yet."), StatusBusyBrush);
+            return;
+        }
+
+        var title = _outputWindow?.TitleText.Text ?? L("panel.newConversation");
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = ConversationExport.FileName(title),
+            DefaultExt = ".md",
+            Filter = "Markdown (*.md)|*.md",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        if (dialog.ShowDialog(_outputWindow) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, ConversationExport.Build(title, _outputWindow?.ContextText.Text ?? string.Empty, _messages));
+            SetStatus(Tr.Text("Percakapan diekspor.", "Conversation exported."), StatusReadyBrush);
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
     }
 
     // Retry under the latest answer: send the prompt that led to it again.
@@ -3303,10 +3337,15 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 await LoadThreadMessagesAsync(thread);
                 var elsewhere = await Task.Run(() =>
                     CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.ActiveElsewhere(thread, TimeSpan.FromMinutes(15)));
-                _outputWindow?.SetNotice(elsewhere
-                    ? Tr.Text("Sesi ini sedang dipakai di Claude Code. Pesan dari sini jadi cabang terpisah yang tidak terlihat di sana.",
-                        "This session is in use in Claude Code. Messages from here become a separate branch it won't see.")
-                    : null);
+                // One click to go on here without clashing: fork from the latest answer.
+                var latest = _messages.LastOrDefault(message => !message.IsUser && message.SourceId is not null);
+                _outputWindow?.SetNotice(
+                    elsewhere
+                        ? Tr.Text("Sesi ini sedang dipakai di Claude Code. Pesan dari sini jadi cabang terpisah yang tidak terlihat di sana.",
+                            "This session is in use in Claude Code. Messages from here become a separate branch it won't see.")
+                        : null,
+                    latest is null ? null : Tr.Text("Lanjutkan di sini →", "Continue here →"),
+                    latest is null ? null : () => _ = RunUiTaskAsync(() => ForkFromAsync(latest)));
             }
             else
             {
@@ -3984,11 +4023,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         if (ratio >= 0.9 && !_contextWarningShown)
         {
             _contextWarningShown = true;
-            _trayIcon.ShowBalloonTip(
-                4000,
+            var shown = _notifier.Show(
                 L("notification.contextTitle"),
-                L("notification.contextBody"),
-                Forms.ToolTipIcon.Warning);
+                string.Format(Tr.Text("Konteks {0}% terpakai. Compact sekarang supaya agen tetap lancar.", "Context {0}% used. Compact now so the agent keeps going."), percent),
+                "context",
+                withSound: false,
+                [(Tr.Text("Compact", "Compact"), "compact"), (Tr.Text("Lihat", "View"), "view")],
+                "context");
+            if (!shown)
+            {
+                _trayIcon.ShowBalloonTip(4000, L("notification.contextTitle"), L("notification.contextBody"), Forms.ToolTipIcon.Warning);
+            }
         }
         else if (ratio < 0.75)
         {
