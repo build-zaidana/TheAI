@@ -463,6 +463,45 @@ public partial class ConversationPanel : Window
     }
 
     // Attachments as chips in the composer: image thumbnails or a file pill, each with ×.
+    /// <summary>The ring under the box: how much of the model's context the conversation fills.</summary>
+    public void SetContextUsage(long tokens, long window)
+    {
+        if (window <= 0 || tokens <= 0)
+        {
+            ContextArc.Data = null;
+            ContextRing.ToolTip = Tr.Text("Konteks belum diketahui", "Context not known yet");
+            return;
+        }
+
+        var ratio = Math.Clamp((double)tokens / window, 0, 1);
+        ContextArc.Data = RingArc(ratio, 7, 6);
+        ContextArc.Stroke = Frozen(ratio switch
+        {
+            >= 0.9 => Color.FromRgb(0xFF, 0x45, 0x3A),
+            >= 0.75 => Color.FromRgb(0xE8, 0xA1, 0x5B),
+            _ => Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF)
+        });
+        ContextRing.ToolTip = string.Format(Tr.Text("Konteks {0}% · {1:N0}K dari {2:N0}K token", "Context {0}% · {1:N0}K of {2:N0}K tokens"),
+            (int)Math.Round(ratio * 100), tokens / 1000, window / 1000);
+    }
+
+    // An arc around (c, c) with radius r for a fraction of the circle, from 12 o'clock.
+    private static Geometry RingArc(double fraction, double c, double r)
+    {
+        if (fraction >= 0.999)
+        {
+            return new EllipseGeometry(new System.Windows.Point(c, c), r, r);
+        }
+
+        var angle = Math.Max(fraction, 0.02) * 2 * Math.PI;
+        var end = new System.Windows.Point(c + r * Math.Sin(angle), c - r * Math.Cos(angle));
+        var figure = new PathFigure { StartPoint = new System.Windows.Point(c, c - r) };
+        figure.Segments.Add(new ArcSegment(end, new System.Windows.Size(r, r), 0, fraction > 0.5, SweepDirection.Clockwise, true));
+        var geometry = new PathGeometry([figure]);
+        geometry.Freeze();
+        return geometry;
+    }
+
     private void SpinBusyArc(bool busy)
     {
         if (busy == (BusyArc.Visibility == Visibility.Visible))

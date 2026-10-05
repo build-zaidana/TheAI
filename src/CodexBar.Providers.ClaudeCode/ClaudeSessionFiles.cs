@@ -303,6 +303,51 @@ public static class ClaudeSessionFiles
     }
 
     /// <summary>
+    /// Tokens the conversation fills in the model's context: the prompt side of the latest
+    /// request (input + cache read + cache write) plus its output. 0 when unknown.
+    /// </summary>
+    public static long ContextTokens(string assistantLine)
+    {
+        if (!assistantLine.Contains("\"usage\"", StringComparison.Ordinal) || !TryRead(assistantLine, out var document))
+        {
+            return 0;
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (Str(root, "type") != "assistant" ||
+                root.TryGetProperty("isSidechain", out var side) && side.ValueKind == JsonValueKind.True ||
+                !root.TryGetProperty("message", out var message) || !message.TryGetProperty("usage", out var usage))
+            {
+                return 0;
+            }
+
+            long Get(string name) => usage.TryGetProperty(name, out var value) && value.TryGetInt64(out var number) ? number : 0;
+            return Get("input_tokens") + Get("cache_read_input_tokens") + Get("cache_creation_input_tokens") + Get("output_tokens");
+        }
+    }
+
+    /// <summary>The context in use at the end of a session (see <see cref="ContextTokens"/>).</summary>
+    public static long LastContextTokens(string filePath)
+    {
+        long last = 0;
+        foreach (var line in LatestBranch(ReadLines(filePath).ToList()) ?? [])
+        {
+            if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal) && ContextTokens(line) is > 0 and var tokens)
+            {
+                last = tokens;
+            }
+        }
+
+        return last;
+    }
+
+    /// <summary>Claude's context window: 200K, or 1M for the long-context models (or past 200K).</summary>
+    public static long ContextWindow(string? model, long tokens) =>
+        tokens > 200_000 || model?.Contains("[1m]", StringComparison.OrdinalIgnoreCase) == true ? 1_000_000 : 200_000;
+
+    /// <summary>
     /// True when the session was written by Claude Code itself (terminal, IDE, desktop) in the last
     /// <paramref name="within"/>: it is probably open there, and a prompt sent from CodexBar
     /// becomes a branch that app won't see.

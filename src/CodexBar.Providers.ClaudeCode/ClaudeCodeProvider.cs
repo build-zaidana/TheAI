@@ -115,6 +115,12 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         if (_turnProcess is null && ClaudeSessionFiles.FindFile(threadId) is { } transcript)
         {
             var fresh = await Task.Run(() => ClaudeSessionFiles.ReadMessages(transcript), cancellationToken).ConfigureAwait(false);
+            var context = await Task.Run(() => ClaudeSessionFiles.LastContextTokens(transcript), cancellationToken).ConfigureAwait(false);
+            if (context > 0)
+            {
+                Emit(new ProviderTokenUsageEvent(context, 0, ClaudeSessionFiles.ContextWindow(null, context)));
+            }
+
             if (fresh.Count > 0)
             {
                 if (threadId == _loadedThreadId)
@@ -179,10 +185,6 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
             _messages.Add(new ProviderThreadMessage("assistant", outcome.Text, outcome.Steps is { Count: > 0 } ? outcome.Steps : null));
             Save(threadId);
-            if (outcome.TotalTokens > 0)
-            {
-                Emit(new ProviderTokenUsageEvent(outcome.TotalTokens, outcome.OutputTokens, null));
-            }
 
             Emit(new ProviderCompletedEvent("completed"));
         }
@@ -281,6 +283,11 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         {
             TrackFileEdits(line, pendingEdits);
             TrackActivity(line, parts, failed);
+            if (line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal) &&
+                ClaudeSessionFiles.ContextTokens(line) is > 0 and var context)
+            {
+                Emit(new ProviderTokenUsageEvent(context, 0, ClaudeSessionFiles.ContextWindow(model, context)));
+            }
             if (line.Contains("\"rate_limit_event\"", StringComparison.Ordinal) && ParseRateLimitEvent(line) is { } quota)
             {
                 Emit(quota);

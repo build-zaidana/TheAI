@@ -261,8 +261,11 @@
                                     ToolTip="Effort" AutomationProperties.Name="Effort">
                                 <TextBlock x:Name="EffortText" Foreground="{StaticResource PanelText}" />
                             </Button>
-                            <Grid Width="14" Height="14" VerticalAlignment="Center" ToolTip="Status">
+                            <Grid x:Name="ContextRing" Width="14" Height="14" VerticalAlignment="Center" Background="Transparent"
+                                  ToolTip="Konteks belum diketahui">
                                 <Ellipse Stroke="#33FFFFFF" StrokeThickness="2" />
+                                <!-- Context used, clockwise from the top. -->
+                                <Path x:Name="ContextArc" Stroke="#D9FFFFFF" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                 <Path x:Name="BusyArc" Stroke="#0A84FF" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       Data="M 7,1 A 6,6 0 0 1 13,7" RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
                                     <Path.RenderTransform>

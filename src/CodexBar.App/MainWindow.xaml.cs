@@ -241,6 +241,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         };
         window.PanelWidth = _settings.ChatWidth;
+        window.SetContextUsage(_contextUsage.Tokens, _contextUsage.Window);
         window.WidthCommitted += (_, width) =>
         {
             _settings.ChatWidth = Math.Round(width);
@@ -3954,8 +3955,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         return $"Token: {total}{window} (turn {usage.LastTurnTokens:N0})";
     }
 
+    private (long Tokens, long Window) _contextUsage;
+
     private void UpdateContextUsage(ProviderTokenUsageEvent usage)
     {
+        _contextUsage = (usage.TotalTokens, usage.ContextWindow ?? 0);
+        _outputWindow?.SetContextUsage(_contextUsage.Tokens, _contextUsage.Window);
         if (usage.ContextWindow is not { } contextWindow || contextWindow <= 0)
         {
             ContextUsageButton.Visibility = Visibility.Collapsed;

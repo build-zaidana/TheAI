@@ -108,6 +108,11 @@ internal static class Program
         });
         Assert(command == "clear" && panel.Input.Text.Length == 0, $"Perintah /clear harus dijalankan dari daftar perintah (dapat: {command}).");
 
+        // The ring under the box shows the context used.
+        panel.SetContextUsage(50_000, 200_000);
+        Assert(panel.ContextArc.Data is not null && panel.ContextRing.ToolTip?.ToString()?.Contains("25%") == true,
+            $"Lingkaran konteks harus menunjukkan pemakaian konteks (tooltip: {panel.ContextRing.ToolTip}).");
+
         // Model / effort / mode under the box show the chosen option's label.
         panel.SetComposerChoices(
             [new ConversationPanel.Choice("opus", "Opus 5.5"), new ConversationPanel.Choice("sonnet", "Sonnet 5.5")], "opus", "Claude",
