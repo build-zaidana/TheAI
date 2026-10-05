@@ -1,0 +1,4 @@
+# One line ending everywhere (the repo already stores LF); Windows batch files keep CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
