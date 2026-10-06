@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-10-06
+
+### Added — notch and chat
+
+- **Notch / Dynamic Island** at the top of the screen replaces the bar: compact status, spring-animated expand, corner docking, drag as liquid; answers approvals and agent questions inside the notch, with one-click recommended answers.
+- **Chat beside the notch**: grows out of the notch and folds back into it; always on top and out of Alt+Tab; widen or drag its edge (width remembered); Win+Alt+C toggles it; a chat button on the compact notch.
+- **Conversation like Claude Code**: Markdown with tables, nested/task lists, syntax-coloured code; the agent's work folded into one line per run of tool calls ("Read 2 files, ran 4 commands +251 −0"), progress notes, an "Edited N files" summary with diffs and Undo; live while the agent works, for Claude Code and Codex.
+- **Message actions**: copy, retry, edit, Fork from here, Pin as chapter (with a chapter list), Read aloud (Windows voices); edit/retry branch Claude Code sessions and show "‹ 1/2 ›" versions.
+- **Composer**: framed box with ↵, + and mic below, model / effort / approval-mode pickers, context ring (hover for numbers, click for a card with Compact), slash commands, Ctrl+V images, file drop, ↑ recalls the last prompt; Ctrl+F finds in the conversation; export to Markdown.
+- **Claude Code sync**: past sessions in Lanjutkan, live sessions in the notch through hooks, history read from the session file (latest branch, conversation order), a notice with "Continue here" when a session is open in Claude Code, optional auto-fork, Compact via `/compact`.
+- Drop files and area screenshots onto the notch; files the agent changed with diffs; subscription quota meter; prompt queue; parallel agents; completion toasts with sound; next-prompt suggestions; offline voice input (whisper.cpp).
+- Check for updates from a public GitHub release repository; `scripts\install.ps1` / `uninstall.ps1` to install without the installer.
+- Auto-resume after usage limits (persisted across restart), scheduled prompts, regenerate / edit last / copy response actions, open in editor.
+
+### Removed
+
+- The bar display mode and its sidebar window; the notch and the chat replace them.
 
 ### Added
 

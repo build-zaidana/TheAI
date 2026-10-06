@@ -4,7 +4,7 @@
 
 #define MyAppName "CodexBar"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.2.0"
+  #define MyAppVersion "1.3.0"
 #endif
 #define MyAppPublisher "CodexBar Community"
 #define MyAppExeName "CodexBar.App.exe"
