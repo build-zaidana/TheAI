@@ -358,6 +358,8 @@ public static class ClaudeSessionFiles
                 writer.WriteString("type", "custom-title");
                 writer.WriteString("customTitle", title);
                 writer.WriteString("sessionId", newId);
+                // Ours until Claude Code itself writes to it (see ActiveElsewhere).
+                writer.WriteString("entrypoint", "codexbar");
                 writer.WriteEndObject();
             }
 
@@ -443,7 +445,7 @@ public static class ClaudeSessionFiles
             }
         }
 
-        return last is not null and not "sdk-cli";
+        return last is not null and not ("sdk-cli" or "codexbar");
     }
 
     internal static (IReadOnlyList<ProviderActivityStep> Steps, string Answer) SplitTurn(

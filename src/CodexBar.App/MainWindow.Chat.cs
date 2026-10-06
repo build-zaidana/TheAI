@@ -163,6 +163,8 @@ public partial class MainWindow
             return false;
         }
 
+        _outputWindow?.SetNotice(null); // a branch of our own is not open anywhere else
+
         if (upto is null)
         {
             var folder = CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(thread)?.Cwd ?? _settings.WorkspacePath;

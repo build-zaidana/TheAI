@@ -40,6 +40,19 @@ public partial class MainWindow
             OpenSettingsWindow(page);
         }
 
+        // CODEXBAR_TEST_OPEN_THREAD=<Claude Code session id>: open that session in the chat (for UI
+        // automation tests on a throwaway session).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_OPEN_THREAD") is { Length: > 0 } testThread &&
+            CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(testThread) is { } testSession)
+        {
+            _ = RunUiTaskAsync(async () =>
+            {
+                await OpenThreadFromSidebarAsync(new ProviderThreadSummary(testSession.SessionId, testSession.Title, string.Empty,
+                    testSession.Cwd, testSession.UpdatedAt));
+                ((INotchHost)this).OpenConversationWindow();
+            });
+        }
+
         // CODEXBAR_PREVIEW_REQUEST=approval|input[+launcher]: show a sample request in the notch (no provider involved);
         // "+launcher" then opens the launcher with the request under "Menunggu kamu".
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REQUEST") is { Length: > 0 } request && _notch is not null)

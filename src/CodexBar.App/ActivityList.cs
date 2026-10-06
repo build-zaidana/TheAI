@@ -47,7 +47,8 @@ public static class ActivityList
             if (step.IsNote || (step.IsText && !sawTool))
             {
                 FlushRun();
-                turn.Children.Add(MarkdownRenderer.BuildPanel(step.Detail, style));
+                // Thinking reads quieter than the answer, as in Claude Code.
+                turn.Children.Add(MarkdownRenderer.BuildPanel(step.Detail, step.IsNote ? style with { Primary = style.Muted } : style));
             }
             else
             {

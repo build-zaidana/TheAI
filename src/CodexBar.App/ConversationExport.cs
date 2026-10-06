@@ -29,13 +29,21 @@ internal static class ConversationExport
                 continue;
             }
 
-            if (message.Steps.Count > 0)
+            // Thinking as a quote; the work (tool calls and text between them) folded, when there is any.
+            foreach (var note in message.Steps.Where(step => step.IsNote))
+            {
+                text.AppendLine($"> _{Tr.Text("Berpikir", "Thinking")}:_ {note.Detail.Replace("\n", "\n> ")}");
+                text.AppendLine();
+            }
+
+            var work = message.Steps.Where(step => !step.IsNote).ToArray();
+            if (work.Length > 0)
             {
                 // The work before the answer, folded the way Claude Code shows it.
-                var tools = message.Steps.Count(step => !step.IsText);
+                var tools = work.Count(step => !step.IsText);
                 text.AppendLine($"<details><summary>{Tr.Text("Langkah kerja", "Work")} ({tools})</summary>");
                 text.AppendLine();
-                foreach (var step in message.Steps)
+                foreach (var step in work)
                 {
                     if (step.IsText)
                     {
