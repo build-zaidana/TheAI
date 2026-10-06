@@ -23,12 +23,23 @@ Status akun dan riwayat dibaca langsung dari Codex App Server. Thread yang dibua
 
    Jika langkah ini terlewat, onboarding menyediakan tombol **Pasang otomatis** dan **Buka login**; perintah manual tetap tersedia sebagai fallback.
 
-2. Pasang lewat installer (`CodexBar-Setup-x.y.z.exe`, lihat *Membangun installer*) atau jalankan langsung `artifacts\win-x64\CodexBar.App.exe`.
+2. Pasang lewat installer (`CodexBar-Setup-x.y.z.exe`, lihat *Membangun installer*), pasang dari build tanpa installer (lihat *Pasang tanpa installer*), atau jalankan langsung `artifacts\win-x64\CodexBar.App.exe`.
 3. Tekan hotkey global (default `Win+Shift+C`) untuk menampilkan atau menyembunyikan overlay. Kombinasi dapat diubah dari Settings.
 
 Build pada `artifacts\win-x64` bersifat self-contained: pengguna akhir tidak perlu memasang .NET Runtime. Codex CLI tetap harus terpasang dan login. Rilis saat ini mendukung Windows 11 x64.
 
 Lihat [PRIVACY.md](PRIVACY.md) sebelum mendistribusikan atau memakai aplikasi pada workspace sensitif.
+
+## Pasang tanpa installer
+
+Tanpa Inno Setup, build bisa dipasang langsung untuk user ini (tanpa hak admin):
+
+```powershell
+.\scripts\install.ps1 -Publish -LaunchAtLogin   # publish, salin ke %LOCALAPPDATA%\Programs\CodexBar, shortcut Start Menu, jalan saat login
+.\scripts\uninstall.ps1                         # lepas lagi; pengaturan & riwayat tetap (tambah -RemoveData untuk ikut menghapus)
+```
+
+Opsi lain: `-Desktop` (shortcut desktop), `-NoStartMenu`, `-NoLaunch`. Folder pemasangannya sama dengan installer Inno Setup, jadi keduanya bisa saling menggantikan.
 
 ## Membangun installer
 
