@@ -25,7 +25,6 @@
         Closing="Window_Closing"
         SourceInitialized="Window_SourceInitialized"
         Loaded="Window_Loaded"
-        LocationChanged="Window_LocationChanged"
         SizeChanged="Window_SizeChanged">
 
     <Window.Resources>
@@ -89,11 +88,6 @@
                     </Path.Data>
                 </Path>
 
-                <Button x:Name="MenuButton" Grid.Column="1" Content="&#xE700;" Click="MenuButton_Click"
-                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
-                        VerticalAlignment="Center" Width="34" Height="34" Margin="0,0,6,0"
-                        Style="{StaticResource GlassIconButton}" ToolTip="Menu &amp; riwayat Codex"
-                        AutomationProperties.Name="Menu dan riwayat Codex" />
 
                 <!-- Template prompt -->
                 <Button x:Name="TemplatesButton" Grid.Column="2" Content="&#xE8FD;" Click="TemplatesButton_Click"

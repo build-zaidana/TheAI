@@ -310,6 +310,19 @@ internal static class Program
         Assert(edited == question.Markdown && retried == answer, "Edit dan coba lagi harus diteruskan ke host.");
         Assert(buttons.Any(b => Name(b) is "Lainnya" or "More"), "Jawaban harus punya menu lainnya (fork, pin, read aloud).");
 
+        // Versions of a prompt: "‹ 2/2 ›" under it; the arrows ask the host for the other version.
+        (ChatMessage Message, int Step)? versionStep = null;
+        view.VersionOf = message => message == question ? (1, 2) : null;
+        view.VersionRequested += (_, request) => versionStep = request;
+        view.Render([question, answer], theme);
+        window.UpdateLayout();
+        Assert(FindVisualChildren<TextBlock>(view).Any(t => t.Text == "2/2"), "Prompt dengan dua versi harus menampilkan 2/2.");
+        Click(FindVisualChildren<Button>(view).First(b => AutomationProperties.GetName(b) is "Versi sebelumnya" or "Previous version"));
+        Assert(versionStep is { Step: -1 } && versionStep.Value.Message == question, "Panah versi harus meminta versi sebelumnya.");
+        view.VersionOf = null;
+        view.Render([question, answer], theme);
+        window.UpdateLayout();
+
         // Find: the matching messages, framed, with the words marked.
         var matches = view.FindMatches("dicek");
         Assert(matches.SequenceEqual(new[] { 1 }), $"Pencarian harus menemukan pesan yang cocok: {string.Join(",", matches)}");

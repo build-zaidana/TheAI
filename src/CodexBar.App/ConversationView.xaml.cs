@@ -69,6 +69,12 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     /// <summary>Edit on one of the person's messages: put its text back in the input.</summary>
     public event EventHandler<ChatMessage>? EditRequested;
 
+    /// <summary>Which version of a prompt this is ("‹ 1/2 ›"), or null when it has only one.</summary>
+    public Func<ChatMessage, (int Index, int Count)?>? VersionOf { get; set; }
+
+    /// <summary>‹ or › under a prompt: show the version before (-1) or after (+1).</summary>
+    public event EventHandler<(ChatMessage Message, int Step)>? VersionRequested;
+
     /// <summary>"Fork from here", "Pin as chapter" and "Read aloud" from an answer's ⋯ menu.</summary>
     public event EventHandler<ChatMessage>? ForkRequested;
     public event EventHandler<ChatMessage>? PinToggled;
@@ -572,9 +578,21 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         var edit = MessageActions.Create(MessageActions.EditIcon, Tr.Text("Edit", "Edit"), theme.ReasoningText, theme.Markdown.Primary);
         edit.Click += (_, _) => EditRequested?.Invoke(this, message);
         actions.Children.Add(edit);
+        // Under the prompt: the versions switcher (always shown) and the actions (on hover).
+        var footer = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
+        if (VersionOf?.Invoke(message) is { Count: > 1 } version)
+        {
+            footer.Children.Add(VersionSwitcher(message, version.Index, version.Count, theme));
+        }
+
         if (message.Markdown.Length > 0)
         {
-            stack.Children.Add(actions);
+            footer.Children.Add(actions);
+        }
+
+        if (footer.Children.Count > 0)
+        {
+            stack.Children.Add(footer);
         }
 
         var host = new Border
@@ -588,6 +606,54 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         host.MouseEnter += (_, _) => actions.Opacity = 1;
         host.MouseLeave += (_, _) => actions.Opacity = 0;
         return host;
+    }
+
+    // "‹ 2/3 ›", as Claude shows the versions of an edited or retried prompt.
+    private FrameworkElement VersionSwitcher(ChatMessage message, int index, int count, ChatTheme theme)
+    {
+        var size = Math.Max(11, theme.Markdown.FontSize - 2);
+        var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 3, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+        Button Arrow(string glyph, int step, bool enabled, string name)
+        {
+            var button = new Button
+            {
+                Content = new TextBlock { Text = glyph, FontSize = size + 2, Foreground = theme.ReasoningText },
+                Width = 22,
+                Height = 22,
+                Cursor = enabled ? System.Windows.Input.Cursors.Hand : null,
+                IsEnabled = enabled,
+                Focusable = false,
+                Opacity = enabled ? 1 : 0.35,
+                ToolTip = name,
+                Template = new ControlTemplate(typeof(Button)) { VisualTree = PresenterOnly() }
+            };
+            System.Windows.Automation.AutomationProperties.SetName(button, name);
+            button.Click += (_, _) => VersionRequested?.Invoke(this, (message, step));
+            return button;
+        }
+
+        row.Children.Add(Arrow("‹", -1, index > 0, Tr.Text("Versi sebelumnya", "Previous version")));
+        row.Children.Add(new TextBlock
+        {
+            Text = $"{index + 1}/{count}",
+            FontSize = size,
+            Foreground = theme.ReasoningText,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(2, 0, 2, 0)
+        });
+        row.Children.Add(Arrow("›", 1, index < count - 1, Tr.Text("Versi berikutnya", "Next version")));
+        return row;
+    }
+
+    private static FrameworkElementFactory PresenterOnly()
+    {
+        var root = new FrameworkElementFactory(typeof(Border));
+        root.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        presenter.SetValue(FrameworkElement.HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Center);
+        presenter.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        root.AppendChild(presenter);
+        return root;
     }
 
     // "22:31" today, "5 Okt, 22:31" before.
