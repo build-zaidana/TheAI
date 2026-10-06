@@ -259,7 +259,8 @@ public static class ActivityList
             files.Sum(f => f.Added), files.Sum(f => f.Removed), style, size, bold: false, first: true, path: null));
         foreach (var file in files)
         {
-            list.Children.Add(SummaryRow(file.Name, file.Added, file.Removed, style, size, bold: false, first: false, path: file.Path));
+            var fileSteps = edited.Where(step => string.Equals(step.Detail, file.Path, StringComparison.OrdinalIgnoreCase)).ToArray();
+            list.Children.Add(SummaryRow(file.Name, file.Added, file.Removed, style, size, bold: false, first: false, path: file.Path, fileSteps));
         }
 
         // Undo, as in Claude Code: puts back what this turn's edits replaced.
@@ -319,7 +320,8 @@ public static class ActivityList
         }
     }
 
-    private static Border SummaryRow(string label, int added, int removed, MarkdownStyle style, double size, bool bold, bool first, string? path)
+    private static Border SummaryRow(string label, int added, int removed, MarkdownStyle style, double size, bool bold, bool first, string? path,
+        IReadOnlyList<ProviderActivityStep>? steps = null)
     {
         var counts = new TextBlock { FontSize = size - 0.5, VerticalAlignment = VerticalAlignment.Center, FontFamily = style.CodeFont };
         counts.Inlines.Add(new Run("+" + added) { Foreground = AddedBrush });
@@ -354,22 +356,34 @@ public static class ActivityList
         line.Children.Add(glyph);
         line.Children.Add(name);
 
+        var body = new StackPanel();
+        body.Children.Add(line);
         var row = new Border
         {
             Padding = new Thickness(12, 7, 12, 7),
             BorderBrush = style.CodeBorder,
             BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0),
             Background = Brushes.Transparent,
-            Child = line
+            Child = body
         };
 
         if (path is not null)
         {
-            row.Cursor = Cursors.Hand;
-            row.ToolTip = path;
-            row.MouseLeftButtonUp += (_, _) =>
+            // Show it in Explorer (never run it: the agent may have written a script).
+            var reveal = new TextBlock
             {
-                // Show it in Explorer (never run it: the agent may have written a script).
+                Text = "\uE838",
+                FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = size - 1,
+                Foreground = style.Muted,
+                Margin = new Thickness(8, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = Cursors.Hand,
+                ToolTip = Tr.Text("Tampilkan di Explorer", "Show in Explorer")
+            };
+            reveal.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
                 try
                 {
                     if (System.IO.File.Exists(path))
@@ -381,9 +395,88 @@ public static class ActivityList
                 {
                 }
             };
+            DockPanel.SetDock(reveal, Dock.Right);
+            line.Children.Insert(1, reveal);
+
+            // Click the row: the change as a diff under it, as in Claude Code.
+            var diffLines = (steps ?? []).SelectMany(ProviderActivity.DiffLines).ToArray();
+            row.Cursor = Cursors.Hand;
+            row.ToolTip = path;
+            FrameworkElement? diff = null;
+            var chevron = counts.Inlines.LastInline as Run;
+            row.MouseLeftButtonUp += (_, _) =>
+            {
+                diff ??= DiffView(diffLines, style, size);
+                if (!body.Children.Contains(diff))
+                {
+                    body.Children.Add(diff);
+                }
+
+                var open = diff.Visibility != Visibility.Visible || diff.Tag is null;
+                diff.Tag = "shown";
+                diff.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                if (chevron is not null)
+                {
+                    chevron.Text = open ? "   ⌄" : "   ›";
+                }
+            };
         }
 
         return row;
+    }
+
+    private static readonly Brush AddedLine = Frozen(Color.FromArgb(0x2E, 0x4A, 0xD6, 0x6D));
+    private static readonly Brush RemovedLine = Frozen(Color.FromArgb(0x2E, 0xFF, 0x6B, 0x5E));
+
+    // The diff lines: green for added, red for removed, muted context, "⋯" between hunks.
+    private static FrameworkElement DiffView(IReadOnlyList<(char Kind, string Text)> lines, MarkdownStyle style, double size)
+    {
+        const int MaxLines = 400;
+        var stack = new StackPanel();
+        if (lines.Count == 0)
+        {
+            stack.Children.Add(new TextBlock
+            {
+                Text = Tr.Text("Tidak ada diff untuk perubahan ini (file ditulis ulang seluruhnya).", "No diff for this change (the whole file was written)."),
+                FontSize = size - 1.5,
+                Foreground = style.Muted,
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+
+        foreach (var (kind, text) in lines.Take(MaxLines))
+        {
+            stack.Children.Add(new TextBlock
+            {
+                Text = kind == '@' ? "⋯" : (kind == ' ' ? "  " : kind + " ") + text,
+                FontFamily = style.CodeFont,
+                FontSize = size - 1.5,
+                Foreground = kind is '+' or '-' ? style.Primary : style.Muted,
+                Background = kind == '+' ? AddedLine : kind == '-' ? RemovedLine : Brushes.Transparent,
+                Padding = new Thickness(6, 0, 6, 0),
+                TextWrapping = TextWrapping.NoWrap
+            });
+        }
+
+        if (lines.Count > MaxLines)
+        {
+            stack.Children.Add(new TextBlock
+            {
+                Text = string.Format(Tr.Text("… {0} baris lagi", "… {0} more lines"), lines.Count - MaxLines),
+                FontSize = size - 1.5,
+                Foreground = style.Muted,
+                Margin = new Thickness(6, 2, 0, 0)
+            });
+        }
+
+        return new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Margin = new Thickness(0, 8, 0, 2),
+            Content = stack,
+            Visibility = Visibility.Collapsed
+        };
     }
 
     private static Border BuildRow(ProviderActivityStep step, MarkdownStyle style, bool first)

@@ -39,6 +39,9 @@ public sealed class AppSettings
     /// <summary>Tebak prompt berikutnya setelah agent selesai (teks samar di input notch).</summary>
     public bool PromptSuggestions { get; set; } = true;
 
+    /// <summary>Kirim ke sesi Claude Code yang sedang terbuka di aplikasinya: fork otomatis dulu.</summary>
+    public bool AutoForkElsewhere { get; set; }
+
     /// <summary>Sumber tebakan: "habit" (kebiasaan saja) atau "habit+ai" (model kecil saat kebiasaan belum yakin).</summary>
     public string PromptSuggestionSource { get; set; } = "habit";
 
@@ -130,6 +133,7 @@ public sealed class AppSettings
         ClaudeLiveSessions = source.ClaudeLiveSessions;
         ClaudeImportSessions = source.ClaudeImportSessions;
         PromptSuggestions = source.PromptSuggestions;
+        AutoForkElsewhere = source.AutoForkElsewhere;
         PromptSuggestionSource = source.PromptSuggestionSource;
         ChatSide = source.ChatSide;
         QuickCaptureReveal = source.QuickCaptureReveal;

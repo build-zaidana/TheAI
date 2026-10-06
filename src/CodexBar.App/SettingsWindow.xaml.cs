@@ -118,6 +118,7 @@ public partial class SettingsWindow : Window
         AutoCopySwitch.IsChecked = s.AutoCopyResponse;
         CompletionSoundSwitch.IsChecked = s.CompletionSound;
         SuggestSwitch.IsChecked = s.PromptSuggestions;
+        AutoForkSwitch.IsChecked = s.AutoForkElsewhere;
         Select(ChatSidePopup, s.ChatSide);
         SuggestHabitItem.Content = Tr.Text("Kebiasaan saja", "Habits only");
         SuggestAiItem.Content = Tr.Text("Kebiasaan + AI", "Habits + AI");
@@ -284,6 +285,7 @@ public partial class SettingsWindow : Window
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
         s.PromptSuggestions = SuggestSwitch.IsChecked == true;
+        s.AutoForkElsewhere = AutoForkSwitch.IsChecked == true;
         s.ChatSide = TagOf(ChatSidePopup) ?? s.ChatSide;
         s.PromptSuggestionSource = TagOf(SuggestSourcePopup) ?? s.PromptSuggestionSource;
         s.ClaudeImportSessions = ClaudeImportSwitch.IsChecked == true;

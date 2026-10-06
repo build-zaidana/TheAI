@@ -29,6 +29,9 @@ public sealed record MarkdownStyle(
 
 public static class MarkdownRenderer
 {
+    /// <summary>A file link in an answer was clicked (its target, e.g. "src/Foo.cs:42").</summary>
+    public static event Action<string>? FileLinkClicked;
+
     private static readonly Regex InlineRegex = new(
         @"(?<link>\[(?<ltext>[^\]]+)\]\((?<lurl>[^)\s]+)\))|(?<code>`[^`]+`)|(?<bold>\*\*[^*]+\*\*)|(?<strike>~~[^~]+~~)|(?<italic>(?<![\w*])[\*_][^\*_]+[\*_](?![\w]))",
         RegexOptions.Compiled);
@@ -427,7 +430,11 @@ public static class MarkdownRenderer
                 }
                 else
                 {
-                    target.Add(new Underline(label) { Foreground = style.Primary });
+                    // A file link ([Foo.cs](src/Foo.cs:42)): the host opens it in the editor.
+                    var link = new Hyperlink(label) { Foreground = style.InlineCodeForeground, ToolTip = url };
+                    var target2 = Uri.UnescapeDataString(url);
+                    link.Click += (_, _) => FileLinkClicked?.Invoke(target2);
+                    target.Add(link);
                 }
             }
             else if (match.Groups["code"].Success)

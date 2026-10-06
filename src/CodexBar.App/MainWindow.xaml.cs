@@ -241,6 +241,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
         };
         window.PanelWidth = _settings.ChatWidth;
+        MarkdownRenderer.FileLinkClicked += OpenFileLink;
         window.SetContextUsage(_contextUsage.Tokens, _contextUsage.Window);
         window.CompactRequested += (_, _) => _ = RunUiTaskAsync(CompactFromChatAsync);
         window.ExportRequested += (_, _) => ExportConversation();
@@ -250,8 +251,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _ = SaveSettingsSafeAsync();
         };
         window.FilesDropped += (_, paths) => ((INotchHost)this).AddAttachments(paths);
-        window.Conversation.EditRequested += (_, text) => window.SetInputText(StripAttachmentLines(text));
-        window.Conversation.RetryRequested += (_, answer) => RetryAnswer(answer);
+        window.LastPrompt = () => _messages.LastOrDefault(message => message.IsUser) is { } last ? StripAttachmentLines(last.Markdown) : null;
+        window.Conversation.EditRequested += (_, message) => _ = RunUiTaskAsync(() => EditMessageAsync(message));
+        window.Conversation.RetryRequested += (_, answer) => _ = RunUiTaskAsync(() => RetryAnswerAsync(answer));
         window.Conversation.CanFork = message => IsClaudeCodeProvider && message.SourceId is not null && _controller.ThreadId is not null;
         window.Conversation.ReadingKey = () => ReadAloud.Current;
         window.Conversation.ReadAloudRequested += (_, message) =>
@@ -310,17 +312,71 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     // opened in the chat so it can go on differently; the original stays as it is.
     private async Task ForkFromAsync(ChatMessage message)
     {
-        if (_controller.IsBusy || message.SourceId is not { } upto || _controller.ThreadId is not { } thread ||
-            CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.FindFile(thread) is not { } transcript)
+        if (await BranchAtAsync(message, "Fork: " + (_outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(message))))
         {
-            return;
+            SetStatus(Tr.Text("Fork dibuat", "Forked"), StatusReadyBrush);
+        }
+    }
+
+    // A new Claude Code session with the conversation up to <paramref name="upto"/> (an answer),
+    // opened in the chat; null means from the very start (a new conversation, same folder).
+    private async Task<bool> BranchAtAsync(ChatMessage? upto, string title)
+    {
+        if (_controller.IsBusy || _controller.ThreadId is not { } thread)
+        {
+            return false;
         }
 
-        var title = "Fork: " + (_outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(message));
-        var forkId = await Task.Run(() => CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Fork(transcript, upto, title));
+        if (upto is null)
+        {
+            var folder = CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(thread)?.Cwd ?? _settings.WorkspacePath;
+            await OpenWorkspaceAsync(folder, newThread: true);
+            _messages.Clear();
+            _streamingAgent = null;
+            RenderConversation();
+            return true;
+        }
+
+        if (upto.SourceId is not { } uuid || CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.FindFile(thread) is not { } transcript)
+        {
+            return false;
+        }
+
+        var forkId = await Task.Run(() => CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Fork(transcript, uuid, title));
         var workspace = CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(forkId)?.Cwd ?? _settings.WorkspacePath;
         await OpenThreadFromSidebarAsync(new ProviderThreadSummary(forkId, title, string.Empty, workspace, DateTimeOffset.Now));
-        SetStatus(Tr.Text("Fork dibuat", "Forked"), StatusReadyBrush);
+        return true;
+    }
+
+    // The answer just before a prompt (null when the prompt opens the conversation).
+    private ChatMessage? AnswerBefore(ChatMessage prompt)
+    {
+        var index = _messages.IndexOf(prompt);
+        return index <= 0 ? null : _messages.Take(index).LastOrDefault(message => !message.IsUser);
+    }
+
+    // Claude Code conversations branch like Claude: editing or retrying goes on from the point
+    // before that prompt in a new session, and the original stays as it was.
+    private bool CanBranchBefore(ChatMessage prompt) =>
+        IsClaudeCodeProvider && !_controller.IsBusy && _controller.ThreadId is not null &&
+        AnswerBefore(prompt) is null or { SourceId: not null };
+
+    // Edit under one of your messages: its text back in the box, on a branch from just before it
+    // when the provider can (so sending it replaces that message, as in Claude).
+    private async Task EditMessageAsync(ChatMessage prompt)
+    {
+        var text = StripAttachmentLines(prompt.Markdown);
+        var isLatestPrompt = ReferenceEquals(_messages.LastOrDefault(message => message.IsUser), prompt);
+        if (!isLatestPrompt || _messages.LastOrDefault() is { IsUser: false })
+        {
+            if (CanBranchBefore(prompt))
+            {
+                await BranchAtAsync(AnswerBefore(prompt), _outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(prompt));
+                SetStatus(Tr.Text("Cabang baru dari sebelum pesan itu — kirim untuk melanjutkan.", "New branch from before that message — send to go on."), StatusReadyBrush);
+            }
+        }
+
+        _outputWindow?.SetInputText(text);
     }
 
     // Export (header button or /export): the conversation as a Markdown file of your choice.
@@ -356,8 +412,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    // Retry under the latest answer: send the prompt that led to it again.
-    private void RetryAnswer(ChatMessage answer)
+    // Retry under the latest answer: ask again. Claude Code branches from before the prompt (the
+    // old answer stays in the original session); other providers send the prompt once more.
+    private async Task RetryAnswerAsync(ChatMessage answer)
     {
         if (_controller.IsBusy)
         {
@@ -366,10 +423,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         var index = _messages.IndexOf(answer);
         var prompt = _messages.Take(index < 0 ? _messages.Count : index).LastOrDefault(message => message.IsUser);
-        if (prompt is not null && StripAttachmentLines(prompt.Markdown) is { Length: > 0 } text)
+        if (prompt is null || StripAttachmentLines(prompt.Markdown) is not { Length: > 0 } text)
         {
-            _ = RunUiTaskAsync(() => SendCoreAsync(text, [], clearPromptBox: false));
+            return;
         }
+
+        if (CanBranchBefore(prompt))
+        {
+            await BranchAtAsync(AnswerBefore(prompt), _outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(prompt));
+        }
+
+        await SendCoreAsync(text, [], clearPromptBox: false);
     }
 
     // A sent message lists its attachments as "- 📎 **name**" lines; those aren't part of the prompt.
@@ -384,7 +448,85 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             return;
         }
 
-        _ = RunUiTaskAsync(() => SendCoreAsync(text, _attachments.ToArray(), clearPromptBox: false));
+        _ = RunUiTaskAsync(async () =>
+        {
+            // Optional: a session open in Claude Code gets a fork first, so the two never clash.
+            if (_settings.AutoForkElsewhere && IsClaudeCodeProvider && _controller.ThreadId is { } thread &&
+                _messages.LastOrDefault(message => !message.IsUser && message.SourceId is not null) is { } latest &&
+                await Task.Run(() => CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.ActiveElsewhere(thread, TimeSpan.FromMinutes(15))))
+            {
+                await BranchAtAsync(latest, _outputWindow?.TitleText.Text ?? ConversationView.ChapterTitle(latest));
+                _outputWindow?.SetNotice(null);
+            }
+
+            await SendCoreAsync(text, _attachments.ToArray(), clearPromptBox: false);
+        });
+    }
+
+    // A file link in an answer: open it in VS Code at its line when installed, else show it in
+    // Explorer (never run it). Relative paths are the session's folder.
+    private void OpenFileLink(string target)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(target, @"^(?<path>.+?)(?::(?<line>\d+)(?::\d+)?)?(?:#L(?<line2>\d+))?$");
+        var path = match.Groups["path"].Value.Replace('/', Path.DirectorySeparatorChar);
+        var line = match.Groups["line"].Success ? match.Groups["line"].Value : match.Groups["line2"].Success ? match.Groups["line2"].Value : null;
+        if (!Path.IsPathRooted(path))
+        {
+            var folder = (IsClaudeCodeProvider && _controller.ThreadId is { } thread
+                ? CodexBar.Providers.ClaudeCode.ClaudeSessionFiles.Find(thread)?.Cwd
+                : null) ?? _settings.WorkspacePath;
+            path = Path.GetFullPath(Path.Combine(folder, path));
+        }
+
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                System.Diagnostics.Process.Start("explorer.exe", $"\"{path}\"");
+                return;
+            }
+
+            if (!File.Exists(path))
+            {
+                SetStatus(string.Format(Tr.Text("File tidak ditemukan: {0}", "File not found: {0}"), path), StatusErrorBrush);
+                return;
+            }
+
+            if (FindVsCode() is { } code)
+            {
+                var start = new System.Diagnostics.ProcessStartInfo(code) { UseShellExecute = false, CreateNoWindow = true };
+                start.ArgumentList.Add("-g");
+                start.ArgumentList.Add(line is null ? path : $"{path}:{line}");
+                System.Diagnostics.Process.Start(start);
+            }
+            else
+            {
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+        }
+    }
+
+    private static string? FindVsCode()
+    {
+        var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Microsoft VS Code", "Code.exe");
+        if (File.Exists(installed))
+        {
+            return installed;
+        }
+
+        var machine = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft VS Code", "Code.exe");
+        if (File.Exists(machine))
+        {
+            return machine;
+        }
+
+        return (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator)
+            .Select(dir => Path.Combine(dir.Trim(), "code.cmd"))
+            .FirstOrDefault(File.Exists);
     }
 
     private void UpdatePanelHeader()
@@ -1249,7 +1391,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 Markdown = message.Text.Trim(),
                 Steps = message.Steps ?? [],
                 Images = message.Images ?? [],
-                SourceId = message.Id
+                SourceId = message.Id,
+                Time = message.Time
             });
         }
 
@@ -1477,7 +1620,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             userMarkdown = string.Join($"{Environment.NewLine}{Environment.NewLine}",
                 new[] { prompt, string.Join(Environment.NewLine, others) }.Where(part => part.Length > 0));
         }
-        var userMessage = new ChatMessage { IsUser = true, Markdown = userMarkdown, Images = sentImages };
+        var userMessage = new ChatMessage { IsUser = true, Markdown = userMarkdown, Images = sentImages, Time = DateTimeOffset.Now };
         _historyLoadedThreadId = _controller.ThreadId;
         _messages.Add(userMessage);
         _notch?.OnTurnStarted(prompt.Length > 0 ? prompt : attachmentSummary);
@@ -1971,7 +2114,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 case ProviderTextDeltaEvent textDelta:
                     if (_streamingAgent is null)
                     {
-                        _streamingAgent = new ChatMessage { IsUser = false, Markdown = textDelta.Delta };
+                        _streamingAgent = new ChatMessage { IsUser = false, Markdown = textDelta.Delta, Time = DateTimeOffset.Now };
                         _messages.Add(_streamingAgent);
                         if (HasVisibleConversationSurface)
                         {
@@ -1993,7 +2136,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     // The text streamed so far moved into the work list; the answer starts over.
                     if (_streamingAgent is null)
                     {
-                        _streamingAgent = new ChatMessage { IsUser = false };
+                        _streamingAgent = new ChatMessage { IsUser = false, Time = DateTimeOffset.Now };
                         _messages.Add(_streamingAgent);
                         _streamingAgent.Steps = activity.Steps;
                         _streamingAgent.Markdown = activity.Answer;
@@ -2013,7 +2156,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 case ProviderReasoningDeltaEvent reasoningDelta:
                     if (_streamingAgent is null)
                     {
-                        _streamingAgent = new ChatMessage { IsUser = false, Reasoning = reasoningDelta.Delta };
+                        _streamingAgent = new ChatMessage { IsUser = false, Reasoning = reasoningDelta.Delta, Time = DateTimeOffset.Now };
                         _messages.Add(_streamingAgent);
                         if (HasVisibleConversationSurface)
                         {

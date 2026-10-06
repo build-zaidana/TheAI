@@ -22,6 +22,9 @@ public sealed class ChatMessage
     /// <summary>The work before the answer (tool calls, text in between), as in Claude Code.</summary>
     public IReadOnlyList<CodexBar.Providers.ProviderActivityStep> Steps { get; set; } = [];
 
+    /// <summary>When it was written (shown on hover).</summary>
+    public DateTimeOffset? Time { get; set; }
+
     /// <summary>Where the message is in its source (e.g. the Claude Code transcript), for forking.</summary>
     public string? SourceId { get; init; }
 
@@ -64,7 +67,7 @@ public partial class ConversationView : System.Windows.Controls.UserControl
     public event EventHandler<ChatMessage>? RetryRequested;
 
     /// <summary>Edit on one of the person's messages: put its text back in the input.</summary>
-    public event EventHandler<string>? EditRequested;
+    public event EventHandler<ChatMessage>? EditRequested;
 
     /// <summary>"Fork from here", "Pin as chapter" and "Read aloud" from an answer's ⋯ menu.</summary>
     public event EventHandler<ChatMessage>? ForkRequested;
@@ -560,9 +563,14 @@ public partial class ConversationView : System.Windows.Controls.UserControl
             Margin = new Thickness(0, 3, 0, 0),
             Opacity = 0
         };
+        if (TimeLabel(message, theme) is { } userTime)
+        {
+            actions.Children.Add(userTime);
+        }
+
         actions.Children.Add(MessageActions.Copy(() => message.Markdown, loc["conversation.copyName"], theme.ReasoningText, theme.Markdown.Primary));
         var edit = MessageActions.Create(MessageActions.EditIcon, Tr.Text("Edit", "Edit"), theme.ReasoningText, theme.Markdown.Primary);
-        edit.Click += (_, _) => EditRequested?.Invoke(this, message.Markdown);
+        edit.Click += (_, _) => EditRequested?.Invoke(this, message);
         actions.Children.Add(edit);
         if (message.Markdown.Length > 0)
         {
@@ -580,6 +588,27 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         host.MouseEnter += (_, _) => actions.Opacity = 1;
         host.MouseLeave += (_, _) => actions.Opacity = 0;
         return host;
+    }
+
+    // "22:31" today, "5 Okt, 22:31" before.
+    private static TextBlock? TimeLabel(ChatMessage message, ChatTheme theme)
+    {
+        if (message.Time is not { } time)
+        {
+            return null;
+        }
+
+        var local = time.ToLocalTime();
+        var culture = System.Globalization.CultureInfo.GetCultureInfo(Tr.Text("id-ID", "en-US"));
+        return new TextBlock
+        {
+            Text = local.Date == DateTime.Today ? local.ToString("HH':'mm", culture) : local.ToString("d MMM, HH':'mm", culture),
+            FontSize = Math.Max(10, theme.Markdown.FontSize - 3),
+            Foreground = theme.ReasoningText,
+            Margin = new Thickness(6, 0, 6, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = local.ToString("dddd, d MMMM yyyy HH':'mm", culture)
+        };
     }
 
     private FrameworkElement BuildAgentContent(ChatMessage message, ChatTheme theme, bool isLast)
@@ -658,6 +687,15 @@ public partial class ConversationView : System.Windows.Controls.UserControl
         retry.Click += (_, _) => RetryRequested?.Invoke(this, message);
         retry.Visibility = isLast ? Visibility.Visible : Visibility.Collapsed;
         actions.Children.Add(retry);
+        if (TimeLabel(message, theme) is { } answerTime)
+        {
+            // Shown while the pointer is over the answer, as in Claude.
+            answerTime.Opacity = 0;
+            actions.Children.Add(answerTime);
+            stack.Background = Brushes.Transparent;
+            stack.MouseEnter += (_, _) => answerTime.Opacity = 1;
+            stack.MouseLeave += (_, _) => answerTime.Opacity = 0;
+        }
         var more = MessageActions.Create(MessageActions.MoreIcon, Tr.Text("Lainnya", "More"), theme.ReasoningText, theme.Markdown.Primary);
         more.Click += (_, _) =>
         {

@@ -1283,8 +1283,19 @@ public partial class ConversationPanel : Window
         SetBusy(_busy);
     }
 
+    /// <summary>Your last message (for ↑ in an empty box), or null.</summary>
+    public Func<string?>? LastPrompt { get; set; }
+
     private void Input_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Up && Keyboard.Modifiers == ModifierKeys.None && Input.Text.Length == 0 && !SlashOpen &&
+            LastPrompt?.Invoke() is { Length: > 0 } last)
+        {
+            e.Handled = true;
+            SetInputText(last);
+            return;
+        }
+
         if (HandleSlashKey(e.Key))
         {
             e.Handled = true;

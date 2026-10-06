@@ -881,7 +881,7 @@ public sealed class CodexProvider : IAgentProvider
                         : "update";
                     var (added, removed) = ProviderActivity.DiffCounts(GetString(change, "diff") ?? string.Empty);
                     yield return (new ProviderActivityStep(kind == "add" ? "Wrote" : "Edited", Path.GetFileName(path), path,
-                        Failed: failed, Added: added, Removed: removed), null);
+                        Failed: failed, Added: added, Removed: removed, Diff: GetString(change, "diff")), null);
                 }
                 break;
 

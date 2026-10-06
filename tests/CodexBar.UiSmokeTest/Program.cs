@@ -234,7 +234,8 @@ internal static class Program
         panel.Children.Add(MarkdownRenderer.BuildPanel(markdown, style));
         var summary = ActivityList.BuildSummary(
         [
-            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Added: 104, Edits: [new ProviderTextEdit("a", "b")]),
+            new ProviderActivityStep("Edited", "CodeHighlighter.cs", "C:/x/CodeHighlighter.cs", Added: 104,
+                Edits: [new ProviderTextEdit(string.Join('\n', "var a = 1;", "var b = 2;", "Print(a);"), string.Join('\n', "var a = 1;", "var b = 3;", "Print(a);", "Print(b);"))]),
             new ProviderActivityStep("Edited", "MarkdownRenderer.cs", "C:/x/MarkdownRenderer.cs", Added: 8, Removed: 4),
             new ProviderActivityStep("Edited", "Broken.cs", "C:/x/Broken.cs", Failed: true, Added: 9)
         ], style);
@@ -244,6 +245,19 @@ internal static class Program
         host.Measure(new Size(440, double.PositiveInfinity));
         host.Arrange(new Rect(host.DesiredSize));
         host.UpdateLayout();
+
+        // Clicking an edited file opens its diff under the row.
+        var fileRow = FindVisualChildren<Border>(summary!).First(b => Equals(b.ToolTip, "C:/x/CodeHighlighter.cs"));
+        fileRow.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+        {
+            RoutedEvent = UIElement.MouseLeftButtonUpEvent
+        });
+        host.Measure(new Size(440, double.PositiveInfinity));
+        host.Arrange(new Rect(host.DesiredSize));
+        host.UpdateLayout();
+        Assert(FindVisualChildren<TextBlock>(summary!).Any(t => t.Text == "+ var b = 3;") &&
+               FindVisualChildren<TextBlock>(summary!).Any(t => t.Text == "- var b = 2;"),
+            "Klik file di ringkasan harus membuka diff-nya.");
 
         var texts = FindVisualChildren<TextBlock>(host).Select(t => new System.Windows.Documents.TextRange(t.ContentStart, t.ContentEnd).Text).ToArray();
         Assert(texts.Contains("3."), "Daftar bernomor harus memakai nomor aslinya.");
@@ -276,13 +290,13 @@ internal static class Program
         var window = new Window { Width = 460, Height = 400, Content = view, Background = Brushes.Black, ShowInTaskbar = false, Left = -3000 };
         window.Show();
         var question = new ChatMessage { IsUser = true, Markdown = "Tolong cek ini\n\n- 📎 **foto.png**" };
-        var answer = new ChatMessage { IsUser = false, Markdown = "Sudah dicek." };
+        var answer = new ChatMessage { IsUser = false, Markdown = "Sudah dicek. Lihat [Foo.cs](src/Foo.cs:42).", Time = DateTimeOffset.Now };
         view.Render([question, answer], theme);
         window.UpdateLayout();
 
         string? edited = null;
         ChatMessage? retried = null;
-        view.EditRequested += (_, text) => edited = text;
+        view.EditRequested += (_, message) => edited = message.Markdown;
         view.RetryRequested += (_, message) => retried = message;
         var buttons = FindVisualChildren<Button>(view).ToArray();
         string Name(Button b) => AutomationProperties.GetName(b);
@@ -299,6 +313,17 @@ internal static class Program
         // Find: the matching messages, framed, with the words marked.
         var matches = view.FindMatches("dicek");
         Assert(matches.SequenceEqual(new[] { 1 }), $"Pencarian harus menemukan pesan yang cocok: {string.Join(",", matches)}");
+
+        // Time on hover, and file links that the host opens.
+        Assert(FindVisualChildren<TextBlock>(view).Any(t => t.Text == answer.Time!.Value.ToLocalTime().ToString("HH:mm")),
+            "Jawaban harus punya label waktu.");
+        string? opened = null;
+        Action<string> onLink = target => opened = target;
+        MarkdownRenderer.FileLinkClicked += onLink;
+        var fileLink = FindVisualChildren<TextBlock>(view).SelectMany(t => t.Inlines.OfType<System.Windows.Documents.Hyperlink>()).First();
+        fileLink.RaiseEvent(new RoutedEventArgs(System.Windows.Documents.Hyperlink.ClickEvent));
+        MarkdownRenderer.FileLinkClicked -= onLink;
+        Assert(opened == "src/Foo.cs:42", $"Tautan file harus diteruskan ke host (dapat: {opened}).");
         view.ShowMatch(1, "dicek");
         window.UpdateLayout();
         Assert(FindVisualChildren<TextBlock>(view).SelectMany(t => t.Inlines.OfType<System.Windows.Documents.Run>())
@@ -322,7 +347,7 @@ internal static class Program
         view.PinnedKeys = new HashSet<string> { ConversationView.KeyOf(answer) };
         view.Render([question, answer], theme);
         window.UpdateLayout();
-        Assert(FindVisualChildren<TextBlock>(view).Any(t => t.Text == "Sudah dicek."  && t.FontWeight == FontWeights.SemiBold),
+        Assert(FindVisualChildren<TextBlock>(view).Any(t => t.Text == ConversationView.ChapterTitle(answer) && t.FontWeight == FontWeights.SemiBold),
             "Pesan yang di-pin harus diberi pembatas chapter berjudul.");
         var spoken = ReadAloud.Plain("""
             ## Judul

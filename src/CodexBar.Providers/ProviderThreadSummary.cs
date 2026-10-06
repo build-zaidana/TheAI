@@ -19,7 +19,8 @@ public sealed record ProviderThreadMessage(
     string Text,
     IReadOnlyList<ProviderActivityStep>? Steps = null,
     IReadOnlyList<string>? Images = null,
-    string? Id = null);
+    string? Id = null,
+    DateTimeOffset? Time = null);
 
 /// <summary>
 /// One step of an agent turn: "Edited" + "Foo.cs", "Ran a command" + the command as detail, or
@@ -34,7 +35,8 @@ public sealed record ProviderActivityStep(
     bool IsText = false,
     int Added = 0,
     int Removed = 0,
-    IReadOnlyList<ProviderTextEdit>? Edits = null)
+    IReadOnlyList<ProviderTextEdit>? Edits = null,
+    string? Diff = null)
 {
     public bool IsFileEdit => !IsText && Verb is "Edited" or "Wrote";
 

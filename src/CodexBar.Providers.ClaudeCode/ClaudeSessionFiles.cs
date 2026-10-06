@@ -125,10 +125,41 @@ public static class ClaudeSessionFiles
     /// </summary>
     public static IReadOnlyList<ProviderThreadMessage> ReadMessages(string filePath)
     {
+        // A long session takes about a second to read: keep the result until the file changes.
+        var file = new FileInfo(filePath);
+        lock (MessageCache)
+        {
+            if (MessageCache.TryGetValue(file.FullName, out var cached) &&
+                cached.Length == file.Length && cached.Written == file.LastWriteTimeUtc)
+            {
+                return cached.Messages;
+            }
+        }
+
+        var read = ReadMessagesUncached(filePath);
+        lock (MessageCache)
+        {
+            if (MessageCache.Count > 8)
+            {
+                MessageCache.Clear();
+            }
+
+            MessageCache[file.FullName] = (file.Length, file.LastWriteTimeUtc, read);
+        }
+
+        return read;
+    }
+
+    private static readonly Dictionary<string, (long Length, DateTime Written, IReadOnlyList<ProviderThreadMessage> Messages)> MessageCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static IReadOnlyList<ProviderThreadMessage> ReadMessagesUncached(string filePath)
+    {
         var messages = new List<ProviderThreadMessage>();
         var parts = new List<(ProviderActivityStep Step, string? ToolId)>();
         var failed = new HashSet<string>(StringComparer.Ordinal);
         string? turnEnd = null;
+        DateTimeOffset? turnTime = null;
 
         // A session file can hold branches (e.g. a prompt sent from CodexBar while Claude Code
         // kept going): show only the latest one, from its root to its newest message.
@@ -143,7 +174,7 @@ public static class ClaudeSessionFiles
             }
 
             var (steps, answer) = SplitTurn(parts, failed);
-            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null, Id: turnEnd));
+            messages.Add(new ProviderThreadMessage("assistant", answer, steps.Count > 0 ? steps : null, Id: turnEnd, Time: turnTime));
             parts.Clear();
             failed.Clear();
         }
@@ -159,7 +190,7 @@ public static class ClaudeSessionFiles
                 continue;
             }
 
-            var uuid = MessageUuid(line);
+            var (uuid, time) = MessageInfo(line);
 
             if (line.Contains("\"type\":\"user\"", StringComparison.Ordinal))
             {
@@ -167,12 +198,12 @@ public static class ClaudeSessionFiles
                 if (HumanPrompt(line) is { } prompt)
                 {
                     FlushAssistant();
-                    messages.Add(new ProviderThreadMessage("user", prompt, Images: images.Count > 0 ? images : null, Id: uuid));
+                    messages.Add(new ProviderThreadMessage("user", prompt, Images: images.Count > 0 ? images : null, Id: uuid, Time: time));
                 }
                 else if (images.Count > 0)
                 {
                     FlushAssistant();
-                    messages.Add(new ProviderThreadMessage("user", string.Empty, Images: images, Id: uuid));
+                    messages.Add(new ProviderThreadMessage("user", string.Empty, Images: images, Id: uuid, Time: time));
                 }
                 else if (line.Contains("\"is_error\":true", StringComparison.Ordinal))
                 {
@@ -189,6 +220,7 @@ public static class ClaudeSessionFiles
                 if (added.Length > 0 && uuid is not null)
                 {
                     turnEnd = uuid; // forking from this answer keeps everything up to here
+                    turnTime = time;
                 }
             }
         }
@@ -198,6 +230,30 @@ public static class ClaudeSessionFiles
     }
 
     // Top-level uuid of a user / assistant line (null for other lines).
+    // uuid and timestamp of a user / assistant line.
+    private static (string? Uuid, DateTimeOffset? Time) MessageInfo(string line)
+    {
+        if (!line.Contains("\"uuid\"", StringComparison.Ordinal) ||
+            !(line.Contains("\"type\":\"user\"", StringComparison.Ordinal) || line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)) ||
+            !TryRead(line, out var document))
+        {
+            return (null, null);
+        }
+
+        using (document)
+        {
+            var root = document.RootElement;
+            if (Str(root, "type") is not ("user" or "assistant"))
+            {
+                return (null, null);
+            }
+
+            DateTimeOffset? time = DateTimeOffset.TryParse(Str(root, "timestamp"), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed) ? parsed : null;
+            return (Str(root, "uuid"), time);
+        }
+    }
+
     private static string? MessageUuid(string line)
     {
         if (!line.Contains("\"uuid\"", StringComparison.Ordinal) ||

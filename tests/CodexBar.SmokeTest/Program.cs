@@ -1006,7 +1006,7 @@ static int RunFileChangeTests()
         var branchFile = Path.Combine(sessionDir, "22222222-2222-3333-4444-555555555555.jsonl");
         File.WriteAllLines(branchFile, new[]
         {
-            """{"type":"user","uuid":"u1","parentUuid":null,"sessionId":"22222222-2222-3333-4444-555555555555","cwd":"C:\\w","message":{"role":"user","content":"halo"}}""",
+            """{"type":"user","uuid":"u1","parentUuid":null,"timestamp":"2026-10-05T08:00:00.000Z","sessionId":"22222222-2222-3333-4444-555555555555","cwd":"C:\\w","message":{"role":"user","content":"halo"}}""",
             """{"type":"assistant","uuid":"a1","parentUuid":"u1","message":{"role":"assistant","content":[{"type":"text","text":"Hai."}]}}""",
             """{"type":"user","uuid":"x1","parentUuid":"a1","entrypoint":"sdk-cli","message":{"role":"user","content":"cabang lain"}}""",
             """{"type":"assistant","uuid":"x2","parentUuid":"x1","message":{"role":"assistant","content":[{"type":"text","text":"Jawaban cabang."}]}}""",
@@ -1014,6 +1014,8 @@ static int RunFileChangeTests()
             """{"type":"assistant","uuid":"a2","parentUuid":"u2","message":{"role":"assistant","content":[{"type":"text","text":"Oke."}]}}"""
         });
         var branchHistory = ClaudeSessionFiles.ReadMessages(branchFile);
+        Assert(branchHistory[0].Time == new DateTimeOffset(2026, 10, 5, 8, 0, 0, TimeSpan.Zero), "Waktu pesan harus terbaca dari transcript.");
+        Assert(ReferenceEquals(branchHistory, ClaudeSessionFiles.ReadMessages(branchFile)), "File yang tidak berubah harus dibaca dari cache.");
         Assert(string.Join("|", branchHistory.Select(m => m.Text)) == "halo|Hai.|lanjut|Oke." && branchHistory[1].Id == "a1",
             $"Hanya cabang terbaru yang boleh tampil: {string.Join("|", branchHistory.Select(m => m.Text))}");
         var forkId = ClaudeSessionFiles.Fork(branchFile, "a1", "Fork: halo");
@@ -1034,6 +1036,14 @@ static int RunFileChangeTests()
             $"Undo harus mengembalikan teks yang diganti: undone={undone} skipped={skipped} '{File.ReadAllText(undoFile)}'");
         Assert(history[1].Steps![3].Edits is [{ Old: "a\nb\nc", New: "a\nB\nc\nd" }], "Edit Claude Code harus menyimpan teks untuk Undo.");
         Directory.Delete(sessionDir, recursive: true);
+
+        // Diff lines for the "Edited N files" view: from an edit's old/new text, and from a unified diff.
+        var editDiff = ProviderActivity.DiffLines(new ProviderActivityStep("Edited", "a.cs", "a.cs",
+            Edits: [new ProviderTextEdit(string.Join('\n', "satu", "dua", "tiga"), string.Join('\n', "satu", "DUA", "tiga", "empat"))]));
+        Assert(string.Join("|", editDiff.Select(l => l.Kind + l.Text)) == " satu|-dua|+DUA| tiga|+empat",
+            $"Diff dari edit salah: {string.Join("|", editDiff.Select(l => l.Kind + l.Text))}");
+        var unified = ProviderActivity.DiffLines(new ProviderActivityStep("Edited", "a.ts", "a.ts", Diff: string.Join('\n', "--- a/a.ts", "+++ b/a.ts", "@@ -1 +1 @@", "-x", "+y")));
+        Assert(string.Join("|", unified.Select(l => l.Kind + l.Text)) == "-x|+y", "Diff unified dari Codex salah.");
 
         // Codex items as activity steps: a failed command, a file change with diff counts, the answer.
         Assert(ProviderActivity.DiffCounts("--- a/x\n+++ b/x\n@@ -1 +1,2 @@\n-a\n+b\n+c") == (2, 1), "Hitungan diff Codex salah.");
