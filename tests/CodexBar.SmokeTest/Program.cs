@@ -1061,6 +1061,18 @@ static int RunFileChangeTests()
                 $"Langkah Codex harus terbaca seperti Claude Code: {string.Join(" | ", codexSteps)}");
         }
 
+        // Update check: a GitHub "latest release" response, the installer preferred, versions compared.
+        var release = UpdateChecker.Parse("""
+            {"tag_name":"v1.3.0","html_url":"https://github.com/o/r/releases/tag/v1.3.0","body":"Baru",
+             "assets":[{"name":"CodexBar.App.exe","browser_download_url":"https://x/app.exe"},
+                       {"name":"CodexBar-Setup-1.3.0.exe","browser_download_url":"https://x/setup.exe"}]}
+            """);
+        Assert(release is { Tag: "v1.3.0", DownloadUrl: "https://x/setup.exe" } && release.Version == new Version(1, 3, 0, 0),
+            $"Rilis GitHub salah terbaca: {release}");
+        Assert(UpdateChecker.Parse("""{"tag_name":"nightly"}""") is null, "Tag tanpa versi bukan rilis.");
+        Assert(UpdateChecker.IsRepository("build-zaidana/CodexBar") && !UpdateChecker.IsRepository("https://github.com/x"),
+            "Format repositori pemilik/nama harus dikenali.");
+
         var habits = new PromptHabits();
         Assert(habits.Predict(TurnContext.Files) is null, "Tanpa riwayat tidak boleh ada tebakan.");
         habits.Record("commit dulu perubahannya", TurnContext.Files);

@@ -213,6 +213,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             await StartupAsync();
             ApplyDisplayMode();
             StartClaudeSync();
+            StartUpdateChecks();
             _ = Task.Run(() => ImageThumb.PruneCache(TimeSpan.FromDays(30), 300L * 1024 * 1024));
             if (_settings.PromptSuggestions)
             {
@@ -2780,6 +2781,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var menu = new TrayMenuWindow();
         menu.AddStatus(_attentionText.Length > 0 ? _attentionText : L("attention.none"), _attentionDot,
             _attentionActionable ? ShowAttentionCenter : null);
+        if (_availableUpdate is { } update)
+        {
+            menu.AddItem(TrayIcons.Update, string.Format(Tr.Text("Unduh CodexBar {0}", "Download CodexBar {0}"), update.Version.ToString(3)), OpenUpdateDownload);
+        }
         menu.AddItem(TrayIcons.Open, L("tray.show"), () =>
         {
             if (_notch is not null)
@@ -2818,6 +2823,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         public const string Open = "M 2.5,4 Q 2.5,2.5 4,2.5 L 12,2.5 Q 13.5,2.5 13.5,4 L 13.5,8 M 2.5,4 L 2.5,12 Q 2.5,13.5 4,13.5 L 8,13.5 M 10,10 L 14,14 M 14,10.5 L 14,14 L 10.5,14";
         public const string NewThread = "M 8,2.5 L 8,13.5 M 2.5,8 L 13.5,8";
+        public const string Update = "M 8,2 L 8,10.5 M 4.5,7 L 8,10.5 L 11.5,7 M 2.5,12 L 2.5,13.5 L 13.5,13.5 L 13.5,12";
         public const string Screenshot = "M 2,5 Q 2,4 3,4 L 5,4 L 6,2.5 L 10,2.5 L 11,4 L 13,4 Q 14,4 14,5 L 14,12 Q 14,13 13,13 L 3,13 Q 2,13 2,12 Z M 10.5,8.3 A 2.5,2.5 0 1 1 5.5,8.3 A 2.5,2.5 0 1 1 10.5,8.3 Z";
         public const string Recenter = "M 8,1.5 L 8,4 M 8,12 L 8,14.5 M 1.5,8 L 4,8 M 12,8 L 14.5,8 M 11,8 A 3,3 0 1 1 5,8 A 3,3 0 1 1 11,8 Z";
         public const string Settings = "M 8,1.8 L 9.3,3.3 L 11.2,2.9 L 11.7,4.8 L 13.5,5.6 L 12.9,7.5 L 13.9,9.2 L 12.3,10.3 L 12.2,12.3 L 10.2,12.4 L 9,14 L 8,14.2 L 6.9,14 L 5.7,12.4 L 3.7,12.3 L 3.6,10.3 L 2,9.2 L 3,7.5 L 2.4,5.6 L 4.2,4.8 L 4.7,2.9 L 6.6,3.3 Z M 10,8 A 2,2 0 1 1 6,8 A 2,2 0 1 1 10,8 Z";

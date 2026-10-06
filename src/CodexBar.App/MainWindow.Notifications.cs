@@ -39,6 +39,24 @@ public partial class MainWindow
 
     private void NotificationActivated(string action, string activityKey)
     {
+        if (action == "update-download")
+        {
+            OpenUpdateDownload();
+            return;
+        }
+
+        if (action == "update-skip")
+        {
+            SkipUpdate();
+            return;
+        }
+
+        if (activityKey == "update")
+        {
+            OpenUpdateDownload();
+            return;
+        }
+
         if (action == "compact")
         {
             _ = RunUiTaskAsync(CompactFromChatAsync);

@@ -43,6 +43,7 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyScreenshotHotkey(string gesture);
     (bool Ok, string Message) ApplyVoiceHotkey(string gesture);
     (bool Ok, string Message) ApplyChatHotkey(string gesture);
+    Task<string> CheckForUpdateAsync();
     (bool Ok, string Message) SetClaudeLiveSessions(bool on);
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
@@ -119,6 +120,8 @@ public partial class SettingsWindow : Window
         CompletionSoundSwitch.IsChecked = s.CompletionSound;
         SuggestSwitch.IsChecked = s.PromptSuggestions;
         AutoForkSwitch.IsChecked = s.AutoForkElsewhere;
+        UpdateSwitch.IsChecked = s.CheckForUpdates;
+        UpdateRepositoryField.Text = s.UpdateRepository;
         Select(ChatSidePopup, s.ChatSide);
         SuggestHabitItem.Content = Tr.Text("Kebiasaan saja", "Habits only");
         SuggestAiItem.Content = Tr.Text("Kebiasaan + AI", "Habits + AI");
@@ -286,6 +289,8 @@ public partial class SettingsWindow : Window
         s.CompletionSound = CompletionSoundSwitch.IsChecked == true;
         s.PromptSuggestions = SuggestSwitch.IsChecked == true;
         s.AutoForkElsewhere = AutoForkSwitch.IsChecked == true;
+        s.CheckForUpdates = UpdateSwitch.IsChecked == true;
+        s.UpdateRepository = UpdateRepositoryField.Text.Trim();
         s.ChatSide = TagOf(ChatSidePopup) ?? s.ChatSide;
         s.PromptSuggestionSource = TagOf(SuggestSourcePopup) ?? s.PromptSuggestionSource;
         s.ClaudeImportSessions = ClaudeImportSwitch.IsChecked == true;
@@ -511,6 +516,13 @@ public partial class SettingsWindow : Window
         var (ok, message) = _host.ApplyVoiceHotkey(VoiceHotkeyField.Text);
         VoiceHotkeyField.Text = _host.Settings.VoiceHotkey;
         SetHotkeyHint(message, ok ? Green : Red);
+    }
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateStatusText.Text = Tr.Text("Mengecek…", "Checking…");
+        _host.Settings.UpdateRepository = UpdateRepositoryField.Text.Trim();
+        UpdateStatusText.Text = await _host.CheckForUpdateAsync();
     }
 
     private void ApplyChatHotkey_Click(object sender, RoutedEventArgs e)

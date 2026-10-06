@@ -665,6 +665,26 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Cek pembaruan otomatis, En=Check for updates}" />
+                                        <CheckBox x:Name="UpdateSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Repositori rilis, En=Release repository}" />
+                                        <TextBox x:Name="UpdateRepositoryField" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Cek sekarang, En=Check now}" Click="CheckUpdate_Click" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="UpdateStatusText" Style="{StaticResource MacRowHint}" />
                             <TextBlock x:Name="VersionText" Style="{StaticResource MacRowHint}" />
                         </StackPanel>
                     </Grid>

@@ -57,6 +57,16 @@ $env:CODEXBAR_PFX_PASSWORD = "rahasia"
 .\scripts\build-installer.ps1   # exe + installer akan ditandatangani via signtool
 ```
 
+## Rilis & pembaruan
+
+CodexBar mengecek rilis terbaru di repositori GitHub **publik** saat mulai dan setiap 24 jam (Pengaturan → *Cek pembaruan otomatis*; repositori bawaan `build-zaidana/CodexBar`, bisa diganti di sana). Versi yang lebih baru muncul sebagai notifikasi (*Unduh* / *Lewati versi ini*) dan baris di tray menu; *Unduh* membuka file rilis di browser, tidak ada yang terpasang sendiri. Selama repositorinya belum ada atau belum punya rilis, pengecekan diam saja.
+
+Membuat rilis:
+
+1. Naikkan `<Version>` di `src\CodexBar.App\CodexBar.App.csproj` (mis. `1.3.0`).
+2. Bangun: `.\scripts\build-installer.ps1` (installer) atau `.\scripts\publish.ps1` (exe saja).
+3. Di repositori rilis publik, buat release dengan tag `v1.3.0` dan lampirkan `CodexBar-Setup-1.3.0.exe` (atau `CodexBar.App.exe`). Tag harus berupa versi (`v` di depan boleh); installer dengan "Setup" di namanya dipilih lebih dulu untuk diunduh.
+
 ## Shortcut
 
 | Shortcut | Aksi |
