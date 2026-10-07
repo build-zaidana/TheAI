@@ -23,7 +23,8 @@ public partial class NotchWindow
     // The chat button sits on the logo's side of the compact notch, next to the logo when it shows.
     private void PlaceCompactChatButton()
     {
-        var shift = CompactGlyph.Visibility == Visibility.Visible ? 19 : -4;
+        var shift = CompactArt.Visibility == Visibility.Visible ? 24
+            : CompactGlyph.Visibility == Visibility.Visible ? 19 : -4;
         var vertical = CompactGlyph.HorizontalAlignment == System.Windows.HorizontalAlignment.Center;
         CompactChatButton.HorizontalAlignment = CompactGlyph.HorizontalAlignment;
         CompactChatButton.VerticalAlignment = CompactGlyph.VerticalAlignment;

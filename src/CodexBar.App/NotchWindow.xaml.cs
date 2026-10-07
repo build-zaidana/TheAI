@@ -8,6 +8,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CodexBar.App.Voice;
+using CodexBar.App.Media;
 using CodexBar.Core;
 using CodexBar.Providers;
 using CodexBar.Windows;
@@ -32,6 +33,11 @@ internal interface INotchHost
     string WorkspacePath { get; }
     bool IsBusy { get; }
     bool HideNotchWhenIdle { get; }
+
+    /// <summary>Show what plays (Windows media controls) in the notch; a toast on track change; synced lyrics from LRCLIB.</summary>
+    bool MusicInNotch { get; }
+    bool MusicTrackToast { get; }
+    bool MusicLyrics { get; }
 
     /// <summary>Screen edge the notch is docked to: top, bottom, left or right (persisted).</summary>
     string NotchEdge { get; set; }
@@ -87,7 +93,7 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request, Quick }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
@@ -119,6 +125,7 @@ public partial class NotchWindow : Window
     {
         _host = host;
         _activity = MainActivity;
+        _media = new MediaMonitor(Dispatcher);
         InitializeComponent();
         InitTone();
         InitWindowStyle();
@@ -135,7 +142,7 @@ public partial class NotchWindow : Window
         _hoverTimer.Tick += (_, _) =>
         {
             _hoverTimer.Stop();
-            if (_view == NotchView.Compact && _state != NotchState.Idle)
+            if (_view == NotchView.Compact && (_state != NotchState.Idle || MusicShowing))
             {
                 if (HasPendingRequest)
                 {
@@ -143,8 +150,7 @@ public partial class NotchWindow : Window
                 }
                 else
                 {
-                    SelectMostRelevant();
-                    OpenActivity();
+                    OpenFromHover();
                 }
             }
         };
@@ -163,6 +169,7 @@ public partial class NotchWindow : Window
             }
         };
 
+        InitMusic();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -171,6 +178,7 @@ public partial class NotchWindow : Window
 
     public void ShowIdle()
     {
+        RefreshMusic();
         ApplyView(animate: false);
         UpdateVisibility();
     }
@@ -307,6 +315,7 @@ public partial class NotchWindow : Window
     private void OpenActivity()
     {
         _collapseTimer.Stop();
+        _musicTick.Stop();
         SelectActivity(_activity);
         _view = NotchView.Activity;
         ApplyView(animate: true);
@@ -325,6 +334,9 @@ public partial class NotchWindow : Window
         }
 
         _view = NotchView.Compact;
+        _musicMini = false;
+        _toastTimer.Stop();
+        _musicTick.Stop();
         _pinned = false;
         ApplyPin();
         ApplyView(animate: true);
@@ -481,10 +493,10 @@ public partial class NotchWindow : Window
         if (IsCorner)
         {
             // Bounding box of the L: horizontal arm length × vertical arm length.
-            return _state == NotchState.Idle ? (132, 96) : (172, 112);
+            return _state == NotchState.Idle && !MusicShowing ? (132, 96) : (172, 112);
         }
 
-        var length = _state == NotchState.Idle ? IdleWidth : CompactWidth;
+        var length = _state == NotchState.Idle && !MusicShowing ? IdleWidth : CompactWidth;
         return Vertical ? (CompactThickness, length) : (length, CompactThickness);
     }
 
@@ -567,7 +579,7 @@ public partial class NotchWindow : Window
         PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -590,7 +602,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -622,7 +634,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -1010,6 +1022,7 @@ public partial class NotchWindow : Window
         ApplyQuotaRing();
         ApplyQueueState();
         ApplyCompactCount();
+        ApplyMusicCompact();
 
         if (_state == NotchState.Working)
         {
@@ -1049,7 +1062,7 @@ public partial class NotchWindow : Window
             return;
         }
 
-        var hide = _view == NotchView.Compact && _state == NotchState.Idle && _host.HideNotchWhenIdle;
+        var hide = _view == NotchView.Compact && _state == NotchState.Idle && !MusicShowing && _host.HideNotchWhenIdle;
         if (hide)
         {
             Hide();
@@ -1233,9 +1246,13 @@ public partial class NotchWindow : Window
     private void Shell_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
         _collapseTimer.Stop();
-        if (_view == NotchView.Compact && _state != NotchState.Idle)
+        if (_view == NotchView.Compact && (_state != NotchState.Idle || MusicShowing))
         {
             _hoverTimer.Start();
+        }
+        else if (_view == NotchView.Music && _musicMini)
+        {
+            OpenMusic(); // the toast opens into the whole player
         }
     }
 
@@ -1243,7 +1260,7 @@ public partial class NotchWindow : Window
     {
         _hoverTimer.Stop();
         var typing = FollowUpInput.IsKeyboardFocused && FollowUpInput.Text.Length > 0;
-        if (_view == NotchView.Activity && !_pinned && !typing)
+        if ((_view == NotchView.Activity || _view == NotchView.Music) && !_pinned && !typing && _barDrag is null)
         {
             _collapseTimer.Start();
         }

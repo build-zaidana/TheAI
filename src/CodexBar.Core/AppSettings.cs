@@ -67,6 +67,15 @@ public sealed class AppSettings
     /// <summary>Mode notch: sembunyikan pil saat tidak ada pekerjaan (muncul lagi saat agent bekerja).</summary>
     public bool NotchHideWhenIdle { get; set; }
 
+    /// <summary>Notch menampilkan lagu yang diputar (kontrol media Windows): art, kontrol, volume per aplikasi.</summary>
+    public bool MusicInNotch { get; set; } = true;
+
+    /// <summary>Notifikasi kecil di notch saat lagu berganti.</summary>
+    public bool MusicTrackToast { get; set; } = true;
+
+    /// <summary>Lirik tersinkron dari lrclib.net (mengirim judul dan artis lagu); mati sampai dinyalakan.</summary>
+    public bool MusicLyrics { get; set; }
+
     /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
     public string NotchEdge { get; set; } = "top";
 

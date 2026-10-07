@@ -138,6 +138,9 @@ public partial class SettingsWindow : Window
         ModeNotch.IsChecked = s.DisplayMode == "notch";
         ModeIsland.IsChecked = s.DisplayMode == "island";
         HideIdleSwitch.IsChecked = s.NotchHideWhenIdle;
+        MusicSwitch.IsChecked = s.MusicInNotch;
+        MusicToastSwitch.IsChecked = s.MusicTrackToast;
+        MusicLyricsSwitch.IsChecked = s.MusicLyrics;
         BarWidthSlider.Value = Math.Clamp(s.Window.Width, 500, 1200);
         BarHeightSlider.Value = Math.Clamp(s.Window.MaxExpandedHeight, 180, 900);
         InputFontSlider.Value = Math.Clamp(s.Appearance.InputFontSize, 10, 24);
@@ -300,6 +303,9 @@ public partial class SettingsWindow : Window
         s.CompletionNotification = CompletionNotificationSwitch.IsChecked == true;
         s.AlwaysOnTop = AlwaysOnTopSwitch.IsChecked == true;
         s.NotchHideWhenIdle = HideIdleSwitch.IsChecked == true;
+        s.MusicInNotch = MusicSwitch.IsChecked == true;
+        s.MusicTrackToast = MusicToastSwitch.IsChecked == true;
+        s.MusicLyrics = MusicLyricsSwitch.IsChecked == true;
         s.OutputDocked = DockedSwitch.IsChecked == true;
         s.OutputPosition = TagOf(OutputPositionPopup) == "above" ? "above" : "below";
         s.ShowReasoning = ReasoningSwitch.IsChecked == true;

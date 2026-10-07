@@ -133,6 +133,12 @@ public partial class MainWindow
             ShowTrayMenu();
         }
 
+        // CODEXBAR_PREVIEW_MUSIC=1|toast|compact: the music page, the track-change toast or the compact notch for what plays now.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_MUSIC") is { Length: > 0 } musicPreview && _notch is not null)
+        {
+            _notch.PreviewMusic(musicPreview);
+        }
+
         // CODEXBAR_PREVIEW_LAUNCHER=1|menu: the launcher, optionally with the provider menu open.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_LAUNCHER") is { Length: > 0 } launcherPreview && _notch is not null)
         {

@@ -78,6 +78,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return rateLimit;
     }
 
+    var lyrics = RunSyncedLyricsTests();
+    if (lyrics != 0)
+    {
+        return lyrics;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1396,6 +1402,30 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunSyncedLyricsTests()
+{
+    try
+    {
+        var lines = SyncedLyrics.Parse("[ar:Someone]\n[00:12.30] Second\r\n[00:01.5]First\n[00:20.00][00:40.00] Chorus\n[00:30.00]\nuntimed text");
+        Assert(lines.Count == 5, $"Lima baris bertanda waktu (tag dan teks tanpa waktu diabaikan), dapat {lines.Count}.");
+        Assert(lines[0].Text == "First" && lines[0].Start == TimeSpan.FromMilliseconds(1500), "Pecahan .5 berarti 500 ms dan baris diurutkan.");
+        Assert(lines[1].Start == TimeSpan.FromMilliseconds(12300), "[00:12.30] = 12,3 detik.");
+        Assert(lines[2].Text == "Chorus" && lines[4].Text == "Chorus", "Baris dengan dua tanda waktu muncul dua kali.");
+        Assert(lines[3].Text.Length == 0, "Baris kosong dipertahankan sebagai jeda.");
+        Assert(SyncedLyrics.IndexAt(lines, TimeSpan.FromSeconds(0.5)) == -1, "Sebelum baris pertama: -1.");
+        Assert(SyncedLyrics.IndexAt(lines, TimeSpan.FromSeconds(13)) == 1, "Di detik 13 baris kedua yang aktif.");
+        Assert(SyncedLyrics.IndexAt(lines, TimeSpan.FromSeconds(99)) == 4, "Setelah baris terakhir: baris terakhir.");
+        Assert(SyncedLyrics.Parse(null).Count == 0 && SyncedLyrics.Parse("  ").Count == 0, "Kosong menghasilkan daftar kosong.");
+        Console.WriteLine("PASS synced lyrics tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

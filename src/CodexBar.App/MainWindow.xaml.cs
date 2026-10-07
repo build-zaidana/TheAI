@@ -2315,6 +2315,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     bool INotchHost.HideNotchWhenIdle => _settings.NotchHideWhenIdle;
 
+    bool INotchHost.MusicInNotch => _settings.MusicInNotch;
+
+    bool INotchHost.MusicTrackToast => _settings.MusicTrackToast;
+
+    bool INotchHost.MusicLyrics => _settings.MusicLyrics;
+
     string INotchHost.NotchEdge
     {
         get => _settings.NotchEdge;

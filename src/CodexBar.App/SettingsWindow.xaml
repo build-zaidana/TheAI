@@ -371,6 +371,27 @@
                             </Border>
                             <TextBlock x:Name="NotchHint" Style="{StaticResource MacRowHint}" Text="{local:Tr Seret notch ke tepi atau sudut mana pun untuk memindahkannya. Saat disembunyikan ia muncul lagi begitu agent mulai bekerja., En=Drag the notch to any edge or corner to move it. When hidden it reappears as soon as the agent starts working.}" />
 
+                            <TextBlock Style="{StaticResource MacSectionTitle}" Text="{local:Tr Musik di notch, En=Music in the notch}" Margin="10,22,0,7" />
+                            <Border Style="{StaticResource MacGroupBox}" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Tampilkan lagu yang diputar, En=Show what is playing}" />
+                                        <CheckBox x:Name="MusicSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Kabari saat lagu berganti, En=Show a toast when the track changes}" />
+                                        <CheckBox x:Name="MusicToastSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Lirik tersinkron, En=Synced lyrics}" />
+                                        <CheckBox x:Name="MusicLyricsSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Style="{StaticResource MacRowHint}" Text="{local:Tr Bekerja dengan aplikasi apa pun yang muncul di kontrol media Windows (Spotify / browser / Media Player). Scroll di notch yang terbuka untuk berpindah antara musik dan agent. Lirik diambil dari lrclib.net: judul dan artis lagu dikirim ke sana., En=Works with any app in the Windows media controls (Spotify / browsers / Media Player). Scroll the open notch to switch between music and the agent. Lyrics come from lrclib.net: the song title and artist are sent there.}" />
+
                             <TextBlock Style="{StaticResource MacSectionTitle}" Text="{local:Tr Percakapan, En=Conversation}" Margin="10,22,0,7" />
                             <Border Style="{StaticResource MacGroupBox}" Margin="0,0,0,10">
                                 <Grid Style="{StaticResource MacRow}">

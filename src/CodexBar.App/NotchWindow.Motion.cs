@@ -67,6 +67,7 @@ public partial class NotchWindow
         NotchView.Activity => ActivityPanel,
         NotchView.Request => RequestPanel,
         NotchView.Quick => QuickPanel,
+        NotchView.Music => MusicPanel,
         _ => CompactPanel
     };
 
@@ -75,7 +76,8 @@ public partial class NotchWindow
         NotchView.Launcher => LauncherWidth,
         NotchView.Activity or NotchView.Request => ActivityWidth,
         NotchView.Quick => QuickWidth,
-        _ => _state == NotchState.Idle ? IdleWidth : CompactWidth
+        NotchView.Music => _musicMini ? MusicMiniWidth : MusicWidth,
+        _ => _state == NotchState.Idle && !MusicShowing ? IdleWidth : CompactWidth
     };
 
     private static double MeasureHeight(FrameworkElement panel, double width)
@@ -112,7 +114,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

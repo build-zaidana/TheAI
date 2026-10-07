@@ -325,6 +325,7 @@
                 ClipToBounds="True"
                 MouseEnter="Shell_MouseEnter"
                 MouseLeave="Shell_MouseLeave"
+                PreviewMouseWheel="Shell_PreviewMouseWheel"
                 MouseLeftButtonDown="Shell_MouseLeftButtonDown"
                 MouseMove="Shell_MouseMove"
                 MouseLeftButtonUp="Shell_MouseLeftButtonUp">
@@ -341,6 +342,9 @@
                             HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed">
                         <Border Width="7" Height="2.5" CornerRadius="0,0,1.5,1.5" Background="Black" VerticalAlignment="Top" />
                     </Border>
+                    <!-- What is playing (Windows media controls): the album art takes the logo's place. -->
+                    <Border x:Name="CompactArt" Width="18" Height="18" CornerRadius="4" Background="{StaticResource NotchFill}"
+                            HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
                     <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
@@ -372,9 +376,112 @@
                             <Ellipse Stroke="#33FFFFFF" StrokeThickness="2.2" />
                             <Path x:Name="QuotaArc" Stroke="#E6FFFFFF" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                         </Grid>
+                        <!-- Music playing while no agent works: a small equalizer. -->
+                        <StackPanel x:Name="CompactEq" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Height="12" Visibility="Collapsed" IsHitTestVisible="False">
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.5" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.4" /></Rectangle.RenderTransform></Rectangle>
+                        </StackPanel>
                         <Ellipse x:Name="ErrorIndicator" Width="8" Height="8" Fill="{StaticResource NotchRed}" Visibility="Collapsed" />
                     </Grid>
                 </Grid>
+
+                <!-- Music: the track playing in any app (Spotify, a browser, Media Player…), its controls and volume. -->
+                <StackPanel x:Name="MusicPanel" Margin="18,14,18,16" Width="400" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Musik">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="MusicArt" Width="60" Height="60" CornerRadius="12" Background="{StaticResource NotchFill}">
+                            <Path x:Name="MusicArtPlaceholder" Fill="{StaticResource NotchText3}" Width="22" Height="22" Stretch="Uniform"
+                                  Data="M 6,2 L 16,0 L 16,12 A 3,3 0 1 1 14,9.2 L 14,3.4 L 8,4.6 L 8,14 A 3,3 0 1 1 6,11.2 Z" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="MusicTitle" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource NotchText}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="MusicArtist" FontSize="13" Foreground="{StaticResource NotchText2}" Margin="0,2,0,0"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="MusicSource" FontSize="11" Foreground="{StaticResource NotchText3}" Margin="0,3,0,0"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel x:Name="MusicEq" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Height="18"
+                                    Margin="0,0,4,0" IsHitTestVisible="False">
+                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.5" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.35" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.65" /></Rectangle.RenderTransform></Rectangle>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Hidden in the track-change toast; hovering the toast opens it all. -->
+                    <StackPanel x:Name="MusicFull">
+                        <StackPanel x:Name="MusicLyrics" Margin="0,14,0,0" Visibility="Collapsed">
+                            <TextBlock x:Name="MusicLyricNow" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource NotchText}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="MusicLyricNext" FontSize="13" Foreground="{StaticResource NotchText3}" Margin="0,4,0,0"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <Grid x:Name="MusicProgress" Height="14" Margin="0,16,0,0" Background="Transparent" Cursor="Hand"
+                              MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
+                              AutomationProperties.Name="Posisi lagu">
+                            <Border Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center" />
+                            <Border x:Name="MusicProgressFill" Height="4" CornerRadius="2" Background="{StaticResource NotchText}"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
+                        </Grid>
+                        <Grid Margin="0,2,0,0">
+                            <TextBlock x:Name="MusicElapsed" FontSize="11" Foreground="{StaticResource NotchText3}" HorizontalAlignment="Left" />
+                            <TextBlock x:Name="MusicRemaining" FontSize="11" Foreground="{StaticResource NotchText3}" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                            <Button x:Name="MusicPrevButton" Style="{StaticResource NotchIconButton}" Width="44" Height="40" Click="MusicPrev_Click"
+                                    AutomationProperties.Name="Lagu sebelumnya">
+                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Data="M 0,0 L 2.4,0 L 2.4,14 L 0,14 Z M 14,0 L 14,14 L 3.4,7 Z" />
+                            </Button>
+                            <Button x:Name="MusicPlayButton" Style="{StaticResource NotchIconButton}" Width="52" Height="44" Margin="10,0"
+                                    Foreground="{StaticResource NotchText}" Click="MusicPlay_Click" AutomationProperties.Name="Putar/jeda">
+                                <Grid>
+                                    <Path x:Name="MusicPlayGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Data="M 0,0 L 16,9 L 0,18 Z" Margin="3,0,0,0" />
+                                    <Path x:Name="MusicPauseGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Data="M 0,0 L 5,0 L 5,18 L 0,18 Z M 10,0 L 15,0 L 15,18 L 10,18 Z" Visibility="Collapsed" />
+                                </Grid>
+                            </Button>
+                            <Button x:Name="MusicNextButton" Style="{StaticResource NotchIconButton}" Width="44" Height="40" Click="MusicNext_Click"
+                                    AutomationProperties.Name="Lagu berikutnya">
+                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Data="M 0,0 L 10.6,7 L 0,14 Z M 11.6,0 L 14,0 L 14,14 L 11.6,14 Z" />
+                            </Button>
+                        </StackPanel>
+
+                        <Grid x:Name="MusicVolumeRow" Margin="2,10,2,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Path Fill="{StaticResource NotchText3}" VerticalAlignment="Center" Data="M 0,4 L 3,4 L 7,0.5 L 7,11.5 L 3,8 L 0,8 Z" />
+                            <Grid x:Name="MusicVolume" Grid.Column="1" Height="14" Margin="10,0" Background="Transparent" Cursor="Hand"
+                                  MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
+                                  AutomationProperties.Name="Volume aplikasi">
+                                <Border Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center" />
+                                <Border x:Name="MusicVolumeFill" Height="4" CornerRadius="2" Background="{StaticResource NotchText2}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
+                            </Grid>
+                            <TextBlock x:Name="MusicVolumeLabel" Grid.Column="2" FontSize="11" Foreground="{StaticResource NotchText3}"
+                                       VerticalAlignment="Center" MinWidth="88" TextAlignment="Right" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
 
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
@@ -753,6 +860,12 @@
                     </Grid>
                 </StackPanel>
             </local:UnclampedGrid>
+            <!-- Music and the agent are two pages: scrolling switches between them. -->
+            <StackPanel x:Name="PageDots" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0"
+                        Visibility="Collapsed" IsHitTestVisible="False">
+                <Ellipse x:Name="PageDotMusic" Width="5" Height="5" Margin="0,2" Fill="#40FFFFFF" />
+                <Ellipse x:Name="PageDotAgent" Width="5" Height="5" Margin="0,2" Fill="#40FFFFFF" />
+            </StackPanel>
             </Grid>
         </Border>
     </Grid>
