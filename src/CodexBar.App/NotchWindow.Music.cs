@@ -33,6 +33,7 @@ public partial class NotchWindow
     private string _trackKey = string.Empty;
     private DateTimeOffset? _pausedSince;
     private bool _musicMini;
+    private bool _musicWasShowing;
     private NotchView _lastPage = NotchView.Music;
     private IReadOnlyList<LyricLine> _lyrics = [];
     private string _lyricsKey = string.Empty;
@@ -127,11 +128,15 @@ public partial class NotchWindow
 
         RenderMusic();
         var wasCompact = _view == NotchView.Compact;
+        var showing = MusicShowing;
         ApplyMusicCompact();
-        if (wasCompact && _view == NotchView.Compact)
+        // Position updates arrive every few seconds; only music appearing or leaving resizes the notch.
+        if (wasCompact && _view == NotchView.Compact && showing != _musicWasShowing)
         {
             ApplyView(animate: true);   // the compact notch widens or narrows with the music
         }
+
+        _musicWasShowing = showing;
         UpdateVisibility();
     }
 

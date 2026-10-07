@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added — music in the notch
+
+- **Now playing** from any app in the Windows media controls (Spotify, browsers, Media Player…): album art and an equalizer in the compact notch, a player on hover with seek, previous / play / next and the app's own volume (Windows mixer).
+- A short toast when the track changes (hover it for the whole player); scroll the open notch to switch between music and the agent.
+- Optional synced lyrics from LRCLIB (off by default: sends the title and artist to lrclib.net).
+
 ## 1.3.0 — 2026-10-06
 
 ### Added — notch and chat
