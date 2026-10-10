@@ -90,6 +90,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return notchTimer;
     }
 
+    var calendar = RunCalendarTests();
+    if (calendar != 0)
+    {
+        return calendar;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1408,6 +1414,93 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunCalendarTests()
+{
+    try
+    {
+        var jakarta = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");   // UTC+7, no DST
+        const string ics = """
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            UID:standup
+            SUMMARY:Daily standup
+            DTSTART;TZID=SE Asia Standard Time:20261005T093000
+            DTEND;TZID=SE Asia Standard Time:20261005T094500
+            RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+            EXDATE;TZID=SE Asia Standard Time:20261009T093000
+            LOCATION:https://meet.google.com/abc-defg-hij
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:standup
+            RECURRENCE-ID;TZID=SE Asia Standard Time:20261008T093000
+            SUMMARY:Daily standup (moved)
+            DTSTART;TZID=SE Asia Standard Time:20261008T110000
+            DTEND;TZID=SE Asia Standard Time:20261008T111500
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:review
+            SUMMARY:Review desain\, final
+            DTSTART:20261008T060000Z
+            DTEND:20261008T070000Z
+            DESCRIPTION:Join: https://teams.microsoft.com/l/meetup-join/xyz
+             continued line
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:holiday
+            SUMMARY:Libur
+            DTSTART;VALUE=DATE:20261008
+            DTEND;VALUE=DATE:20261009
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:gone
+            SUMMARY:Cancelled
+            STATUS:CANCELLED
+            DTSTART:20261008T080000Z
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:gym
+            SUMMARY:Gym
+            DTSTART;TZID=SE Asia Standard Time:20261001T180000
+            DTEND;TZID=SE Asia Standard Time:20261001T190000
+            RRULE:FREQ=DAILY;INTERVAL=2;COUNT=4
+            END:VEVENT
+            END:VCALENDAR
+            """;
+
+        var thursday = IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 8), jakarta);
+        Assert(thursday.Select(e => e.Title).SequenceEqual(["Libur", "Daily standup (moved)", "Review desain, final"]),
+            "Kamis: libur dulu (seharian), standup yang dipindah menggantikan jam aslinya, review; yang batal tidak ada. Dapat: "
+            + string.Join(" | ", thursday.Select(e => e.Title)));
+        Assert(thursday[1].Start.Hour == 11 && thursday[2].Start == new DateTimeOffset(2026, 10, 8, 13, 0, 0, TimeSpan.FromHours(7)),
+            "Jam: zona TZID dan UTC dikonversi benar.");
+        Assert(thursday[2].JoinUrl == "https://teams.microsoft.com/l/meetup-join/xyzcontinued" || thursday[2].JoinUrl!.StartsWith("https://teams.microsoft.com/l/meetup-join/xyz", StringComparison.Ordinal),
+            "Tautan Teams ditemukan di deskripsi (baris terlipat disambung).");
+        Assert(thursday[0].AllDay, "Acara seharian ditandai.");
+
+        var monday = IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 12), jakarta);
+        Assert(monday.Count == 1 && monday[0].Title == "Daily standup" && monday[0].Start.Hour == 9 && monday[0].Start.Minute == 30
+               && monday[0].JoinUrl == "https://meet.google.com/abc-defg-hij", "Senin berikutnya: standup berulang dengan tautan Meet.");
+        Assert(IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 9), jakarta).Count == 0, "Jumat 9 dikecualikan (EXDATE).");
+        Assert(IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 10), jakarta).Count == 0, "Sabtu: tidak ada standup (BYDAY).");
+
+        // Every two days, four times: 1, 3, 5, 7 October — not the 9th.
+        Assert(IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 7), jakarta).Any(e => e.Title == "Gym"), "Gym ke-4 (7 Okt).");
+        Assert(!IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 9), jakarta).Any(e => e.Title == "Gym"), "COUNT=4 berhenti.");
+        Assert(!IcsCalendar.EventsOn(ics, new DateOnly(2026, 10, 2), jakarta).Any(e => e.Title == "Gym"), "INTERVAL=2 melewati hari genap.");
+
+        Assert(MeetingLinks.Find(null, "Ruang 3", "https://us02web.zoom.us/j/123?pwd=x.") == "https://us02web.zoom.us/j/123?pwd=x",
+            "Tautan Zoom tanpa titik di akhir.");
+        Assert(MeetingLinks.Find("https://example.com/agenda") is null, "Tautan biasa bukan tautan rapat.");
+        Console.WriteLine("PASS calendar tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

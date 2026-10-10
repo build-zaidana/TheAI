@@ -59,7 +59,7 @@ public partial class NotchWindow
     private bool TimerShowing => _timer.IsActive || _watch.IsActive || _timer.AlarmAt is not null;
 
     /// <summary>Something live besides the agent keeps the compact notch wide and visible.</summary>
-    private bool CompactLive => MusicShowing || TimerShowing;
+    private bool CompactLive => MusicShowing || TimerShowing || ShelfShowing || CalendarShowing;
 
     private void InitTimer()
     {
@@ -209,10 +209,26 @@ public partial class NotchWindow
         if (!showing)
         {
             CompactTimerText.Visibility = Visibility.Collapsed;
+            // Below the timer: an event about to start, then (when nothing plays) the shelf.
+            if (ApplyCalendarCompact())
+            {
+                CompactShelf.Visibility = Visibility.Collapsed;
+                CompactShelfCount.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                ApplyShelfCompact();
+            }
+
             PlaceCompactChatButton();
             ApplyKeyline();
             return;
         }
+
+        CompactShelf.Visibility = Visibility.Collapsed;
+        CompactShelfCount.Visibility = Visibility.Collapsed;
+        CompactCalendar.Visibility = Visibility.Collapsed;
+        CompactCalendarText.Visibility = Visibility.Collapsed;
 
         // The timer outranks the music in the compact notch; the music stays one scroll away.
         CompactArt.Visibility = Visibility.Collapsed;

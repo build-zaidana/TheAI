@@ -70,6 +70,9 @@ public partial class NotchWindow
         NotchView.Music => MusicPanel,
         NotchView.Timer => TimerPanel,
         NotchView.TimerDone => TimerDonePanel,
+        NotchView.Hud => HudPanel,
+        NotchView.Shelf => ShelfPanel,
+        NotchView.Calendar => CalendarPanel,
         _ => CompactPanel
     };
 
@@ -81,6 +84,9 @@ public partial class NotchWindow
         NotchView.Music => _musicMini ? MusicMiniWidth : MusicWidth,
         NotchView.Timer => TimerWidth,
         NotchView.TimerDone => TimerDoneWidth,
+        NotchView.Hud => HudWidth,
+        NotchView.Shelf => ShelfWidth,
+        NotchView.Calendar => CalendarWidth,
         _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
     };
 
@@ -112,13 +118,14 @@ public partial class NotchWindow
             height = MeasureHeight(incoming, width);
         }
 
-        var radius = expanded ? ExpandedRadius : CompactRadius;
+        // The HUD is the compact notch made a little wider: it keeps the compact corners.
+        var radius = expanded && _view != NotchView.Hud ? ExpandedRadius : CompactRadius;
         var (armH, armV) = expanded ? (height, width) : (CompactThickness, CompactThickness);
         var (left, top) = ComputePlacement(width, height);
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

@@ -2321,6 +2321,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     bool INotchHost.MusicLyrics => _settings.MusicLyrics;
 
+    bool INotchHost.SystemHud => _settings.SystemHud;
+
+    string INotchHost.CalendarSource => _settings.CalendarSource;
+
     string INotchHost.NotchEdge
     {
         get => _settings.NotchEdge;

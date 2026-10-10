@@ -240,12 +240,16 @@ public partial class NotchWindow
         {
             NotchView.Music => MusicShowing,
             NotchView.Timer => TimerShowing,
+            NotchView.Shelf => ShelfShowing,
+            NotchView.Calendar => CalendarShowing,
             _ => _state != NotchState.Idle
         };
         var page = live ? _lastPage
             : _state != NotchState.Idle ? NotchView.Activity
             : TimerShowing ? NotchView.Timer
+            : CalendarShowing ? NotchView.Calendar
             : MusicShowing ? NotchView.Music
+            : ShelfShowing ? NotchView.Shelf
             : NotchView.Compact;
         OpenPage(page);
     }
@@ -259,6 +263,12 @@ public partial class NotchWindow
                 break;
             case NotchView.Timer:
                 OpenTimer();
+                break;
+            case NotchView.Shelf:
+                OpenShelf();
+                break;
+            case NotchView.Calendar:
+                OpenCalendar();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -287,6 +297,16 @@ public partial class NotchWindow
         }
 
         pages.Add(NotchView.Timer);
+        if (CalendarPageAvailable)
+        {
+            pages.Add(NotchView.Calendar);
+        }
+
+        if (ShelfShowing)
+        {
+            pages.Add(NotchView.Shelf);
+        }
+
         return pages;
     }
 

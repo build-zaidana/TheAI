@@ -133,6 +133,24 @@ public partial class MainWindow
             ShowTrayMenu();
         }
 
+        // CODEXBAR_PREVIEW_CALENDAR=compact|open: three sample events, the first in ten minutes (nothing is read).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CALENDAR") is { Length: > 0 } calendarPreview && _notch is not null)
+        {
+            _notch.PreviewCalendar(calendarPreview);
+        }
+
+        // CODEXBAR_PREVIEW_SHELF=compact|open|drop: the file shelf with a few sample files (not saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SHELF") is { Length: > 0 } shelfPreview && _notch is not null)
+        {
+            _notch.PreviewShelf(shelfPreview);
+        }
+
+        // CODEXBAR_PREVIEW_HUD=volume|mute|brightness|charging|low|headphones: the notch's system HUD.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HUD") is { Length: > 0 } hudPreview && _notch is not null)
+        {
+            _notch.PreviewHud(hudPreview);
+        }
+
         // CODEXBAR_PREVIEW_TIMER=compact|open|idle|stopwatch|two|alarm|typing|ring|done: a sample pomodoro (not saved), the Timer page, or time's up.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TIMER") is { Length: > 0 } timerPreview && _notch is not null)
         {

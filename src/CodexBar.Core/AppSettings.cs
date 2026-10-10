@@ -76,6 +76,12 @@ public sealed class AppSettings
     /// <summary>Lirik tersinkron dari lrclib.net (mengirim judul dan artis lagu); mati sampai dinyalakan.</summary>
     public bool MusicLyrics { get; set; }
 
+    /// <summary>Volume, kecerahan, baterai dan headphone tampil sebentar di notch (seperti Dynamic Island).</summary>
+    public bool SystemHud { get; set; } = true;
+
+    /// <summary>Sumber kalender di notch: "off", "outlook" (lokal) atau "ics" (tautan iCal, disimpan di Credential Manager).</summary>
+    public string CalendarSource { get; set; } = "off";
+
     /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
     public string NotchEdge { get; set; } = "top";
 

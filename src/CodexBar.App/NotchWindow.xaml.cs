@@ -39,6 +39,12 @@ internal interface INotchHost
     bool MusicTrackToast { get; }
     bool MusicLyrics { get; }
 
+    /// <summary>Volume, brightness, battery and headphones shown in the notch as a short HUD.</summary>
+    bool SystemHud { get; }
+
+    /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
+    string CalendarSource { get; }
+
     /// <summary>Screen edge the notch is docked to: top, bottom, left or right (persisted).</summary>
     string NotchEdge { get; set; }
 
@@ -93,7 +99,7 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
@@ -171,6 +177,9 @@ public partial class NotchWindow : Window
 
         InitMusic();
         InitTimer();
+        InitHud();
+        InitShelf();
+        InitCalendar();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -180,6 +189,11 @@ public partial class NotchWindow : Window
     public void ShowIdle()
     {
         RefreshMusic();
+        if (_host.CalendarSource != _calendarSource)
+        {
+            RestartCalendar();
+        }
+
         ApplyView(animate: false);
         UpdateVisibility();
     }
@@ -581,7 +595,7 @@ public partial class NotchWindow : Window
         PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -604,7 +618,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -636,7 +650,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }

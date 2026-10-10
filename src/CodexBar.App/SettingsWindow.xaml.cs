@@ -141,6 +141,12 @@ public partial class SettingsWindow : Window
         MusicSwitch.IsChecked = s.MusicInNotch;
         MusicToastSwitch.IsChecked = s.MusicTrackToast;
         MusicLyricsSwitch.IsChecked = s.MusicLyrics;
+        SystemHudSwitch.IsChecked = s.SystemHud;
+        Select(CalendarSourcePopup, s.CalendarSource);
+        CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
+        CalendarLinkField.ToolTip = CodexBar.Core.CredentialStore.TryRead(CodexBar.App.Hud.CalendarReader.IcsCredential) is { Length: > 0 }
+            ? Tr.Text("Tautan tersimpan di Windows Credential Manager", "Link saved in Windows Credential Manager")
+            : Tr.Text("Tempel \"alamat rahasia dalam format iCal\" dari kalendermu", "Paste your calendar's \"secret address in iCal format\"");
         BarWidthSlider.Value = Math.Clamp(s.Window.Width, 500, 1200);
         BarHeightSlider.Value = Math.Clamp(s.Window.MaxExpandedHeight, 180, 900);
         InputFontSlider.Value = Math.Clamp(s.Appearance.InputFontSize, 10, 24);
@@ -306,6 +312,9 @@ public partial class SettingsWindow : Window
         s.MusicInNotch = MusicSwitch.IsChecked == true;
         s.MusicTrackToast = MusicToastSwitch.IsChecked == true;
         s.MusicLyrics = MusicLyricsSwitch.IsChecked == true;
+        s.SystemHud = SystemHudSwitch.IsChecked == true;
+        s.CalendarSource = TagOf(CalendarSourcePopup) ?? s.CalendarSource;
+        CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         s.OutputDocked = DockedSwitch.IsChecked == true;
         s.OutputPosition = TagOf(OutputPositionPopup) == "above" ? "above" : "below";
         s.ShowReasoning = ReasoningSwitch.IsChecked == true;
@@ -715,4 +724,27 @@ public partial class SettingsWindow : Window
         brush.Freeze();
         return brush;
     }
+
+    // The iCal link is a secret address: it goes to Windows Credential Manager, never to settings.json.
+    private void SaveCalendarLink_Click(object sender, RoutedEventArgs e)
+    {
+        var link = CalendarLinkField.Password.Trim();
+        CalendarLinkField.Clear();
+        if (link.Length == 0)
+        {
+            return;
+        }
+
+        CodexBar.Core.CredentialStore.Save(CodexBar.App.Hud.CalendarReader.IcsCredential, link);
+        CalendarLinkField.ToolTip = Tr.Text("Tautan tersimpan di Windows Credential Manager", "Link saved in Windows Credential Manager");
+        Setting_Changed(sender, e);
+    }
+
+    private void ClearCalendarLink_Click(object sender, RoutedEventArgs e)
+    {
+        CodexBar.Core.CredentialStore.Delete(CodexBar.App.Hud.CalendarReader.IcsCredential);
+        CalendarLinkField.Clear();
+        Setting_Changed(sender, e);
+    }
+
 }

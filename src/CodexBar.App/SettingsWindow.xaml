@@ -364,6 +364,32 @@
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Volume / kecerahan / baterai di notch, En=Volume / brightness / battery in the notch}" />
+                                        <CheckBox x:Name="SystemHudSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Kalender di notch, En=Calendar in the notch}" />
+                                        <ComboBox x:Name="CalendarSourcePopup" Style="{StaticResource MacPopup}" SelectionChanged="Setting_Changed">
+                                            <ComboBoxItem Content="{local:Tr Mati, En=Off}" Tag="off" />
+                                            <ComboBoxItem Content="Outlook" Tag="outlook" />
+                                            <ComboBoxItem Content="{local:Tr Tautan iCal, En=iCal link}" Tag="ics" />
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid x:Name="CalendarLinkRow" Style="{StaticResource MacRow}" Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource MacRowLabel}" Text="iCal" Margin="0,0,14,0" />
+                                        <PasswordBox x:Name="CalendarLinkField" Grid.Column="1" Style="{StaticResource MacSecretField}" />
+                                        <Button Grid.Column="2" Style="{StaticResource MacButton}" Margin="8,0,0,0" Content="{local:Tr Simpan, En=Save}" Click="SaveCalendarLink_Click" />
+                                        <Button Grid.Column="3" Style="{StaticResource MacButton}" Margin="6,0,0,0" Content="{local:Tr Hapus, En=Remove}" Click="ClearCalendarLink_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Posisi notch, En=Notch position}" />
                                         <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" Content="{local:Tr Kembalikan ke tengah atas, En=Back to top centre}" Click="Recenter_Click" />
                                     </Grid>

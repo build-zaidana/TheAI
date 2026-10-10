@@ -60,7 +60,7 @@ internal static class AppVolume
         IMMDeviceEnumerator? enumerator = null;
         try
         {
-            enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+            enumerator = CreateEnumerator();
             if (enumerator.GetDefaultAudioEndpoint(0 /* render */, 1 /* multimedia */, out var device) != 0)
             {
                 return;
@@ -130,8 +130,10 @@ internal static class AppVolume
 
     // ---- Core Audio COM interfaces (only the members used, in vtable order) ----
 
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumerator;
+    // Created untyped (by CLSID), so every part of the app that talks to the shared device enumerator
+    // sees the same plain COM object and reaches it through its own interface declarations.
+    private static IMMDeviceEnumerator CreateEnumerator() =>
+        (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
 
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator

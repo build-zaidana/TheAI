@@ -529,6 +529,17 @@
                     </StackPanel>
                     <TextBlock x:Name="CompactTimerText" FontFamily="{StaticResource SoraFont}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
                                Typography.NumeralAlignment="Tabular" Foreground="#F5F5F7" Visibility="Collapsed" IsHitTestVisible="False" />
+                    <!-- An event about to start: a calendar and the minutes left. -->
+                    <Path x:Name="CompactCalendar" Stroke="#F5F5F7" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed"
+                          IsHitTestVisible="False" Data="M 1.5,4.5 Q 1.5,2.5 3.5,2.5 L 12.5,2.5 Q 14.5,2.5 14.5,4.5 L 14.5,12.5 Q 14.5,14.5 12.5,14.5 L 3.5,14.5 Q 1.5,14.5 1.5,12.5 Z M 1.5,6 L 14.5,6 M 5,1 L 5,4 M 11,1 L 11,4" />
+                    <TextBlock x:Name="CompactCalendarText" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
+                    <!-- Files on the shelf: a tray (and how many, on the right). -->
+                    <Path x:Name="CompactShelf" Stroke="#F5F5F7" StrokeThickness="2.2" StrokeLineJoin="Round" Width="17" Height="14" Stretch="Uniform"
+                          HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" Data="M 2,14 L 6,3 L 24,3 L 28,14 L 28,22 Q 28,24 26,24 L 4,24 Q 2,24 2,22 Z M 2,14 L 9,14 L 11,17 L 19,17 L 21,14 L 28,14" />
+                    <TextBlock x:Name="CompactShelfCount" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
                     <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
@@ -860,6 +871,77 @@
                     </Grid>
                 </Grid>
 
+                <!-- System HUD: volume, brightness, battery, headphones — a slightly wider compact notch for a moment. -->
+                <Grid x:Name="HudPanel" Height="30" Width="216" Margin="12,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" IsHitTestVisible="False">
+                    <Grid.RenderTransform>
+                        <TranslateTransform />
+                    </Grid.RenderTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="26" VerticalAlignment="Center">
+                        <Path x:Name="HudIconFill" Fill="#F5F5F7" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        <Path x:Name="HudIconStroke" Stroke="#F5F5F7" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        <Grid x:Name="HudIconBattery" Width="26" Height="13" HorizontalAlignment="Left" Visibility="Collapsed">
+                            <Border Width="22" Height="13" HorizontalAlignment="Left" CornerRadius="3.5" BorderBrush="#F5F5F7" BorderThickness="1.4" />
+                            <Border x:Name="HudIconBatteryFill" Height="7" Width="3" Margin="3,0,0,0" HorizontalAlignment="Left" CornerRadius="1.5" Background="#FF453A" />
+                            <Border Width="2" Height="5" HorizontalAlignment="Right" Margin="0,0,1,0" CornerRadius="1" Background="#F5F5F7" />
+                        </Grid>
+                    </Grid>
+                    <Grid x:Name="HudBar" Grid.Column="1" Height="5" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <Border CornerRadius="2.5" Background="#2EFFFFFF" />
+                        <Border x:Name="HudBarFill" CornerRadius="2.5" Background="#F5F5F7" HorizontalAlignment="Left" Width="0" />
+                    </Grid>
+                    <TextBlock x:Name="HudName" Grid.Column="1" Margin="10,0,10,0" VerticalAlignment="Center" FontSize="12" Foreground="#99FFFFFF"
+                               TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                    <StackPanel x:Name="HudValue" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="HudText" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" />
+                        <Grid x:Name="HudBattery" Width="26" Height="13" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <Border Width="22" Height="13" HorizontalAlignment="Left" CornerRadius="3.5" BorderBrush="#F5F5F7" BorderThickness="1.4" />
+                            <Border x:Name="HudBatteryFill" Height="7" Width="14" Margin="3,0,0,0" HorizontalAlignment="Left" CornerRadius="1.5" Background="#F5F5F7" />
+                            <Border Width="2" Height="5" HorizontalAlignment="Right" Margin="0,0,1,0" CornerRadius="1" Background="#F5F5F7" />
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+
+                <!-- The file shelf: files waiting to be dragged out somewhere. -->
+                <Grid x:Name="ShelfPanel" Margin="18,16,30,14" Width="392" HorizontalAlignment="Center" VerticalAlignment="Top"
+                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rak file">
+                    <Grid.RenderTransform>
+                        <TranslateTransform />
+                    </Grid.RenderTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <WrapPanel x:Name="ShelfItems" />
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <Button Style="{StaticResource NotchTintButton}" Width="40" Height="40" Background="#38FFFFFF" Click="ShelfSaveAll_Click"
+                                ToolTip="Simpan semua ke folder" AutomationProperties.Name="Simpan semua ke folder">
+                            <Path Stroke="#F5F5F7" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M 7,1 L 7,10 M 3.5,6.5 L 7,10 L 10.5,6.5 M 1,12 L 1,13.5 L 13,13.5 L 13,12" />
+                        </Button>
+                        <Button Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="0,8,0,0" Background="#1FFFFFFF" Click="ShelfClear_Click"
+                                ToolTip="Kosongkan rak" AutomationProperties.Name="Kosongkan rak">
+                            <Path Stroke="#F5F5F7" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 11,11 M 11,1 L 1,11" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Today's calendar: the next event large (with a camera to join its call), then the rest. -->
+                <StackPanel x:Name="CalendarPanel" Margin="20,14,30,14" Width="370" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Kalender">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <StackPanel x:Name="CalendarRows" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
@@ -953,18 +1035,30 @@
                         </StackPanel>
                     </Border>
 
-                    <Border x:Name="DropZone" Margin="0,8,0,0" Height="64" CornerRadius="14" Visibility="Collapsed"
-                            Background="#0FFFFFFF" IsHitTestVisible="False">
-                        <Grid>
-                            <Rectangle RadiusX="14" RadiusY="14" Stroke="#59FFFFFF" StrokeThickness="1.2" StrokeDashArray="4 3" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Path Stroke="White" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                      Width="16" Height="16" Margin="0,0,9,0" VerticalAlignment="Center"
-                                      Data="M 8,1.5 L 8,10.5 M 4,6.5 L 8,10.5 L 12,6.5 M 2,14.5 L 14,14.5" />
-                                <TextBlock x:Name="DropZoneText" Text="Lepaskan untuk melampirkan" FontSize="13" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <!-- Files dragged over the notch: attach them to the prompt, or keep them on the shelf. -->
+                    <Grid x:Name="DropZone" Margin="0,8,0,0" Height="72" Visibility="Collapsed" IsHitTestVisible="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="DropAttachZone" CornerRadius="14" Background="#0FFFFFFF">
+                            <Grid>
+                                <Rectangle x:Name="DropAttachEdge" RadiusX="14" RadiusY="14" Stroke="#59FFFFFF" StrokeThickness="1.2" StrokeDashArray="4 3" />
+                                <Path x:Name="DropAttachIcon" Stroke="White" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Width="18" Height="20" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M 13,6 L 6,13 Q 4,15 6,17 Q 8,19 10,17 L 17,10 Q 20,7 17,4 Q 14,1 11,4 L 4,11 Q 0,15 4,19 Q 8,23 12,19 L 17,14" />
+                                <TextBlock x:Name="DropZoneText" Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <Border x:Name="DropShelfZone" Grid.Column="2" CornerRadius="14" Background="#0FFFFFFF">
+                            <Grid>
+                                <Rectangle x:Name="DropShelfEdge" RadiusX="14" RadiusY="14" Stroke="#59FFFFFF" StrokeThickness="1.2" StrokeDashArray="4 3" />
+                                <Path Stroke="White" StrokeThickness="1.9" StrokeLineJoin="Round" Width="26" Height="22" Stretch="Uniform"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 2,14 L 6,3 L 24,3 L 28,14 L 28,22 Q 28,24 26,24 L 4,24 Q 2,24 2,22 Z M 2,14 L 9,14 L 11,17 L 19,17 L 21,14 L 28,14" />
+                            </Grid>
+                        </Border>
+                    </Grid>
                     <WrapPanel x:Name="AttachmentTray" Margin="0,8,0,0" Visibility="Collapsed" />
 
                     <!-- A request waiting for the user, with its recommended answer. -->

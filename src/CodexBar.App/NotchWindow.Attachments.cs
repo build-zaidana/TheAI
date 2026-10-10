@@ -7,6 +7,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using CodexBar.Providers;
 using Brush = System.Windows.Media.Brush;
+using Color = System.Windows.Media.Color;
 using Button = System.Windows.Controls.Button;
 using DataFormats = System.Windows.DataFormats;
 using DragDropEffects = System.Windows.DragDropEffects;
@@ -59,11 +60,7 @@ public partial class NotchWindow
     }
 
     /// <summary>Dev preview only: show the drop zone as if files were hovering.</summary>
-    internal void PreviewDropZone()
-    {
-        DropZoneText.Text = L("notch.drop");
-        DropZone.Visibility = Visibility.Visible;
-    }
+    internal void PreviewDropZone() => ShowDropTargets(shelfHovered: false);
 
     private void UpdateLauncherSendState()
     {
@@ -206,26 +203,50 @@ public partial class NotchWindow
         if (_view != NotchView.Launcher)
         {
             _openedByDrop = true;
-            if (_host.IsBusy)
-            {
-                OpenActivity();
-            }
-            else
-            {
-                OpenLauncher(focus: false);
-            }
+            OpenLauncher(focus: false);
         }
 
-        // While a turn runs the files can't join it; say so instead of a silent no-op.
-        DropZoneText.Text = _host.IsBusy ? L("notch.dropBusy") : L("notch.drop");
-        DropZone.Visibility = _view == NotchView.Launcher ? Visibility.Visible : Visibility.Collapsed;
+        ShowDropTargets(shelfHovered: false);
+    }
+
+    // Two targets side by side: attach to the prompt (off while a turn runs), or keep on the shelf.
+    private void ShowDropTargets(bool shelfHovered)
+    {
+        DropZone.Visibility = Visibility.Visible;
+        var attachOpen = !_host.IsBusy;
+        DropAttachZone.Opacity = attachOpen ? 1 : 0.35;
+        DropAttachZone.Background = !shelfHovered && attachOpen ? Frozen(Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF)) : Frozen(Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF));
+        DropShelfZone.Background = shelfHovered ? Frozen(Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF)) : Frozen(Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF));
+        DropAttachEdge.Stroke = Frozen(Color.FromArgb(!shelfHovered && attachOpen ? (byte)0xB3 : (byte)0x59, 0xFF, 0xFF, 0xFF));
+        DropShelfEdge.Stroke = Frozen(Color.FromArgb(shelfHovered ? (byte)0xB3 : (byte)0x59, 0xFF, 0xFF, 0xFF));
+        System.Windows.Automation.AutomationProperties.SetName(DropAttachZone, _host.IsBusy ? L("notch.dropBusy") : L("notch.drop"));
+        System.Windows.Automation.AutomationProperties.SetName(DropShelfZone, Tr.Text("Simpan di rak", "Keep on the shelf"));
+    }
+
+    private bool OverShelfTarget(DragEventArgs e)
+    {
+        if (DropZone.Visibility != Visibility.Visible || DropShelfZone.ActualWidth <= 0)
+        {
+            return false;
+        }
+
+        var point = e.GetPosition(DropShelfZone);
+        // Anywhere right of the gap counts as the shelf, so the targets split the notch in two.
+        return point.X >= -5;
     }
 
     private void Shell_DragOver(object sender, DragEventArgs e)
     {
         _dropLeaveTimer.Stop();
-        e.Effects = DroppedFiles(e) is null || _host.IsBusy || _view == NotchView.Request ? DragDropEffects.None : DragDropEffects.Copy;
+        var shelf = OverShelfTarget(e);
+        e.Effects = DroppedFiles(e) is null || _view == NotchView.Request || (!shelf && _host.IsBusy)
+            ? DragDropEffects.None
+            : DragDropEffects.Copy;
         e.Handled = true;
+        if (DropZone.Visibility == Visibility.Visible)
+        {
+            ShowDropTargets(shelf);
+        }
     }
 
     // DragLeave also fires when the cursor crosses between child elements or the shell grows
@@ -236,9 +257,21 @@ public partial class NotchWindow
     {
         e.Handled = true;
         var added = 0;
-        if (!_host.IsBusy && DroppedFiles(e) is { } paths)
+        if (DroppedFiles(e) is { } paths && OverShelfTarget(e))
         {
-            added = _host.AddAttachments(paths);
+            AddToShelf(paths);
+            EndDropHover(attached: false);
+            if (ShelfShowing)
+            {
+                OpenShelf();
+            }
+
+            return;
+        }
+
+        if (!_host.IsBusy && DroppedFiles(e) is { } files)
+        {
+            added = _host.AddAttachments(files);
         }
 
         EndDropHover(attached: added > 0);
