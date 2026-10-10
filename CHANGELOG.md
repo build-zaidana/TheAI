@@ -11,7 +11,7 @@
 ### Added — the notch as the system's HUD
 
 - **Volume & brightness**: the volume keys (or any change of the master volume) and the brightness keys widen the compact notch into an icon and a bar for a moment; mute shows a crossed-out speaker.
-- **Battery & connections**: plugging the charger in shows a bolt, the percentage and a battery; at 10 % and 5 % the battery turns red (the only colour); headphones becoming the output show their name.
+- **Battery & connections**: plugging the charger in shows a bolt, the percentage and a battery; at 10 % and 5 % the battery turns red (the only colour); headphones becoming the output show their battery (the lower earbud, read from the paired Bluetooth device) or, when they don't report it, their name.
 - **File shelf**: dragging files over the notch offers two targets — attach to the prompt, or keep on the shelf; shelved files show as thumbnails, drag them out into any app, save them all to a folder, or clear the shelf; the compact notch shows a tray and how many.
 - **Calendar** (off until chosen in Settings): Outlook (read locally) or a pasted iCal link (kept in Windows Credential Manager). Within half an hour of the next event the compact notch counts down to it, a minute before it opens on it, and the calendar page lists the rest of the day with a camera to join Meet / Teams / Zoom calls. Recurring events, time zones, moved and cancelled instances are handled.
 

@@ -145,7 +145,7 @@ public partial class MainWindow
             _notch.PreviewShelf(shelfPreview);
         }
 
-        // CODEXBAR_PREVIEW_HUD=volume|mute|brightness|charging|low|headphones: the notch's system HUD.
+        // CODEXBAR_PREVIEW_HUD=volume|mute|brightness|charging|low|headphones|buds: the notch's system HUD.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HUD") is { Length: > 0 } hudPreview && _notch is not null)
         {
             _notch.PreviewHud(hudPreview);

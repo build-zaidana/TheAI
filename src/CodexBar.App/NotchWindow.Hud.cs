@@ -49,7 +49,7 @@ public partial class NotchWindow
 
         _audio = new AudioWatcher(Dispatcher);
         _audio.VolumeChanged += (level, muted) => ShowVolumeHud(level, muted);
-        _audio.HeadphonesConnected += name => ShowHeadphonesHud(name);
+        _audio.HeadphonesConnected += async name => ShowHeadphonesHud(name, await BluetoothBattery.ForOutputAsync(name));
         _audio.Start();
 
         _brightness = new BrightnessWatcher(Dispatcher);
@@ -149,17 +149,26 @@ public partial class NotchWindow
         ShowHud(HudLong);
     }
 
-    private void ShowHeadphonesHud(string name)
+    // Headphones: their battery when they report it (like the mockup), else their name.
+    private void ShowHeadphonesHud(string name, int? battery)
     {
         HudIconFill.Data = HeadphoneCups;
         HudIconFill.Fill = TimerFocusBrush;
         HudIconStroke.Data = HeadphoneBand;
         HudIconStroke.Stroke = TimerFocusBrush;
-        HudIconBattery.Visibility = Visibility.Collapsed;
-        HudBar.Visibility = Visibility.Collapsed;
-        HudValue.Visibility = Visibility.Collapsed;
-        HudName.Text = name;
-        HudName.Visibility = name.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (battery is { } level)
+        {
+            ShowValue(level, red: level <= 10);
+        }
+        else
+        {
+            HudIconBattery.Visibility = Visibility.Collapsed;
+            HudBar.Visibility = Visibility.Collapsed;
+            HudValue.Visibility = Visibility.Collapsed;
+            HudName.Text = name;
+            HudName.Visibility = name.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         ShowHud(HudLong);
     }
 
@@ -224,7 +233,10 @@ public partial class NotchWindow
                 ShowLowBatteryHud(10);
                 break;
             case "headphones":
-                ShowHeadphonesHud("WH-1000XM5");
+                ShowHeadphonesHud("WH-1000XM5", null);
+                break;
+            case "buds":
+                ShowHeadphonesHud("Headphones (Adrian's Buds3)", await BluetoothBattery.ForOutputAsync("Headphones (Adrian's Buds3)"));
                 break;
             default:
                 ShowVolumeHud(0.64f, muted: false);
