@@ -84,6 +84,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return lyrics;
     }
 
+    var notchTimer = RunNotchTimerTests();
+    if (notchTimer != 0)
+    {
+        return notchTimer;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1402,6 +1408,121 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunNotchTimerTests()
+{
+    try
+    {
+        var t0 = new DateTimeOffset(2026, 10, 7, 9, 0, 0, TimeSpan.Zero);
+        var timer = NotchTimer.Restore(null);
+        Assert(timer.Mode == TimerMode.Pomodoro && !timer.IsActive && timer.Display(t0) == TimeSpan.FromMinutes(25),
+            "Awal: pomodoro diam, 25 menit.");
+
+        timer.Toggle(t0);
+        Assert(timer.Run == TimerRun.Running && timer.Remaining(t0.AddMinutes(10)) == TimeSpan.FromMinutes(15), "Berjalan: sisa 15 menit setelah 10 menit.");
+        timer.Toggle(t0.AddMinutes(10));
+        Assert(timer.Run == TimerRun.Paused && timer.Remaining(t0.AddHours(3)) == TimeSpan.FromMinutes(15), "Dijeda: sisa tidak berkurang.");
+        timer.Toggle(t0.AddMinutes(20));
+        Assert(timer.Tick(t0.AddMinutes(34)) is null, "Belum habis: tidak ada yang selesai.");
+        var finished = timer.Tick(t0.AddMinutes(35));
+        Assert(finished is { Mode: TimerMode.Pomodoro, Phase: PomodoroPhase.Focus }, "Fokus selesai tepat waktu setelah jeda 10 menit.");
+        Assert(timer.Phase == PomodoroPhase.ShortBreak && !timer.IsActive && timer.CompletedFocus == 1,
+            "Setelah fokus: istirahat pendek siap, belum berjalan.");
+
+        // Four focus sessions bring a long break, then the cycle starts over.
+        for (var i = 0; i < 3; i++)
+        {
+            timer.Skip(t0);                       // break -> focus
+            timer.Tick(t0.AddHours(1));           // focus done
+        }
+        Assert(timer.Phase == PomodoroPhase.LongBreak && timer.CompletedFocus == 4, "Fokus ke-4 diikuti istirahat panjang.");
+        timer.Skip(t0);
+        Assert(timer.Phase == PomodoroPhase.Focus && timer.CompletedFocus == 0, "Setelah istirahat panjang siklus mulai lagi.");
+
+        timer.StartTimer(TimeSpan.FromMinutes(5), t0);
+        timer.Add(TimeSpan.FromMinutes(2), t0.AddMinutes(1));
+        Assert(timer.Remaining(t0.AddMinutes(1)) == TimeSpan.FromMinutes(6), "+2 menit menambah sisa.");
+        timer.Add(TimeSpan.FromMinutes(-60), t0.AddMinutes(1));
+        Assert(timer.Remaining(t0.AddMinutes(1)) == TimeSpan.Zero, "Dikurangi tidak pernah di bawah nol.");
+        Assert(timer.Tick(t0.AddMinutes(1)) is { Mode: TimerMode.Timer }, "Timer yang habis selesai.");
+
+        timer.StartStopwatch(t0);
+        timer.Toggle(t0.AddSeconds(30));
+        timer.Toggle(t0.AddSeconds(90));
+        Assert(timer.Display(t0.AddSeconds(100)) == TimeSpan.FromSeconds(40), "Stopwatch tidak menghitung saat dijeda.");
+        Assert(timer.Tick(t0.AddHours(5)) is null, "Stopwatch tidak pernah selesai.");
+
+        var restored = NotchTimer.Restore(timer.Save());
+        Assert(restored.Mode == TimerMode.Stopwatch && restored.Display(t0.AddSeconds(100)) == TimeSpan.FromSeconds(40),
+            "Keadaan dipulihkan setelah restart.");
+
+        Assert(NotchTimer.Format(TimeSpan.FromSeconds(1452)) == "24:12" && NotchTimer.Format(TimeSpan.FromMinutes(65)) == "1:05:00"
+               && NotchTimer.Format(TimeSpan.FromMilliseconds(400)) == "0:01", "Format waktu (sisa dibulatkan ke atas).");
+
+        var p = TimerCommandParser.Parse("25");
+        Assert(p.Kind == TimerCommandKind.Timer && p.Duration == TimeSpan.FromMinutes(25), "\"25\" = timer 25 menit.");
+        Assert(TimerCommandParser.Parse("90s").Duration == TimeSpan.FromSeconds(90), "\"90s\" = 90 detik.");
+        Assert(TimerCommandParser.Parse("1h30").Duration == TimeSpan.FromMinutes(90), "\"1h30\" = 90 menit.");
+        Assert(TimerCommandParser.Parse("1:30").Duration == TimeSpan.FromMinutes(90), "\"1:30\" = 1 jam 30.");
+        var labelled = TimerCommandParser.Parse("10m teh");
+        Assert(labelled.Duration == TimeSpan.FromMinutes(10) && labelled.Label == "teh", "Durasi lalu label.");
+        Assert(TimerCommandParser.Parse("-2").Kind == TimerCommandKind.Adjust && TimerCommandParser.Parse("-2").Duration == TimeSpan.FromMinutes(-2), "\"-2\" mengurangi.");
+        Assert(TimerCommandParser.Parse("+30s").Duration == TimeSpan.FromSeconds(30), "\"+30s\" menambah 30 detik.");
+        Assert(TimerCommandParser.Parse("sw").Kind == TimerCommandKind.Stopwatch && TimerCommandParser.Parse("P").Kind == TimerCommandKind.Pomodoro,
+            "Kata pendek berpindah mode.");
+        Assert(TimerCommandParser.Parse("refactor parser") is { Kind: TimerCommandKind.Label, Label: "refactor parser" }, "Teks lain jadi label.");
+        Assert(TimerCommandParser.Parse("0").Kind == TimerCommandKind.Label, "Durasi nol bukan timer.");
+
+        // AllTime's commands.
+        var alarm = TimerCommandParser.Parse("@19:05 rapat");
+        Assert(alarm is { Kind: TimerCommandKind.Alarm, Label: "rapat" } && alarm.Duration == new TimeSpan(19, 5, 0), "\"@19:05 rapat\" = alarm berlabel.");
+        Assert(TimerCommandParser.Parse("@7").Duration == new TimeSpan(7, 0, 0) && TimerCommandParser.Parse("@7.30").Duration == new TimeSpan(7, 30, 0),
+            "\"@7\" dan \"@7.30\".");
+        Assert(TimerCommandParser.Parse("@7pm").Duration == new TimeSpan(19, 0, 0) && TimerCommandParser.Parse("@12am").Duration == TimeSpan.Zero,
+            "am/pm.");
+        Assert(TimerCommandParser.Parse("@25:00").Kind == TimerCommandKind.Label, "Jam tidak valid bukan alarm.");
+        var lengths = TimerCommandParser.Parse("p50/10/20");
+        Assert(lengths is { Kind: TimerCommandKind.PomodoroLengths } && lengths.Duration == TimeSpan.FromMinutes(50)
+               && lengths.ShortBreak == TimeSpan.FromMinutes(10) && lengths.LongBreak == TimeSpan.FromMinutes(20), "\"p50/10/20\" mengatur pomodoro.");
+        Assert(TimerCommandParser.Parse("p25").ShortBreak is null, "\"p25\" hanya fokus.");
+        Assert(TimerCommandParser.Parse("tm").Kind == TimerCommandKind.ShowTimer && TimerCommandParser.Parse("a").Kind == TimerCommandKind.ShowAlarm
+               && TimerCommandParser.Parse("lap").Kind == TimerCommandKind.Lap && TimerCommandParser.Parse("zz").Kind == TimerCommandKind.Snooze,
+            "tm / a / lap / zz.");
+
+        var day = new DateTimeOffset(2026, 10, 7, 20, 0, 0, TimeSpan.FromHours(7));
+        var morning = NotchTimer.NextOccurrence(new TimeSpan(7, 30, 0), day);
+        Assert(morning.Day == 8 && morning.Hour == 7 && morning.Minute == 30, "Jam yang sudah lewat = besok.");
+        Assert(NotchTimer.NextOccurrence(new TimeSpan(21, 0, 0), day).Day == 7, "Jam yang belum lewat = hari ini.");
+
+        var clock = NotchTimer.Restore(null);
+        clock.StartTimer(TimeSpan.FromMinutes(30), day);
+        clock.SetAlarm(day.AddMinutes(10), "teh");
+        var rang = clock.Tick(day.AddMinutes(10));
+        Assert(rang is { Mode: TimerMode.Alarm, Label: "teh" } && clock.AlarmAt is null && clock.IsActive,
+            "Alarm berbunyi tanpa mengganggu timer yang berjalan.");
+        clock.Snooze(day.AddMinutes(10), "teh");
+        Assert(clock.AlarmAt == day.AddMinutes(19), "Tunda = 9 menit lagi.");
+
+        clock.SetPomodoro(TimeSpan.FromMinutes(50), TimeSpan.FromMinutes(10));
+        clock.Reset();
+        clock.Select(TimerMode.Pomodoro);
+        Assert(clock.Display(day) == TimeSpan.FromMinutes(50) && clock.PhaseLength(PomodoroPhase.ShortBreak) == TimeSpan.FromMinutes(10)
+               && clock.PhaseLength(PomodoroPhase.LongBreak) == TimeSpan.FromMinutes(15), "Panjang pomodoro bisa diubah.");
+
+        clock.StartStopwatch(day);
+        Assert(clock.Lap(day.AddSeconds(12)) && clock.Lap(day.AddSeconds(30)) && clock.Laps.Count == 2 && clock.Laps[1] == TimeSpan.FromSeconds(30), "Lap stopwatch.");
+        var again = NotchTimer.Restore(clock.Save());
+        Assert(again.Laps.Count == 2 && again.FocusLength == TimeSpan.FromMinutes(50) && again.AlarmAt == clock.AlarmAt, "Lap, panjang pomodoro dan alarm ikut dipulihkan.");
+        Assert(NotchTimer.FormatPrecise(TimeSpan.FromMilliseconds(5080)) == "00:05.08", "Stopwatch dengan perseratus detik.");
+        Console.WriteLine("PASS notch timer tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

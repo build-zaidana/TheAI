@@ -68,6 +68,8 @@ public partial class NotchWindow
         NotchView.Request => RequestPanel,
         NotchView.Quick => QuickPanel,
         NotchView.Music => MusicPanel,
+        NotchView.Timer => TimerPanel,
+        NotchView.TimerDone => TimerDonePanel,
         _ => CompactPanel
     };
 
@@ -77,7 +79,9 @@ public partial class NotchWindow
         NotchView.Activity or NotchView.Request => ActivityWidth,
         NotchView.Quick => QuickWidth,
         NotchView.Music => _musicMini ? MusicMiniWidth : MusicWidth,
-        _ => _state == NotchState.Idle && !MusicShowing ? IdleWidth : CompactWidth
+        NotchView.Timer => TimerWidth,
+        NotchView.TimerDone => TimerDoneWidth,
+        _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
     };
 
     private static double MeasureHeight(FrameworkElement panel, double width)
@@ -114,7 +118,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;
@@ -138,6 +142,7 @@ public partial class NotchWindow
             _shadow.Opacity = expanded ? 0.45 : 0;
             _shownView = _view;
             UpdateWindowStyle();
+            ApplyKeyline();
             return;
         }
 
@@ -164,6 +169,7 @@ public partial class NotchWindow
 
         _shownView = _view;
         UpdateWindowStyle();
+        ApplyKeyline();
     }
 
     private static void Retarget(Spring spring, double target, double response, double damping)

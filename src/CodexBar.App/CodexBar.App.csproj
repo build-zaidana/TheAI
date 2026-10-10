@@ -36,6 +36,8 @@
 
   <ItemGroup>
     <Resource Include="codexbar.ico" />
+    <Resource Include="Fonts\Sora-SemiBold.ttf" />
+    <Content Include="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

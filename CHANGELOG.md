@@ -8,6 +8,14 @@
 - A short toast when the track changes (hover it for the whole player); scroll the open notch to switch between music and the agent.
 - Optional synced lyrics from LRCLIB (off by default: sends the title and artist to lrclib.net).
 
+### Added — timer in the notch
+
+- **Pomodoro, timer, stopwatch and an alarm** kept by the notch itself, drawn after the Clock app's live activities: tinted round controls, thin orange digits, hour / minute / second wheels (scroll or drag) with a start button; the stopwatch shows hundredths; survives restarts.
+- **AllTime's commands** typed on the Timer page, previewed before Enter: `25` `5m` `90s` `1h30` (timer, with an optional label), `+5` `-2` `+30s`, `@7:30` `@19:05 rapat` `@7pm` (alarm), `p` `tm` `sw` `a`, `p50/10/15`, `go` `skip` `lap` `stop` `zz` `x`; anything else becomes the label.
+- When a countdown ends or the alarm rings the notch springs out and sends rings outward; the zero fades, the bell shakes; next step / snooze 9 min / close.
+- Timer in neutral white and grey, digits and labels in Sora (SIL Open Font License, `Fonts/OFL.txt` ships with the app); icons instead of words (target = focus, cup = break, hourglass = timer, flag = lap); hour / minute / second wheels to pick a length; a countdown (pomodoro or timer), a stopwatch and an alarm can run at once, each as its own row; mode icons (Timer / Pomodoro / Stopwatch / Alarm); typing shows in the row with the result already in the number (`+5` → 29:12).
+- The open notch has up to three pages — music, agent, timer — switched by scrolling; a Timer chip in the launcher.
+
 ## 1.3.0 — 2026-10-06
 
 ### Added — notch and chat

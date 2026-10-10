@@ -133,6 +133,12 @@ public partial class MainWindow
             ShowTrayMenu();
         }
 
+        // CODEXBAR_PREVIEW_TIMER=compact|open|idle|stopwatch|two|alarm|typing|ring|done: a sample pomodoro (not saved), the Timer page, or time's up.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TIMER") is { Length: > 0 } timerPreview && _notch is not null)
+        {
+            _notch.PreviewTimer(timerPreview);
+        }
+
         // CODEXBAR_PREVIEW_MUSIC=1|toast|compact: the music page, the track-change toast or the compact notch for what plays now.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_MUSIC") is { Length: > 0 } musicPreview && _notch is not null)
         {

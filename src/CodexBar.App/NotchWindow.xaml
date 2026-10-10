@@ -304,6 +304,166 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Timer page: thin display digits, tinted round buttons, quiet text buttons, length tiles. -->
+        <!-- Sora (SIL Open Font License, Fonts/OFL.txt): the timer's digits and labels. -->
+        <FontFamily x:Key="SoraFont">pack://application:,,,/Fonts/#Sora</FontFamily>
+
+        <Style x:Key="NotchDigits" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource SoraFont}" />
+            <Setter Property="FontSize" Value="44" />
+            <Setter Property="Foreground" Value="#F5F5F7" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="NotchLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource SoraFont}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Foreground" Value="#F5F5F7" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="NotchModeButton" TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Foreground" Value="#66FFFFFF" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Width="16" Height="16" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource NotchFill}" />
+                                <Setter Property="Foreground" Value="#CCFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="selected">
+                                <Setter TargetName="Bg" Property="Background" Value="#38FFFFFF" />
+                                <Setter Property="Foreground" Value="#F5F5F7" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NotchTintButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse Fill="{TemplateBinding Background}" />
+                            <Ellipse x:Name="Hover" Fill="White" Opacity="0" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hover" Property="Opacity" Value="0.08" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Hover" Property="Opacity" Value="0.16" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NotchTintPill" TargetType="Button">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource NotchGreen}" />
+            <Setter Property="Background" Value="#3330D158" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="24" />
+                            <Border x:Name="Hover" Background="White" CornerRadius="24" Opacity="0" />
+                            <ContentPresenter Margin="20,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hover" Property="Opacity" Value="0.08" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NotchTextButton" TargetType="Button">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="#8CFFFFFF" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="10,6">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource NotchFill}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NotchLengthButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#80FFFFFF" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="12" Padding="0,7">
+                            <ContentPresenter HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource NotchFill}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="selected">
+                                <Setter TargetName="Bg" Property="Background" Value="#17FFFFFF" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- An alarm clock in the timer's orange: bells, legs, a round face with its hands. -->
+        <Viewbox x:Key="NotchAlarmGlyph" x:Shared="False" Stretch="Uniform">
+            <Canvas Width="28" Height="28">
+                <Path Fill="#F5F5F7" Data="M 2.2,9.4 A 5.4,5.4 0 0 1 9.4,2.2 Z M 25.8,9.4 A 5.4,5.4 0 0 0 18.6,2.2 Z" />
+                <Path Stroke="#F5F5F7" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Data="M 8.2,22.6 L 5.6,25.6 M 19.8,22.6 L 22.4,25.6" />
+                <Ellipse Fill="#F5F5F7" Width="21" Height="21" Canvas.Left="3.5" Canvas.Top="5" />
+                <Path Stroke="Black" StrokeThickness="2.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                      Data="M 14,9.8 L 14,15.5 L 18,15.5" />
+            </Canvas>
+        </Viewbox>
     </Window.Resources>
 
     <!-- Transparent margin gives the drop shadow room; transparent pixels are click-through. -->
@@ -312,6 +472,16 @@
     <Image x:Name="LiquidImage" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"
            IsHitTestVisible="False" Visibility="Collapsed" RenderOptions.BitmapScalingMode="NearestNeighbor" />
     <Grid x:Name="Root" Margin="28,0,28,36">
+        <!-- Time's up: rings spreading out from under the notch (behind it). -->
+        <Grid x:Name="TimerRipples" HorizontalAlignment="Center" VerticalAlignment="Top" Width="1" Height="1"
+              IsHitTestVisible="False" Visibility="Collapsed">
+            <Ellipse x:Name="TimerRipple1" Width="120" Height="120" Margin="-60" Stroke="#F5F5F7" StrokeThickness="2" RenderTransformOrigin="0.5,0.5" Opacity="0">
+                <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="TimerRipple2" Width="120" Height="120" Margin="-60" Stroke="#F5F5F7" StrokeThickness="2" RenderTransformOrigin="0.5,0.5" Opacity="0">
+                <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+            </Ellipse>
+        </Grid>
         <Border x:Name="Shell"
                 Background="Black"
                 AllowDrop="True"
@@ -345,6 +515,20 @@
                     <!-- What is playing (Windows media controls): the album art takes the logo's place. -->
                     <Border x:Name="CompactArt" Width="18" Height="18" CornerRadius="4" Background="{StaticResource NotchFill}"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
+                    <!-- The notch's timer: a progress ring (plus the time when an agent holds the right side). -->
+                    <StackPanel x:Name="CompactTimer" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Visibility="Collapsed" IsHitTestVisible="False">
+                        <Grid x:Name="CompactTimerRing" Width="16" Height="16" VerticalAlignment="Center">
+                            <Ellipse x:Name="CompactTimerTrack" Stroke="#38FFFFFF" StrokeThickness="2.2" />
+                            <Path x:Name="CompactTimerArc" Stroke="#F5F5F7" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Grid>
+                        <ContentControl x:Name="CompactAlarmGlyph" Content="{StaticResource NotchAlarmGlyph}" Width="17" Height="17"
+                                        VerticalAlignment="Center" Visibility="Collapsed" />
+                        <TextBlock x:Name="CompactTimerLeftText" FontFamily="{StaticResource SoraFont}" Margin="6,0,0,0" FontSize="13" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" Foreground="#F5F5F7" Visibility="Collapsed" />
+                    </StackPanel>
+                    <TextBlock x:Name="CompactTimerText" FontFamily="{StaticResource SoraFont}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13"
+                               Typography.NumeralAlignment="Tabular" Foreground="#F5F5F7" Visibility="Collapsed" IsHitTestVisible="False" />
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
                     <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
@@ -482,6 +666,199 @@
                         </Grid>
                     </StackPanel>
                 </StackPanel>
+
+                <!-- Timer, after the Clock app's live activities and DynamicLake's stacked rows: one row per
+                     thing running (tinted control, grey control, label, time in Sora), a minute ruler with
+                     mode icons when nothing runs, and typing that lands in the row itself. -->
+                <StackPanel x:Name="TimerPanel" Margin="14,12,22,14" Width="384" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Timer"
+                            PreviewMouseLeftButtonDown="TimerPanel_PreviewMouseDown">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+
+                    <!-- Running: pause + stop leading, label + time trailing. -->
+                    <Grid x:Name="TimerRunRow" Height="56">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="TimerPlayButton" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                                Background="#38FFFFFF" Click="TimerPlay_Click" AutomationProperties.Name="Jeda">
+                            <Grid>
+                                <Path x:Name="TimerPlayGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"
+                                      Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
+                                <Path x:Name="TimerPauseGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M 1,1.5 Q 1,0 2.5,0 L 4,0 Q 5.4,0 5.4,1.5 L 5.4,16.5 Q 5.4,18 4,18 L 2.5,18 Q 1,18 1,16.5 Z M 9,1.5 Q 9,0 10.5,0 L 12,0 Q 13.4,0 13.4,1.5 L 13.4,16.5 Q 13.4,18 12,18 L 10.5,18 Q 9,18 9,16.5 Z" />
+                            </Grid>
+                        </Button>
+                        <Button x:Name="TimerStopButton" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                                Background="#1FFFFFFF" Click="TimerReset_Click" AutomationProperties.Name="Hentikan">
+                            <Grid>
+                                <Path x:Name="TimerStopGlyph" Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="M 1,1 L 12,12 M 12,1 L 1,12" />
+                                <Path x:Name="TimerResetGlyph" Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Visibility="Collapsed"
+                                      Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
+                            </Grid>
+                        </Button>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Path x:Name="TimerCaptionIcon" Fill="#99FFFFFF" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,2,10,0" />
+                            <TextBlock x:Name="TimerCaption" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,10,0" MaxWidth="130" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerBig" Style="{StaticResource NotchDigits}" Text="24:12" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- The stopwatch: its own row, so it can run beside a countdown. -->
+                    <Grid x:Name="TimerWatchRow" Height="56" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="TimerWatchPlay" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                                Background="#38FFFFFF" Click="TimerWatchPlay_Click" AutomationProperties.Name="Jeda">
+                            <Grid>
+                                <Path x:Name="TimerWatchPlayGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"
+                                      Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
+                                <Path x:Name="TimerWatchPauseGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M 1,1.5 Q 1,0 2.5,0 L 4,0 Q 5.4,0 5.4,1.5 L 5.4,16.5 Q 5.4,18 4,18 L 2.5,18 Q 1,18 1,16.5 Z M 9,1.5 Q 9,0 10.5,0 L 12,0 Q 13.4,0 13.4,1.5 L 13.4,16.5 Q 13.4,18 12,18 L 10.5,18 Q 9,18 9,16.5 Z" />
+                            </Grid>
+                        </Button>
+                        <Button x:Name="TimerWatchReset" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                                Background="#1FFFFFFF" Click="TimerWatchReset_Click" AutomationProperties.Name="Reset">
+                            <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
+                        </Button>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Path x:Name="TimerWatchLapIcon" Fill="#99FFFFFF" Width="16" Height="16" Stretch="Uniform" VerticalAlignment="Center" Margin="0,2,6,0"
+                                  Data="F0 M3,1.5 H4.6 V14.5 H3 Z M4.6,2 H13 L10.8,5 L13,8 H4.6 Z" />
+                            <TextBlock x:Name="TimerWatchLap" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,12,0" />
+                            <TextBlock x:Name="TimerWatchBig" Style="{StaticResource NotchDigits}" Text="00:00.00" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- An alarm is set: its own row, stacked like DynamicLake's. -->
+                    <Grid x:Name="TimerAlarmRow" Height="56">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ContentControl Content="{StaticResource NotchAlarmGlyph}" Width="38" Height="38" VerticalAlignment="Center" Margin="7,0,0,0" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                            <TextBlock x:Name="TimerAlarmCaption" Style="{StaticResource NotchLabel}" FontSize="20" MaxWidth="150" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerAlarmTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
+                        </StackPanel>
+                        <Button x:Name="TimerAlarmCancel" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                                Background="#1FFFFFFF" Click="TimerAlarmCancel_Click" AutomationProperties.Name="Hapus alarm">
+                            <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
+                        </Button>
+                    </Grid>
+
+                    <!-- Nothing running: start, the hour / minute / second wheels (or the mode's length), the four modes. -->
+                    <StackPanel x:Name="TimerIdle">
+                        <Grid Margin="0,2,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="TimerStartButton" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Background="#38FFFFFF"
+                                    VerticalAlignment="Center" Click="TimerStart_Click" AutomationProperties.Name="Mulai">
+                                <Path Fill="#F5F5F7" Margin="3,0,0,0" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
+                            </Button>
+                            <local:TimeWheel x:Name="TimerWheel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <StackPanel x:Name="TimerIdleShown" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Height="56">
+                                <TextBlock x:Name="TimerIdleCaption" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,10,0" Visibility="Collapsed" />
+                                <TextBlock x:Name="TimerIdleDigits" Style="{StaticResource NotchDigits}" FontSize="48" Text="25:00" />
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel x:Name="TimerModes" Orientation="Horizontal" Margin="6,10,0,0">
+                            <Button x:Name="TimerModeTimer" Style="{StaticResource NotchModeButton}" Click="TimerMode_Click" ToolTip="Timer" AutomationProperties.Name="Timer">
+                                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="M 8,9 m -5.8,0 a 5.8,5.8 0 1 0 11.6,0 a 5.8,5.8 0 1 0 -11.6,0 M 8,9 L 8,6.3 M 6.3,1.8 L 9.7,1.8" />
+                            </Button>
+                            <Button x:Name="TimerModePomodoro" Style="{StaticResource NotchModeButton}" Click="TimerMode_Click" ToolTip="Pomodoro" AutomationProperties.Name="Pomodoro">
+                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Data="M 8,3.4 C 11.3,3.4 13.6,5.7 13.6,9 C 13.6,12.3 11.3,14.6 8,14.6 C 4.7,14.6 2.4,12.3 2.4,9 C 2.4,5.7 4.7,3.4 8,3.4 Z M 5.6,2.2 L 8,3.6 L 10.4,2.2 L 10.6,3 L 8,4.6 L 5.4,3 Z" />
+                            </Button>
+                            <Button x:Name="TimerModeStopwatch" Style="{StaticResource NotchModeButton}" Click="TimerMode_Click" ToolTip="Stopwatch" AutomationProperties.Name="Stopwatch">
+                                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="M 8,9 m -5.8,0 a 5.8,5.8 0 1 0 11.6,0 a 5.8,5.8 0 1 0 -11.6,0 M 8,9 L 10.4,7 M 12.6,3.6 L 13.6,2.6 M 8,3.2 L 8,1.8" />
+                            </Button>
+                            <Button x:Name="TimerModeAlarm" Style="{StaticResource NotchModeButton}" Click="TimerMode_Click" ToolTip="Alarm (@7:30)" AutomationProperties.Name="Alarm">
+                                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="M 8,8.8 m -5.4,0 a 5.4,5.4 0 1 0 10.8,0 a 5.4,5.4 0 1 0 -10.8,0 M 8,6.4 L 8,9 L 9.9,9 M 2.2,4.2 L 4.2,2.2 M 13.8,4.2 L 11.8,2.2" />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Keystrokes land here; the row shows them in place of its label, the number shows the result. -->
+                    <TextBox x:Name="TimerInput" Width="1" Height="1" Opacity="0" IsTabStop="False" HorizontalAlignment="Left"
+                             TextChanged="TimerInput_TextChanged" PreviewKeyDown="TimerInput_PreviewKeyDown"
+                             AutomationProperties.Name="Perintah timer" />
+                </StackPanel>
+
+                <!-- Time's up / the alarm rings: the same row, now green or ringing. -->
+                <Grid x:Name="TimerDonePanel" Margin="14,12,22,14" Width="384" HorizontalAlignment="Center" VerticalAlignment="Top"
+                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Waktu habis">
+                    <Grid.RenderTransform>
+                        <TranslateTransform />
+                    </Grid.RenderTransform>
+                    <Grid x:Name="TimerDoneRow" Height="56">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="TimerDoneNext" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Background="#38FFFFFF"
+                                Click="TimerDoneNext_Click" AutomationProperties.Name="Langkah berikutnya">
+                            <Path x:Name="TimerDoneNextGlyph" Stroke="#F5F5F7" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
+                        </Button>
+                        <Button x:Name="TimerDoneClose" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                                Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="Tutup">
+                            <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
+                        </Button>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Path x:Name="TimerDoneIcon" Fill="#99FFFFFF" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,2,8,0" />
+                            <TextBlock x:Name="TimerDoneTitle" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,12,0"
+                                       MaxWidth="130" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerDoneDigits" Style="{StaticResource NotchDigits}" Text="0:00" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid x:Name="TimerRingRow" Height="56" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ContentControl x:Name="TimerRingIcon" Content="{StaticResource NotchAlarmGlyph}" Width="40" Height="40" VerticalAlignment="Center"
+                                        Margin="6,0,0,0" RenderTransformOrigin="0.5,0.3">
+                            <ContentControl.RenderTransform>
+                                <RotateTransform />
+                            </ContentControl.RenderTransform>
+                        </ContentControl>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                            <TextBlock x:Name="TimerRingCaption" Style="{StaticResource NotchLabel}" FontSize="20" MaxWidth="120" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerRingTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
+                        </StackPanel>
+                        <Button x:Name="TimerSnoozeButton" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                                Background="#38FFFFFF" Click="TimerSnooze_Click" AutomationProperties.Name="Tunda 9 menit">
+                            <Canvas Width="22" Height="22">
+                                <TextBlock Text="Z" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" Canvas.Left="1" Canvas.Top="-1" />
+                                <TextBlock Text="Z" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" Canvas.Left="11" Canvas.Top="3" />
+                                <TextBlock Text="z" FontFamily="{StaticResource SoraFont}" FontSize="12" Foreground="#F5F5F7" Canvas.Left="3" Canvas.Top="9" />
+                            </Canvas>
+                        </Button>
+                        <Button x:Name="TimerRingClose" Grid.Column="3" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                                Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="Matikan alarm">
+                            <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
+                        </Button>
+                    </Grid>
+                </Grid>
 
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
@@ -863,8 +1240,6 @@
             <!-- Music and the agent are two pages: scrolling switches between them. -->
             <StackPanel x:Name="PageDots" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0"
                         Visibility="Collapsed" IsHitTestVisible="False">
-                <Ellipse x:Name="PageDotMusic" Width="5" Height="5" Margin="0,2" Fill="#40FFFFFF" />
-                <Ellipse x:Name="PageDotAgent" Width="5" Height="5" Margin="0,2" Fill="#40FFFFFF" />
             </StackPanel>
             </Grid>
         </Border>
