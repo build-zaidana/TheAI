@@ -26,8 +26,8 @@ OutputDir=..\artifacts\installer
 OutputBaseFilename=CodexBar-Setup-{#MyAppVersion}
 ; Single-file .NET sudah dikompresi saat publish. ZIP menghindari kompresi ulang
 ; LZMA yang sangat lambat dengan penghematan ukuran yang nyaris tidak ada.
-Compression=zip
-SolidCompression=no
+Compression=lzma2/max
+SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

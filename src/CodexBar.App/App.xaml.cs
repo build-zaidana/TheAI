@@ -37,6 +37,13 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += (_, args) =>
             DiagnosticsLog.Error("UnobservedTask", args.Exception.Message, args.Exception);
 
+        // "CodexBar.App.exe activity build --progress 0.4": a live activity for the running notch, then exit.
+        if (e.Args.Length > 0 && e.Args[0].Equals("activity", StringComparison.OrdinalIgnoreCase))
+        {
+            Shutdown(SendActivity(e.Args.Skip(1).ToArray()));
+            return;
+        }
+
         _singleInstanceMutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
         _ownsMutex = createdNew;
         if (!createdNew)
@@ -98,6 +105,29 @@ public partial class App : System.Windows.Application
             Shutdown(1);
         }
     }
+
+    private static int SendActivity(string[] args)
+    {
+        var (update, error) = CodexBar.Core.LiveJobUpdate.FromArgs(args);
+        error ??= update is null ? null : Hud.LiveJobPipe.Send(update);
+        if (error is null)
+        {
+            return 0;
+        }
+
+        // A GUI program has no console of its own: borrow the terminal it was started from.
+        if (AttachConsole(-1))
+        {
+            using var stderr = new System.IO.StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
+            stderr.WriteLine();
+            stderr.WriteLine("codexbar: " + error);
+        }
+
+        return 1;
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern bool AttachConsole(int processId);
 
     /// <summary>Credential Manager target name for a provider's API key.</summary>
     public static string ApiKeyCredentialTarget(string providerId) => $"CodexBar/apiKey/{providerId}";

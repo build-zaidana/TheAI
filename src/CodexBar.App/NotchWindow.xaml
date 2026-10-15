@@ -540,6 +540,31 @@
                           HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" Data="M 2,14 L 6,3 L 24,3 L 28,14 L 28,22 Q 28,24 26,24 L 4,24 Q 2,24 2,22 Z M 2,14 L 9,14 L 11,17 L 19,17 L 21,14 L 28,14" />
                     <TextBlock x:Name="CompactShelfCount" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" HorizontalAlignment="Right"
                                VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" />
+                    <!-- A live activity from a script (codexbar activity …): ring / spinner / check / cross, its name, the percent. -->
+                    <StackPanel x:Name="CompactJob" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Visibility="Collapsed" IsHitTestVisible="False">
+                        <Grid Width="16" Height="16" VerticalAlignment="Center">
+                            <Ellipse x:Name="CompactJobTrack" Stroke="#38FFFFFF" StrokeThickness="2.2" />
+                            <Path x:Name="CompactJobArc" Stroke="#F5F5F7" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform x:Name="CompactJobSpin" />
+                                </Path.RenderTransform>
+                            </Path>
+                            <Ellipse x:Name="CompactJobDot" Fill="#F5F5F7" Visibility="Collapsed" />
+                            <Path x:Name="CompactJobMark" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Visibility="Collapsed" />
+                        </Grid>
+                        <TextBlock x:Name="CompactJobTitle" FontSize="12.5" Margin="7,0,0,0" Foreground="#F5F5F7" MaxWidth="92"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="CompactJobText" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" Visibility="Collapsed" IsHitTestVisible="False" />
+                    <!-- During focus or a meeting: what the agents said, held back (a count, opened at the break). -->
+                    <Border x:Name="CompactHeld" MinWidth="16" Height="16" CornerRadius="8" Background="#F5F5F7" Padding="4,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,21,0" Visibility="Collapsed" IsHitTestVisible="False">
+                        <TextBlock x:Name="CompactHeldText" FontSize="10" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
                     <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
@@ -940,6 +965,28 @@
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
                     <StackPanel x:Name="CalendarRows" />
+                </StackPanel>
+
+                <!-- Live activities: every job a script reports, with its progress or what went wrong. -->
+                <StackPanel x:Name="JobsPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Aktivitas">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <StackPanel x:Name="JobRows" />
+                </StackPanel>
+
+                <!-- The break after focus (or the end of a meeting): what the agents did meanwhile, all at once. -->
+                <StackPanel x:Name="HeldPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Selama fokus">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid Margin="0,0,0,6">
+                        <TextBlock x:Name="HeldTitle" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
+                        <TextBlock x:Name="HeldMeta" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel x:Name="HeldRows" />
                 </StackPanel>
 
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->

@@ -33,6 +33,9 @@ public sealed class AppSettings
     /// <summary>Sesi Claude Code dari terminal/IDE/desktop tampil live di notch (lewat hooks di ~/.claude/settings.json).</summary>
     public bool ClaudeLiveSessions { get; set; }
 
+    /// <summary>Sesi Gemini CLI tampil live di notch (lewat hooks di ~/.gemini/settings.json).</summary>
+    public bool GeminiLiveSessions { get; set; }
+
     /// <summary>Sesi lama Claude Code (dari ~/.claude/projects) ikut tampil di daftar Lanjutkan.</summary>
     public bool ClaudeImportSessions { get; set; } = true;
 
@@ -81,6 +84,15 @@ public sealed class AppSettings
 
     /// <summary>Sumber kalender di notch: "off", "outlook" (lokal) atau "ics" (tautan iCal, disimpan di Credential Manager).</summary>
     public string CalendarSource { get; set; } = "off";
+
+    /// <summary>Sembunyikan notch selama aplikasi layar penuh (game, video, presentasi) menutupi monitornya.</summary>
+    public bool HideInFullscreen { get; set; } = true;
+
+    /// <summary>Skrip boleh menampilkan aktivitas di notch lewat `codexbar activity` / named pipe pengguna ini.</summary>
+    public bool LiveActivities { get; set; } = true;
+
+    /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
+    public bool HoldDuringFocus { get; set; } = true;
 
     /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
     public string NotchEdge { get; set; } = "top";
@@ -155,6 +167,7 @@ public sealed class AppSettings
         VoiceLanguage = source.VoiceLanguage;
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;
+        GeminiLiveSessions = source.GeminiLiveSessions;
         ClaudeImportSessions = source.ClaudeImportSessions;
         PromptSuggestions = source.PromptSuggestions;
         AutoForkElsewhere = source.AutoForkElsewhere;

@@ -45,6 +45,15 @@ internal interface INotchHost
     /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
     string CalendarSource { get; }
 
+    /// <summary>Hide the notch while a fullscreen app (game, video, presentation) covers its monitor.</summary>
+    bool HideInFullscreen { get; }
+
+    /// <summary>Scripts may report live activities (codexbar activity …) to the notch.</summary>
+    bool LiveActivities { get; }
+
+    /// <summary>During a focus session or a meeting, agents' results and requests wait for the break.</summary>
+    bool HoldDuringFocus { get; }
+
     /// <summary>Screen edge the notch is docked to: top, bottom, left or right (persisted).</summary>
     string NotchEdge { get; set; }
 
@@ -99,7 +108,7 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar, Jobs, Held }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
@@ -180,6 +189,9 @@ public partial class NotchWindow : Window
         InitHud();
         InitShelf();
         InitCalendar();
+        InitFullscreen();
+        InitJobs();
+        InitFocus();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -193,6 +205,8 @@ public partial class NotchWindow : Window
         {
             RestartCalendar();
         }
+
+        RestartJobs();
 
         ApplyView(animate: false);
         UpdateVisibility();
@@ -595,7 +609,7 @@ public partial class NotchWindow : Window
         PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -618,7 +632,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -650,7 +664,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -1075,6 +1089,12 @@ public partial class NotchWindow : Window
         {
             // The side chat is the notch right now; only an approval or a question from the
             // agent makes the notch visible next to it.
+            return;
+        }
+
+        if (_fullscreenHidden)
+        {
+            Hide();   // a game or a video has the screen; back when it ends
             return;
         }
 

@@ -139,6 +139,18 @@ public partial class MainWindow
             _notch.PreviewCalendar(calendarPreview);
         }
 
+        // CODEXBAR_PREVIEW_JOBS=compact|open|done|failed|spinner: sample live activities from scripts.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_JOBS") is { Length: > 0 } jobsPreview && _notch is not null)
+        {
+            _notch.PreviewJobs(jobsPreview);
+        }
+
+        // CODEXBAR_PREVIEW_HELD=compact|open: agents held during focus — the count, then the break panel.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HELD") is { Length: > 0 } heldPreview && _notch is not null)
+        {
+            _notch.PreviewHeld(heldPreview);
+        }
+
         // CODEXBAR_PREVIEW_SHELF=compact|open|drop: the file shelf with a few sample files (not saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SHELF") is { Length: > 0 } shelfPreview && _notch is not null)
         {

@@ -7,8 +7,12 @@ using CodexBar.Core;
 
 namespace CodexBar.App;
 
-/// <summary>One Claude Code hook call relayed to CodexBar (the hook's JSON input).</summary>
-internal sealed record ClaudeHookEvent(string Name, string SessionId, string Cwd, JsonElement Data);
+/// <summary>
+/// One hook call relayed to CodexBar (the hook's JSON input). Gemini CLI's events arrive under
+/// Claude Code's names (BeforeAgent → UserPromptSubmit, BeforeTool → PreToolUse, AfterAgent → Stop)
+/// with <see cref="Agent"/> = "gemini".
+/// </summary>
+internal sealed record ClaudeHookEvent(string Name, string SessionId, string Cwd, JsonElement Data, string Agent = "claude");
 
 /// <summary>
 /// Receives Claude Code hook calls from every session on this PC (terminal, IDE, desktop) on a
@@ -118,11 +122,14 @@ internal sealed class ClaudeHookServer : IDisposable
 
             using var document = JsonDocument.Parse(body);
             var root = document.RootElement.Clone();
+            var gemini = request.Url?.AbsolutePath.StartsWith("/hook/gemini", StringComparison.Ordinal) == true;
+            var name = Str(root, "hook_event_name") ?? string.Empty;
             var hook = new ClaudeHookEvent(
-                Str(root, "hook_event_name") ?? string.Empty,
+                gemini ? GeminiHooksInstaller.ClaudeName(name) : name,
                 Str(root, "session_id") ?? string.Empty,
                 Str(root, "cwd") ?? string.Empty,
-                root);
+                root,
+                gemini ? "gemini" : "claude");
             if (hook.SessionId.Length == 0)
             {
                 return;
@@ -218,14 +225,14 @@ internal static class ClaudeHooksInstaller
 
     public static void Install()
     {
-        var root = Load();
+        var root = LoadJson(SettingsPath);
         var hooks = root["hooks"] as JsonObject ?? new JsonObject();
         root["hooks"] = hooks;
         foreach (var name in Events)
         {
             var list = hooks[name] as JsonArray ?? new JsonArray();
             hooks[name] = list;
-            RemoveOurs(list);
+            RemoveOurs(list, Marker);
             var entry = new JsonObject
             {
                 ["hooks"] = new JsonArray(new JsonObject
@@ -243,24 +250,27 @@ internal static class ClaudeHooksInstaller
             list.Add(entry);
         }
 
-        Save(root);
+        SaveJson(SettingsPath, root);
     }
 
-    public static void Uninstall()
+    public static void Uninstall() => RemoveFrom(SettingsPath, Marker);
+
+    /// <summary>Takes the entries carrying <paramref name="marker"/> out of a settings file's "hooks".</summary>
+    internal static void RemoveFrom(string path, string marker)
     {
-        if (!File.Exists(SettingsPath))
+        if (!File.Exists(path))
         {
             return;
         }
 
-        var root = Load();
+        var root = LoadJson(path);
         if (root["hooks"] is JsonObject hooks)
         {
             foreach (var name in hooks.Select(pair => pair.Key).ToArray())
             {
                 if (hooks[name] is JsonArray list)
                 {
-                    RemoveOurs(list);
+                    RemoveOurs(list, marker);
                     if (list.Count == 0)
                     {
                         hooks.Remove(name);
@@ -274,7 +284,7 @@ internal static class ClaudeHooksInstaller
             }
         }
 
-        Save(root);
+        SaveJson(path, root);
     }
 
     // Bash (Claude Code runs hooks with Git Bash on Windows): post the hook input, never fail the
@@ -283,42 +293,119 @@ internal static class ClaudeHooksInstaller
         ? $"curl -s -m {(int)ClaudeHookServer.PermissionWait.TotalSeconds + 5} -H 'X-CodexBar-Hook: 1' -H \"X-CodexBar-Child: ${{CODEXBAR_CHILD:-0}}\" -H 'Content-Type: application/json' --data-binary @- http://{Marker}/ 2>/dev/null || true"
         : $"curl -s -m 2 -o /dev/null -H 'X-CodexBar-Hook: 1' -H \"X-CodexBar-Child: ${{CODEXBAR_CHILD:-0}}\" -H 'Content-Type: application/json' --data-binary @- http://{Marker}/ 2>/dev/null || true";
 
-    private static void RemoveOurs(JsonArray list)
+    internal static void RemoveOurs(JsonArray list, string marker)
     {
         for (var i = list.Count - 1; i >= 0; i--)
         {
-            if (list[i]?.ToJsonString().Contains(Marker, StringComparison.Ordinal) == true)
+            if (list[i]?.ToJsonString().Contains(marker, StringComparison.Ordinal) == true)
             {
                 list.RemoveAt(i);
             }
         }
     }
 
-    private static JsonObject Load()
+    internal static JsonObject LoadJson(string path)
     {
-        if (!File.Exists(SettingsPath))
+        if (!File.Exists(path))
         {
             return new JsonObject();
         }
 
-        var text = File.ReadAllText(SettingsPath);
+        var text = File.ReadAllText(path);
         return string.IsNullOrWhiteSpace(text)
             ? new JsonObject()
             : JsonNode.Parse(text, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) as JsonObject
-              ?? throw new InvalidDataException("~/.claude/settings.json is not a JSON object.");
+              ?? throw new InvalidDataException($"{path} is not a JSON object.");
     }
 
-    private static void Save(JsonObject root)
+    /// <summary>Writes the file atomically, keeping a backup of how it was before CodexBar first touched it.</summary>
+    internal static void SaveJson(string path, JsonObject root)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-        var backup = SettingsPath + ".codexbar-backup";
-        if (File.Exists(SettingsPath) && !File.Exists(backup))
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var backup = path + ".codexbar-backup";
+        if (File.Exists(path) && !File.Exists(backup))
         {
-            File.Copy(SettingsPath, backup);
+            File.Copy(path, backup);
         }
 
-        var temp = SettingsPath + ".codexbar-tmp";
+        var temp = path + ".codexbar-tmp";
         File.WriteAllText(temp, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(temp, SettingsPath, overwrite: true);
+        File.Move(temp, path, overwrite: true);
     }
+}
+
+/// <summary>
+/// The same relay for Gemini CLI, in <c>~/.gemini/settings.json</c>. Gemini CLI runs hook commands
+/// with PowerShell on Windows, so the relay is a one-line <c>Invoke-RestMethod</c> that reads the hook
+/// input from stdin, posts it to <c>/hook/gemini/</c> and prints nothing (stdout must stay empty or JSON).
+/// Gemini's permission prompts can't be answered from outside, so the notch only shows them.
+/// </summary>
+internal static class GeminiHooksInstaller
+{
+    private const string Marker = "127.0.0.1:47321/hook/gemini";
+
+    private static readonly string[] Events = ["SessionStart", "BeforeAgent", "BeforeTool", "AfterAgent", "Notification", "SessionEnd"];
+
+    public static string SettingsPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gemini", "settings.json");
+
+    /// <summary>Gemini's event name → the Claude Code event CodexBar already handles.</summary>
+    public static string ClaudeName(string gemini) => gemini switch
+    {
+        "BeforeAgent" => "UserPromptSubmit",
+        "BeforeTool" => "PreToolUse",
+        "AfterAgent" => "Stop",
+        _ => gemini   // SessionStart, SessionEnd, Notification
+    };
+
+    public static bool IsInstalled()
+    {
+        try
+        {
+            return File.Exists(SettingsPath) && File.ReadAllText(SettingsPath).Contains(Marker, StringComparison.Ordinal);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    internal static string Command =>
+        "try { $b = [Console]::In.ReadToEnd(); Invoke-RestMethod -Uri 'http://" + Marker + "/' -Method Post " +
+        "-Headers @{ 'X-CodexBar-Hook' = '1' } -ContentType 'application/json; charset=utf-8' " +
+        "-Body ([Text.Encoding]::UTF8.GetBytes($b)) -TimeoutSec 2 | Out-Null } catch { }";
+
+    public static void Install()
+    {
+        var root = ClaudeHooksInstaller.LoadJson(SettingsPath);
+        var hooks = root["hooks"] as JsonObject ?? new JsonObject();
+        root["hooks"] = hooks;
+        foreach (var name in Events)
+        {
+            var list = hooks[name] as JsonArray ?? new JsonArray();
+            hooks[name] = list;
+            ClaudeHooksInstaller.RemoveOurs(list, Marker);
+            var entry = new JsonObject
+            {
+                ["hooks"] = new JsonArray(new JsonObject
+                {
+                    ["name"] = "codexbar-relay",
+                    ["type"] = "command",
+                    ["command"] = Command,
+                    ["timeout"] = 5000,
+                    ["description"] = "Shows this session in the CodexBar notch"
+                })
+            };
+            if (name == "BeforeTool")
+            {
+                entry["matcher"] = ".*";
+            }
+
+            list.Add(entry);
+        }
+
+        ClaudeHooksInstaller.SaveJson(SettingsPath, root);
+    }
+
+    public static void Uninstall() => ClaudeHooksInstaller.RemoveFrom(SettingsPath, Marker);
 }

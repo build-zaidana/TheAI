@@ -67,6 +67,19 @@ Membuat rilis:
 2. Bangun: `.\scripts\build-installer.ps1` (installer) atau `.\scripts\publish.ps1` (exe saja).
 3. Di repositori rilis publik, buat release dengan tag `v1.3.0` dan lampirkan `CodexBar-Setup-1.3.0.exe` (atau `CodexBar.App.exe`). Tag harus berupa versi (`v` di depan boleh); installer dengan "Setup" di namanya dipilih lebih dulu untuk diunduh.
 
+## Aktivitas dari skrip
+
+Skrip, build, atau unduhan apa pun bisa tampil di notch selama CodexBar berjalan:
+
+```powershell
+CodexBar.App.exe activity build --title "npm run build" --progress 0.4
+CodexBar.App.exe activity build --done
+CodexBar.App.exe activity deploy --failed "exit 1"
+CodexBar.App.exe activity build --remove
+```
+
+Opsi lain: `--detail "teks"` (ditampilkan bila tidak ada persen) dan `--url https://…` (dibuka saat barisnya diklik). Tanpa CLI, tulis satu baris JSON per pembaruan ke named pipe `\\.\pipe\codexbar-<nama pengguna>`, misalnya `{"id":"build","progress":0.4}`. Hanya proses milik pengguna Windows yang sama yang diterima; tidak ada port atau jaringan.
+
 ## Shortcut
 
 | Shortcut | Aksi |

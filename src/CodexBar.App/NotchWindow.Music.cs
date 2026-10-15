@@ -242,11 +242,19 @@ public partial class NotchWindow
             NotchView.Timer => TimerShowing,
             NotchView.Shelf => ShelfShowing,
             NotchView.Calendar => CalendarShowing,
+            NotchView.Jobs => JobsShowing,
             _ => _state != NotchState.Idle
         };
+        if (_held.Count > 0 && !Quiet)
+        {
+            OpenHeld();
+            return;
+        }
+
         var page = live ? _lastPage
             : _state != NotchState.Idle ? NotchView.Activity
             : TimerShowing ? NotchView.Timer
+            : JobsShowing ? NotchView.Jobs
             : CalendarShowing ? NotchView.Calendar
             : MusicShowing ? NotchView.Music
             : ShelfShowing ? NotchView.Shelf
@@ -269,6 +277,9 @@ public partial class NotchWindow
                 break;
             case NotchView.Calendar:
                 OpenCalendar();
+                break;
+            case NotchView.Jobs:
+                OpenJobs();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -294,6 +305,11 @@ public partial class NotchWindow
         if (AgentPageAvailable)
         {
             pages.Add(NotchView.Activity);
+        }
+
+        if (_jobs.Jobs.Count > 0)
+        {
+            pages.Add(NotchView.Jobs);
         }
 
         pages.Add(NotchView.Timer);

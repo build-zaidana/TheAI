@@ -96,6 +96,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return calendar;
     }
 
+    var liveJobs = RunLiveJobTests();
+    if (liveJobs != 0)
+    {
+        return liveJobs;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1003,6 +1009,21 @@ static int RunFileChangeTests()
         var info = ClaudeSessionFiles.Parse(new FileInfo(sessionFile));
         Assert(info is { Cwd: @"C:\proj\web", Entrypoint: "cli", Title: "Bug login", Source: "Terminal" },
             $"Ringkasan sesi Claude Code salah: {info}");
+
+        // Lines are picked by their first bytes: a huge line is skipped (or kept whole), CRLF and a
+        // last line without a newline still come out right, across the 1 MB read buffer.
+        var scanFile = Path.Combine(sessionDir, "scan.jsonl");
+        var huge = new string('x', 3 << 20);
+        File.WriteAllText(scanFile,
+            "{\"type\":\"tool\",\"out\":\"" + huge + "\"}\r\n" +
+            "{\"type\":\"keep\",\"n\":1}\r\n" +
+            "{\"type\":\"keep\",\"out\":\"" + huge + "\"}\n" +
+            "{\"type\":\"skip\"}\n" +
+            "{\"type\":\"keep\",\"n\":2}");
+        var kept = ClaudeSessionFiles.MatchingLines(scanFile, prefix => prefix.IndexOf("\"type\":\"keep\""u8) >= 0).ToList();
+        Assert(kept.Count == 3 && kept[0] == "{\"type\":\"keep\",\"n\":1}" && kept[1].Length == huge.Length + 24 &&
+               kept[1].EndsWith("\"}", StringComparison.Ordinal) && kept[2] == "{\"type\":\"keep\",\"n\":2}",
+            $"Pemindaian baris salah: {kept.Count} baris, {string.Join(" | ", kept.Select(line => line.Length > 40 ? line.Length.ToString() : line))}");
         var history = ClaudeSessionFiles.ReadMessages(sessionFile);
         Assert(history.Count == 4 && history[2] is { Role: "user", Text: "lihat ini", Images: [var image] } && File.Exists(image) &&
                history[3] is { Text: "Selesai.", Steps: { Count: 6 } turn } && turn[4].IsNote && turn[4].Detail == "Catatan progres.",
@@ -1414,6 +1435,60 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunLiveJobTests()
+{
+    try
+    {
+        var t0 = new DateTimeOffset(2026, 10, 15, 9, 0, 0, TimeSpan.Zero);
+        var (update, error) = LiveJobUpdate.FromArgs(["build", "--title", "npm run build", "--progress", "40%"]);
+        Assert(error is null && update is { Id: "build", Title: "npm run build", Progress: 0.4 }, "CLI: judul + 40%.");
+        Assert(LiveJobUpdate.FromArgs(["build", "--progress", "0.25"]).Update?.Progress == 0.25, "CLI: pecahan.");
+        Assert(LiveJobUpdate.FromArgs(["build", "--progress", "75"]).Update?.Progress == 0.75, "CLI: 75 berarti 75%.");
+        Assert(LiveJobUpdate.FromArgs(["--done"]).Error is not null, "CLI: tanpa id = galat.");
+        Assert(LiveJobUpdate.FromArgs(["x", "--wat"]).Error is not null, "CLI: opsi tak dikenal = galat.");
+        Assert(LiveJobUpdate.FromArgs(["deploy", "--failed"]).Update?.Failed == string.Empty, "CLI: --failed tanpa alasan.");
+        Assert(LiveJobUpdate.Parse(update!.ToJson()) == update, "JSON bolak-balik.");
+        Assert(LiveJobUpdate.Parse("{\"title\":\"x\"}") is null && LiveJobUpdate.Parse("nope") is null, "JSON tanpa id / rusak ditolak.");
+        Assert(LiveJobUpdate.Parse("{\"id\":\"a\",\"progress\":7}")?.Progress == 1, "Progres dijepit ke 0–1.");
+
+        var board = new LiveJobBoard();
+        board.Apply(update, t0);
+        Assert(board.Headline(t0) is { Id: "build", State: LiveJobState.Running }, "Berjalan jadi headline.");
+        board.Apply(new LiveJobUpdate("build", Url: "file:///C:/Windows/System32/calc.exe"), t0);
+        Assert(board.Jobs[0].Url is null, "Hanya URL http(s) yang diterima.");
+        board.Apply(new LiveJobUpdate("build", Url: "https://ci.example.com/run/1"), t0);
+        Assert(board.Jobs[0].Url?.Host == "ci.example.com", "URL https diterima.");
+        board.Apply(new LiveJobUpdate("deploy", Failed: "exit 1"), t0.AddSeconds(5));
+        board.Apply(new LiveJobUpdate("build", Done: true), t0.AddSeconds(10));
+        Assert(board.Headline(t0.AddSeconds(10))?.Id == "deploy", "Gagal didahulukan dari selesai.");
+        board.Dismiss("deploy");
+        Assert(board.Headline(t0.AddSeconds(11)) is { Id: "build", State: LiveJobState.Done, Progress: 1 }, "Selesai jadi headline.");
+        Assert(board.Jobs[0].Elapsed(t0.AddHours(1)) == TimeSpan.FromSeconds(10), "Durasi berhenti saat selesai.");
+        Assert(!board.Prune(t0.AddSeconds(15)) && board.Prune(t0.AddSeconds(17)) && board.Jobs.Count == 0, "Selesai hilang setelah 6 detik.");
+
+        board.Apply(new LiveJobUpdate("a"), t0);
+        board.Apply(new LiveJobUpdate("a", Done: true), t0);
+        board.Apply(new LiveJobUpdate("a", Progress: 0.1), t0.AddSeconds(1));
+        Assert(board.Jobs[0] is { State: LiveJobState.Running, Progress: 0.1, Finished: null }, "Id dipakai lagi = putaran baru.");
+        Assert(board.Prune(t0.AddMinutes(11)) && board.Jobs.Count == 0, "Diam 10 menit = kedaluwarsa.");
+        for (var i = 0; i < 6; i++)
+        {
+            board.Apply(new LiveJobUpdate($"j{i}"), t0);
+        }
+
+        Assert(board.Jobs.Count == LiveJobBoard.MaxJobs && board.Jobs[0].Id == "j2", "Maksimal 4, yang tertua keluar.");
+        board.Apply(new LiveJobUpdate("j5", Remove: true), t0);
+        Assert(board.Jobs.All(job => job.Id != "j5"), "--remove menghapus.");
+        Console.WriteLine("PASS live job tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

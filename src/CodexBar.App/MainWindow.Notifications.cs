@@ -17,6 +17,11 @@ public partial class MainWindow
     private void NotifyCompletion(string activityKey, string provider, string workspace, string answer, TimeSpan duration)
     {
         _notifiedAnswers[activityKey] = answer;
+        if (_notch?.HoldIfQuiet(activityKey, ask: false) == true)
+        {
+            return;   // focus or a meeting: no toast, no chime; the notch shows it at the break
+        }
+
         var looking = _notch?.IsVisible == true && duration < LongTurn;
 
         if (!looking && _settings.CompletionNotification)

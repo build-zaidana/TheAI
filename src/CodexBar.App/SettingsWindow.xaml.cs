@@ -45,6 +45,7 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyChatHotkey(string gesture);
     Task<string> CheckForUpdateAsync();
     (bool Ok, string Message) SetClaudeLiveSessions(bool on);
+    (bool Ok, string Message) SetGeminiLiveSessions(bool on);
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
     void OpenLogin();
@@ -142,6 +143,12 @@ public partial class SettingsWindow : Window
         MusicToastSwitch.IsChecked = s.MusicTrackToast;
         MusicLyricsSwitch.IsChecked = s.MusicLyrics;
         SystemHudSwitch.IsChecked = s.SystemHud;
+        FullscreenSwitch.IsChecked = s.HideInFullscreen;
+        HoldFocusSwitch.IsChecked = s.HoldDuringFocus;
+        LiveActivitiesSwitch.IsChecked = s.LiveActivities;
+        LiveActivitiesHint.Text = Tr.Text(
+            $@"CodexBar.App.exe activity build --progress 0.4 — atau JSON ke \\.\pipe\{Hud.LiveJobPipe.Name}",
+            $@"CodexBar.App.exe activity build --progress 0.4 — or JSON to \\.\pipe\{Hud.LiveJobPipe.Name}");
         Select(CalendarSourcePopup, s.CalendarSource);
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         CalendarLinkField.ToolTip = CodexBar.Core.CredentialStore.TryRead(CodexBar.App.Hud.CalendarReader.IcsCredential) is { Length: > 0 }
@@ -168,6 +175,10 @@ public partial class SettingsWindow : Window
         ShotHotkeyField.Text = s.ScreenshotHotkey;
         ClaudeLiveSwitch.IsChecked = s.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled();
         ClaudeImportSwitch.IsChecked = s.ClaudeImportSessions;
+        GeminiLiveSwitch.IsChecked = s.GeminiLiveSessions && GeminiHooksInstaller.IsInstalled();
+        GeminiLiveStatus.Text = GeminiLiveSwitch.IsChecked == true
+            ? Tr.Text("Hooks terpasang di ~/.gemini/settings.json", "Hooks installed in ~/.gemini/settings.json")
+            : Tr.Text("Memasang hooks di ~/.gemini/settings.json", "Adds hooks to ~/.gemini/settings.json");
         ClaudeLiveStatus.Text = ClaudeLiveSwitch.IsChecked == true
             ? Tr.Text("Hooks terpasang di ~/.claude/settings.json", "Hooks installed in ~/.claude/settings.json")
             : Tr.Text("Memasang hooks di ~/.claude/settings.json", "Adds hooks to ~/.claude/settings.json");
@@ -313,6 +324,9 @@ public partial class SettingsWindow : Window
         s.MusicTrackToast = MusicToastSwitch.IsChecked == true;
         s.MusicLyrics = MusicLyricsSwitch.IsChecked == true;
         s.SystemHud = SystemHudSwitch.IsChecked == true;
+        s.HideInFullscreen = FullscreenSwitch.IsChecked == true;
+        s.HoldDuringFocus = HoldFocusSwitch.IsChecked == true;
+        s.LiveActivities = LiveActivitiesSwitch.IsChecked == true;
         s.CalendarSource = TagOf(CalendarSourcePopup) ?? s.CalendarSource;
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         s.OutputDocked = DockedSwitch.IsChecked == true;
@@ -524,6 +538,18 @@ public partial class SettingsWindow : Window
         }
 
         ClaudeLiveStatus.Text = message;
+    }
+
+    private void GeminiLive_Click(object sender, RoutedEventArgs e)
+    {
+        var on = GeminiLiveSwitch.IsChecked == true;
+        var (ok, message) = _host.SetGeminiLiveSessions(on);
+        if (!ok && on)
+        {
+            GeminiLiveSwitch.IsChecked = GeminiHooksInstaller.IsInstalled();
+        }
+
+        GeminiLiveStatus.Text = message;
     }
 
     private void ApplyVoiceHotkey_Click(object sender, RoutedEventArgs e)

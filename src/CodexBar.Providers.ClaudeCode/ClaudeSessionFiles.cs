@@ -718,7 +718,11 @@ public static class ClaudeSessionFiles
     internal static ClaudeSessionInfo? Parse(FileInfo file)
     {
         string? cwd = null, entrypoint = null, firstPrompt = null, customTitle = null, aiTitle = null;
-        foreach (var line in ReadLines(file.FullName))
+        // Only the title lines and the first prompt matter; the rest (tool output, often 100+ MB)
+        // is skipped as bytes instead of becoming strings.
+        foreach (var line in MatchingLines(file.FullName, prefix =>
+                     prefix.IndexOf(CustomTitleMarker) >= 0 || prefix.IndexOf(AiTitleMarker) >= 0 ||
+                     firstPrompt is null && prefix.IndexOf(UserMarker) >= 0))
         {
             if (line.Contains("\"type\":\"custom-title\"", StringComparison.Ordinal))
             {
@@ -818,6 +822,72 @@ public static class ClaudeSessionFiles
                 .Select(block => Str(block, "text") ?? string.Empty)).Trim();
             return text.Length > 0 ? text : null;
         }
+    }
+
+    private static ReadOnlySpan<byte> CustomTitleMarker => "\"type\":\"custom-title\""u8;
+    private static ReadOnlySpan<byte> AiTitleMarker => "\"type\":\"ai-title\""u8;
+    private static ReadOnlySpan<byte> UserMarker => "\"type\":\"user\""u8;
+
+    /// <summary>How much of a line decides whether it is read: the record's "type" comes before its content.</summary>
+    internal const int LinePrefixBytes = 16 * 1024;
+
+    internal delegate bool LineFilter(ReadOnlySpan<byte> prefix);
+
+    /// <summary>
+    /// The lines whose first <see cref="LinePrefixBytes"/> pass <paramref name="wanted"/>, decoded; every
+    /// other line is skipped without being turned into a string.
+    /// </summary>
+    internal static IEnumerable<string> MatchingLines(string path, LineFilter wanted)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.SequentialScan);
+        var buffer = new byte[1 << 20];
+        var line = new MemoryStream();   // the current line: its prefix, or all of it once wanted
+        bool? keep = null;                // undecided until the prefix (or the whole line) is in
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            var position = 0;
+            while (position < read)
+            {
+                var newline = Array.IndexOf(buffer, (byte)'\n', position, read - position);
+                var end = newline < 0 ? read : newline;
+                if (keep != false)
+                {
+                    var take = keep == true ? end - position : Math.Min(end - position, LinePrefixBytes - (int)line.Length);
+                    line.Write(buffer, position, take);
+                    if (keep is null && line.Length >= LinePrefixBytes)
+                    {
+                        keep = wanted(line.GetBuffer().AsSpan(0, (int)line.Length));
+                        if (keep == true)
+                        {
+                            line.Write(buffer, position + take, end - position - take);
+                        }
+                    }
+                }
+
+                if (newline < 0)
+                {
+                    break;
+                }
+
+                if (Finish(line, keep ?? wanted(line.GetBuffer().AsSpan(0, (int)line.Length))) is { } text)
+                {
+                    yield return text;
+                }
+
+                line.SetLength(0);
+                keep = null;
+                position = newline + 1;
+            }
+        }
+
+        if (line.Length > 0 && Finish(line, keep ?? wanted(line.GetBuffer().AsSpan(0, (int)line.Length))) is { } last)
+        {
+            yield return last;
+        }
+
+        static string? Finish(MemoryStream line, bool keep) =>
+            keep ? Encoding.UTF8.GetString(line.GetBuffer(), 0, (int)line.Length).TrimEnd('\r') : null;
     }
 
     private static IEnumerable<string> ReadLines(string path)

@@ -59,7 +59,7 @@ public partial class NotchWindow
     private bool TimerShowing => _timer.IsActive || _watch.IsActive || _timer.AlarmAt is not null;
 
     /// <summary>Something live besides the agent keeps the compact notch wide and visible.</summary>
-    private bool CompactLive => MusicShowing || TimerShowing || ShelfShowing || CalendarShowing;
+    private bool CompactLive => MusicShowing || TimerShowing || ShelfShowing || CalendarShowing || JobsShowing || _held.Count > 0;
 
     private void InitTimer()
     {
@@ -209,8 +209,15 @@ public partial class NotchWindow
         if (!showing)
         {
             CompactTimerText.Visibility = Visibility.Collapsed;
-            // Below the timer: an event about to start, then (when nothing plays) the shelf.
-            if (ApplyCalendarCompact())
+            // Below the timer: a script's live activity, an event about to start, then (when nothing plays) the shelf.
+            if (ApplyJobCompact())
+            {
+                CompactCalendar.Visibility = Visibility.Collapsed;
+                CompactCalendarText.Visibility = Visibility.Collapsed;
+                CompactShelf.Visibility = Visibility.Collapsed;
+                CompactShelfCount.Visibility = Visibility.Collapsed;
+            }
+            else if (ApplyCalendarCompact())
             {
                 CompactShelf.Visibility = Visibility.Collapsed;
                 CompactShelfCount.Visibility = Visibility.Collapsed;
@@ -229,6 +236,9 @@ public partial class NotchWindow
         CompactShelfCount.Visibility = Visibility.Collapsed;
         CompactCalendar.Visibility = Visibility.Collapsed;
         CompactCalendarText.Visibility = Visibility.Collapsed;
+        CompactJob.Visibility = Visibility.Collapsed;
+        CompactJobText.Visibility = Visibility.Collapsed;
+        SpinJob(false);
 
         // The timer outranks the music in the compact notch; the music stays one scroll away.
         CompactArt.Visibility = Visibility.Collapsed;
@@ -260,7 +270,8 @@ public partial class NotchWindow
 
         CompactTimerRing.Visibility = slot is not null ? Visibility.Visible : Visibility.Collapsed;
         CompactAlarmGlyph.Visibility = slot is not null ? Visibility.Collapsed : Visibility.Visible;
-        var agentRight = _state != NotchState.Idle;
+        // An agent's indicator or the held count takes the right side: the time moves beside the ring.
+        var agentRight = _state != NotchState.Idle || _held.Count > 0;
         var narrow = Vertical;
         CompactTimerLeftText.Visibility = agentRight && !narrow ? Visibility.Visible : Visibility.Collapsed;
         CompactTimerText.Visibility = !agentRight && !narrow ? Visibility.Visible : Visibility.Collapsed;

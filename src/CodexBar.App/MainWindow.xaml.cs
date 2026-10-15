@@ -220,11 +220,27 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 _ = Habits; // seeds the habits from existing conversations on first run
             }
             OpenDevPreviews();
+            _ = SettleMemoryAsync();
         }
         catch (Exception exception)
         {
             ShowError(exception.Message);
         }
+    }
+
+    // Starting up reads a lot once (threads, session lists, habits) and then the app barely
+    // allocates, so that garbage would sit in the heap for hours: a minute in, collect it once and
+    // give the memory back. The numbers go to the diagnostics log.
+    private static async Task SettleMemoryAsync()
+    {
+        await Task.Delay(TimeSpan.FromMinutes(1));
+        var heap = GC.GetGCMemoryInfo().HeapSizeBytes;
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        DiagnosticsLog.Info("Memory",
+            $"managed heap {heap >> 20} MB → {GC.GetGCMemoryInfo().HeapSizeBytes >> 20} MB; " +
+            $"private {process.PrivateMemorySize64 >> 20} MB, working set {process.WorkingSet64 >> 20} MB");
     }
 
     private async Task StartupAsync()
@@ -2324,6 +2340,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.SystemHud => _settings.SystemHud;
 
     string INotchHost.CalendarSource => _settings.CalendarSource;
+
+    bool INotchHost.HideInFullscreen => _settings.HideInFullscreen;
+    bool INotchHost.LiveActivities => _settings.LiveActivities;
+    bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge
     {

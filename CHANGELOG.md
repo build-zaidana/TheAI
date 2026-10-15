@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Added — live activities from scripts
+
+- **Any script can show itself in the notch**: `CodexBar.App.exe activity build --title "npm run build" --progress 0.4`, then `--done` or `--failed "exit 1"` (or a JSON line written to the user's named pipe `\\.\pipe\codexbar-<user>`). The compact notch shows a progress ring, the name and the percent (a spinner and the time when there's no percent), a check and the duration when it finishes, and the one red cross when it fails.
+- The **activities page** (scroll the open notch) lists up to four jobs with bars or what they say they're doing; a row with a link opens it; a failed job has **Ask Claude/Codex**, which hands the failure to the agent in the current folder.
+- Local only: no port, no network; the pipe accepts only the same Windows user's processes, links are http(s) only, and silent jobs expire after 10 minutes. Can be turned off in Settings → Notch.
+
+### Added — agents × focus × calendar
+
+- **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.
+
+### Added — Gemini CLI
+
+- **Gemini CLI sessions in the notch** next to Claude Code (Settings → Claude Code): CodexBar adds a relay hook to `~/.gemini/settings.json` (removed again when switched off; a backup is kept) and shows each session's prompt, tool steps and answer. Gemini's permission prompts are shown but answered in its terminal.
+
+### Changed — lighter
+
+- **About a third of the memory**: idle private memory goes from ~430 MB to ~125 MB (working set ~610 → ~230 MB). The app is no longer a compressed single file (that unpacked every assembly into memory at each start; the installer compresses it now, and is smaller for it), the startup garbage is collected once a minute in, and listing Claude Code sessions skips their tool output as bytes instead of reading 100 MB transcripts into strings (1.9 s → 0.35 s).
+
+### Added — out of the way
+
+- **Hide in fullscreen**: a game, a video or a presentation covering the notch's monitor hides the notch until it ends (other monitors keep it). On by default.
+
 ## 1.4.0 — 2026-10-10
 
 ### Added — music in the notch

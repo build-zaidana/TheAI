@@ -130,6 +130,11 @@ public partial class NotchWindow
 
     private void OpenRequestView()
     {
+        if (HoldIfQuiet(_activity.Key, ask: true, RequestTitle.Text))
+        {
+            return;   // during focus / a meeting: counted on the compact notch, answered at the break or on hover
+        }
+
         RequestError.Visibility = Visibility.Collapsed;
         RequestCountdown.Text = string.Empty;
         RequestContext.Text = _activity.IsMain
