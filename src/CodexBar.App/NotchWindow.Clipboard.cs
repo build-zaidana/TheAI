@@ -395,7 +395,7 @@ public partial class NotchWindow
         _clips.AddText("{\"id\":\"build\",\"progress\":0.4}", now);
         _clips.AddText("Rapat jam 3 dipindah ke Kamis", now);
         _clips.AddText("var job = _jobs.Apply(update, now);", now);
-        _clips.AddText("https://github.com/build-zaidana/TheAI/pull/128", now);
+        _clips.AddText("https://github.com/build-zaidana/theai-app/releases", now);
         _clips.AddText("git push origin feature/live-activity", now);
         _clips.TogglePin(_clips.Items[0].Id);
         OpenClipboard();

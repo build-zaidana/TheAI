@@ -111,5 +111,5 @@ if ($setup) {
     $hash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash.ToLowerInvariant()
     Set-Content -Path ($setup.FullName + ".sha256") -Value "$hash  $($setup.Name)" -Encoding ascii -NoNewline
     Write-Host "Installer ready: $($setup.FullName)"
-    Write-Host "SHA-256: $hash (also in $($setup.Name).sha256 — upload both to the release)"
+    Write-Host "SHA-256: $hash (also in $($setup.Name).sha256 - upload both to the release)"
 }

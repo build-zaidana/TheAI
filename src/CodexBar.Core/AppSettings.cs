@@ -94,7 +94,7 @@ public sealed class AppSettings
     public bool LiveActivities { get; set; } = true;
 
     /// <summary>CI pull request branch yang sedang dikerjakan tampil di notch (lewat GitHub CLI yang sudah login).</summary>
-    public bool GitHubChecks { get; set; } = true;
+    public bool GitHubChecks { get; set; }
 
     /// <summary>Rekap hari ini muncul sendiri sekali di sore hari (17.00).</summary>
     public bool RecapEvening { get; set; } = true;

@@ -1,10 +1,31 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 — 2026-10-21 · CodexBar is now TheAI
+
+### Changed — a new name
+
+- **CodexBar is now TheAI** (there's another app called CodexBar, and "Codex" is OpenAI's name). Upgrading keeps everything: settings, conversations, the shelf, timers and saved keys move over on the first start, and the installer replaces the old app.
+- The interface follows Windows' language by default (Indonesian or English); either can still be chosen in Settings.
+- Windows 10 (1809 and later) is supported again.
+
+### Added — command palette & smart commands
+
+- **Type `/` in the launcher** to see what TheAI can do and run it from the keyboard: `/review` the uncommitted changes, `/explain`, `/summarize` or `/translate [language]` text or the clipboard, `/fix` the last failed command, `/test`, `/commit`, `/docs` — plus `/focus 25`, `/timer 10`, `/clipboard`, `/recap`, `/standup`, `/system`, `/new`, `/settings`, and your own templates as `/their-name`. ↑/↓ choose, Tab completes, Enter runs.
+- **Search what was said** in past conversations, not only their titles, right from the launcher.
+
+### Added — updates and crash reports
+
+- **Update from inside the app**: "Update now" downloads the new installer, checks it against the release's SHA-256, installs it quietly and restarts TheAI.
+- If TheAI ever closes unexpectedly, the next start offers to **report it** as a pre-filled GitHub issue you read before sending. Nothing is sent automatically.
+
+### Changed — faster start
+
+- The notch shows ~0.2 s sooner (precompiled code), and checking the sign-in no longer holds up the rest of startup.
+
 
 ### Added — live activities from scripts
 
-- **Any script can show itself in the notch**: `CodexBar.App.exe activity build --title "npm run build" --progress 0.4`, then `--done` or `--failed "exit 1"` (or a JSON line written to the user's named pipe `\\.\pipe\codexbar-<user>`). The compact notch shows a progress ring, the name and the percent (a spinner and the time when there's no percent), a check and the duration when it finishes, and the one red cross when it fails.
+- **Any script can show itself in the notch**: `TheAI.exe activity build --title "npm run build" --progress 0.4`, then `--done` or `--failed "exit 1"` (or a JSON line written to the user's named pipe `\\.\pipe\theai-<user>`). The compact notch shows a progress ring, the name and the percent (a spinner and the time when there's no percent), a check and the duration when it finishes, and the one red cross when it fails.
 - The **activities page** (scroll the open notch) lists up to four jobs with bars or what they say they're doing; a row with a link opens it; a failed job has **Ask Claude/Codex**, which hands the failure to the agent in the current folder.
 - Local only: no port, no network; the pipe accepts only the same Windows user's processes, links are http(s) only, and silent jobs expire after 10 minutes. Can be turned off in Settings → Notch.
 
