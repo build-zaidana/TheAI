@@ -2432,6 +2432,24 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     async Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.ListRecentThreadsAsync() =>
         await WithClaudeSessionsAsync(await _controller.ListThreadsAsync(20));
 
+    async Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.SearchThreadsAsync(string query)
+    {
+        try
+        {
+            return await _controller.SearchThreadsAsync(query, 8);
+        }
+        catch (Exception exception)
+        {
+            // Some providers can't search (or are offline): titles still match in the launcher.
+            DiagnosticsLog.Error("Search", exception.Message);
+            return [];
+        }
+    }
+
+    Task INotchHost.NewConversationAsync() => RunUiTaskAsync(CreateThreadFromSidebarAsync);
+
+    void INotchHost.OpenSettings() => OpenSettingsWindow();
+
     async Task INotchHost.OpenThreadFromNotchAsync(ProviderThreadSummary thread)
     {
         ShowFromExternalActivation();

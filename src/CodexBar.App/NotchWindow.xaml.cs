@@ -112,6 +112,14 @@ internal interface INotchHost
     Task<string> TranscribeAsync(byte[] pcm);
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
+
+    /// <summary>Past conversations whose content matches (what was said, not only titles).</summary>
+    Task<IReadOnlyList<ProviderThreadSummary>> SearchThreadsAsync(string query);
+
+    /// <summary>Start a fresh conversation in the chat.</summary>
+    Task NewConversationAsync();
+
+    void OpenSettings();
     Task OpenThreadFromNotchAsync(ProviderThreadSummary thread);
     void OpenConversationWindow();
 }
@@ -212,6 +220,7 @@ public partial class NotchWindow : Window
         InitClipboard();
         InitDownloads();
         InitSystem();
+        InitCommands();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -1223,7 +1232,10 @@ public partial class NotchWindow : Window
         var matches = string.IsNullOrEmpty(query)
             ? _recent.Take(3)
             : _recent.Where(t => t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                                 t.Preview.Contains(query, StringComparison.OrdinalIgnoreCase)).Take(4);
+                                 t.Preview.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Concat(query == _searched ? _searchHits : [])
+                .DistinctBy(t => t.Id)
+                .Take(6);
 
         var items = matches.Where(t => _recentFilter is null || t.Source == _recentFilter).Select(t => new RecentItem(
             t,
@@ -1341,11 +1353,31 @@ public partial class NotchWindow : Window
         LauncherPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
         RenderSuggestion();
         UpdateLauncherSendState();
+        if (CommandMode)
+        {
+            RenderCommands();
+            return;
+        }
+
+        CommandPanel.Visibility = Visibility.Collapsed;
+        RecentFilters.Visibility = Visibility.Visible;
+        ScheduleHistorySearch();
         RenderRecent();
     }
 
     private async void LauncherInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (e.Key is Key.Up or Key.Down or Key.Tab or Key.Enter && CommandMode && _voice != VoiceState.Recording)
+        {
+            e.Handled = true;
+            if (await CommandKeyAsync(e))
+            {
+                return;
+            }
+
+            e.Handled = false;
+        }
+
         if (e.Key == Key.Enter && _voice == VoiceState.Recording)
         {
             // Enter ends a hands-free voice take instead of sending.

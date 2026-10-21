@@ -22,6 +22,8 @@ public sealed class Tr : MarkupExtension
 
     public override object ProvideValue(IServiceProvider serviceProvider) => Text(Id, En);
 
+    public static bool IsEnglish => CodexBar.Core.Localization.Instance.Language == CodexBar.Core.AppLanguage.En;
+
     public static string Text(string id, string en) =>
         CodexBar.Core.Localization.Instance.Language == AppLanguage.En && en.Length > 0 ? en : id;
 }

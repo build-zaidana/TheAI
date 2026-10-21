@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_PALETTE=/re: the launcher with that typed (the command palette for "/…").
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PALETTE") is { Length: > 0 } palette && _notch is not null)
+        {
+            _notch.PreviewPalette(palette);
+        }
+
         // CODEXBAR_PREVIEW_SYSTEM=open|alert: the machine page (live numbers) or the low-memory HUD.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SYSTEM") is { Length: > 0 } systemPreview && _notch is not null)
         {

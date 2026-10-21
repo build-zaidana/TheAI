@@ -122,6 +122,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return clipboard;
     }
 
+    var commands = RunSmartCommandTests();
+    if (commands != 0)
+    {
+        return commands;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1455,6 +1461,55 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunSmartCommandTests()
+{
+    try
+    {
+        static string En(string id, string en) => en;
+        Assert(SmartCommands.Split("/review the auth module") == ("review", "the auth module"), "Pisah perintah + argumen.");
+        Assert(SmartCommands.Split("/Explain") == ("explain", "") && SmartCommands.Split("hello") is null && SmartCommands.Split("/ x") is null && SmartCommands.Split("/") is null,
+            "Bukan perintah: null.");
+
+        var all = SmartCommands.BuiltIn;
+        Assert(SmartCommands.Match("/", all, En).Count == all.Count, "'/' saja: semua.");
+        Assert(SmartCommands.Match("/re", all, En) is [{ Name: "review" }, { Name: "recap" }, ..], "Awalan: review, recap.");
+        Assert(SmartCommands.Match("/clip", all, En)[0].Name == "clipboard", "Awalan clipboard.");
+        Assert(SmartCommands.Match("/translate", all, En)[0].Name == "translate", "Nama persis di atas.");
+        Assert(SmartCommands.Match("/pomodoro", all, En)[0].Name == "focus", "Cocok lewat deskripsi.");
+        Assert(SmartCommands.Match("/zzz", all, En).Count == 0, "Tidak ada yang cocok.");
+
+        var none = new SmartCommandContext(string.Empty, string.Empty, English: true);
+        var clip = new SmartCommandContext("int x = 1;", string.Empty, English: false);
+        var explain = all.First(c => c.Name == "explain");
+        Assert(SmartCommands.Expand(explain, "var y = 2;", none)!.EndsWith("var y = 2;"), "Argumen jadi isi.");
+        Assert(SmartCommands.Expand(explain, string.Empty, clip)!.EndsWith("int x = 1;"), "Tanpa argumen: isi clipboard.");
+        Assert(SmartCommands.Expand(explain, string.Empty, none) is null, "Tanpa argumen dan clipboard kosong: null.");
+
+        var translate = all.First(c => c.Name == "translate");
+        Assert(SmartCommands.Expand(translate, "ja selamat pagi", none) is { } ja && ja.Contains("into Japanese") && ja.EndsWith("selamat pagi"), "Terjemah ke bahasa yang disebut.");
+        Assert(SmartCommands.Expand(translate, "good morning", clip) is { } id && id.Contains("into Indonesian") && id.EndsWith("good morning"), "Bawaan: bahasa UI.");
+        Assert(SmartCommands.Expand(translate, "en", clip) is { } en && en.Contains("into English") && en.EndsWith("int x = 1;"), "Hanya bahasa: isi dari clipboard.");
+
+        var review = all.First(c => c.Name == "review");
+        Assert(SmartCommands.Expand(review, string.Empty, none) is { } r && !r.Contains("{") && !r.Contains("Focus on"), "Review tanpa fokus.");
+        Assert(SmartCommands.Expand(review, "auth", none)!.EndsWith("Focus on: auth"), "Review dengan fokus.");
+        var fix = all.First(c => c.Name == "fix");
+        Assert(SmartCommands.Expand(fix, string.Empty, none with { LastFailure = "`npm test` (exit 1)" })!.StartsWith("This command just failed: `npm test` (exit 1)."), "Fix memakai kegagalan terakhir.");
+        Assert(SmartCommands.Expand(all.First(c => c.Name == "settings"), "", none) is null, "Aksi tidak punya prompt.");
+
+        var templates = SmartCommands.FromTemplates([new PromptTemplate { Name = "Tulis Unit Test!", Content = "Tulis unit test:" }, new PromptTemplate { Name = "Review", Content = "x" }]).ToList();
+        Assert(templates is [{ Name: "tulis-unit-test" }] && SmartCommands.Expand(templates[0], "Foo()", none) == "Tulis unit test:\n\nFoo()",
+            "Template jadi /nama; nama yang bentrok dengan bawaan dilewati.");
+        Console.WriteLine("PASS smart command tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

@@ -1194,6 +1194,15 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
+                    <!-- "/" turns the launcher into a command palette. -->
+                    <StackPanel x:Name="CommandPanel" Visibility="Collapsed" Margin="0,8,0,0" AutomationProperties.Name="Perintah">
+                        <StackPanel x:Name="CommandRows" />
+                        <TextBlock x:Name="CommandEmpty" Visibility="Collapsed" Margin="12,6,12,2" FontSize="12" Foreground="{StaticResource NotchText3}"
+                                   TextWrapping="Wrap" Text="{local:Tr Tidak ada perintah seperti itu — hapus / untuk bertanya biasa., En=No such command — remove the / to just ask.}" />
+                        <TextBlock Margin="12,8,12,0" FontSize="11" Foreground="{StaticResource NotchText3}"
+                                   Text="{local:Tr ↑↓ pilih · Tab lengkapi · Enter jalankan, En=↑↓ choose · Tab complete · Enter run}" />
+                    </StackPanel>
+
                     <WrapPanel x:Name="ChipPanel" Margin="6,10,6,0" />
 
                     <!-- Subscription usage: one row per limit window. -->
