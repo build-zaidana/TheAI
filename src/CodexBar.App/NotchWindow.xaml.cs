@@ -48,7 +48,7 @@ internal interface INotchHost
     /// <summary>Hide the notch while a fullscreen app (game, video, presentation) covers its monitor.</summary>
     bool HideInFullscreen { get; }
 
-    /// <summary>Scripts may report live activities (codexbar activity …) to the notch.</summary>
+    /// <summary>Scripts may report live activities (TheAI.exe activity …) to the notch.</summary>
     bool LiveActivities { get; }
 
     /// <summary>The current branch's pull request checks in the notch (through the signed-in GitHub CLI).</summary>

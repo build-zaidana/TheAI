@@ -161,7 +161,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _trayIcon = new Forms.NotifyIcon
         {
             Icon = LoadAppIcon(),
-            Text = "CodexBar",
+            Text = "TheAI",
             Visible = true
         };
         _trayIcon.MouseUp += (_, e) =>
@@ -713,7 +713,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         StatusDot.ToolTip = message;
         if (_trayIcon is not null)
         {
-            var trayText = $"CodexBar — {message}";
+            var trayText = $"TheAI — {message}";
             _trayIcon.Text = trayText.Length <= 63 ? trayText : trayText[..60] + "…";
         }
     }
@@ -1221,7 +1221,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     return false;
                 }
 
-                var folder = Path.Combine(Path.GetTempPath(), "CodexBar", "clipboard");
+                var folder = Path.Combine(Path.GetTempPath(), "TheAI", "clipboard");
                 Directory.CreateDirectory(folder);
                 var path = Path.Combine(folder, $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss-fff}.png");
                 var encoder = new PngBitmapEncoder();
@@ -1858,7 +1858,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _ => 1
         };
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
-        LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
+        LanguageCombo.SelectedIndex = _settings.Language switch { "id" => 1, "en" => 2, _ => 0 };
         SelectProviderComboItem(_settings.Provider);
         ApiKeyPanel.Visibility = IsApiKeyProvider(_settings.Provider) ? Visibility.Visible : Visibility.Collapsed;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
@@ -2031,7 +2031,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         };
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
-        _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
+        _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch { "en" => "en", "id" => "id", _ => "auto" };
         CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(_settings.Language));
         _settings.Appearance.Theme = (ThemeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
 
@@ -2286,7 +2286,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private readonly Dictionary<string, ProviderQuotaEvent> _quota = LoadQuotaCache();
 
     private static string QuotaCachePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "quota.json");
+        CodexBar.Providers.AppPaths.DataRoot, "quota.json");
 
     private sealed record QuotaCacheEntry(List<ProviderQuotaWindow> Windows, bool LimitReached);
 
@@ -2802,7 +2802,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         PromptBox.Focus();
     }
 
-    // The bar is gone: "show CodexBar" from outside (a notification, the single-instance
+    // The bar is gone: "show TheAI" from outside (a notification, the single-instance
     // activation, quick capture) brings up the conversation panel.
     public void ShowFromExternalActivation()
     {
@@ -2819,7 +2819,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _attentionActionable ? ShowAttentionCenter : null);
         if (_availableUpdate is { } update)
         {
-            menu.AddItem(TrayIcons.Update, string.Format(Tr.Text("Unduh CodexBar {0}", "Download CodexBar {0}"), update.Version.ToString(3)), OpenUpdateDownload);
+            menu.AddItem(TrayIcons.Update, string.Format(Tr.Text("Unduh TheAI {0}", "Download TheAI {0}"), update.Version.ToString(3)), OpenUpdateDownload);
         }
         menu.AddItem(TrayIcons.Open, L("tray.show"), () =>
         {
@@ -3283,7 +3283,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
 
             var checkpoint = new StringBuilder();
-            checkpoint.AppendLine("# CodexBar conversation checkpoint");
+            checkpoint.AppendLine("# TheAI conversation checkpoint");
             checkpoint.AppendLine();
             checkpoint.AppendLine($"- Exported: {DateTimeOffset.Now:O}");
             checkpoint.AppendLine($"- Workspace: `{_settings.WorkspacePath}`");
@@ -3409,7 +3409,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         try
         {
-            var path = Path.Combine(Path.GetTempPath(), $"codexbar-response-{DateTime.Now:yyyyMMdd-HHmmss}.md");
+            var path = Path.Combine(Path.GetTempPath(), $"theai-response-{DateTime.Now:yyyyMMdd-HHmmss}.md");
             File.WriteAllText(path, last.Markdown);
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
@@ -3425,7 +3425,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?";
             var info = string.Join(Environment.NewLine,
-                $"CodexBar {version}",
+                $"TheAI {version}",
                 $"OS: {Environment.OSVersion}",
                 $"Provider: {_settings.Provider}",
                 $"DiagnosticsLogging: {_settings.EnableDiagnosticsLogging}",
@@ -3651,7 +3651,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = L("settings.exportTitle"),
-            FileName = $"CodexBar-settings-{DateTime.Now:yyyyMMdd}.json",
+            FileName = $"TheAI-settings-{DateTime.Now:yyyyMMdd}.json",
             DefaultExt = ".json",
             AddExtension = true,
             Filter = "JSON|*.json"

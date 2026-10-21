@@ -588,10 +588,10 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         // An API key in the environment would take precedence over the subscription login.
         startInfo.Environment.Remove("ANTHROPIC_API_KEY");
-        // Lets CodexBar's own hook relay recognise (and skip) the sessions it runs itself.
+        // Lets TheAI's own hook relay recognise (and skip) the sessions it runs itself.
         startInfo.Environment["CODEXBAR_CHILD"] = "1";
-        // Don't pass on the identity of a Claude Code session CodexBar itself may have been started
-        // from (it would label CodexBar's sessions as that session's entrypoint).
+        // Don't pass on the identity of a Claude Code session TheAI itself may have been started
+        // from (it would label TheAI's sessions as that session's entrypoint).
         startInfo.Environment.Remove("CLAUDE_CODE_ENTRYPOINT");
         startInfo.Environment.Remove("CLAUDECODE");
         startInfo.Environment.Remove("ANTHROPIC_AUTH_TOKEN");

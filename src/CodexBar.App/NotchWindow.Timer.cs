@@ -39,10 +39,10 @@ public partial class NotchWindow
     private static readonly Geometry LapIcon = Geometry.Parse("F0 M3,1.5 H4.6 V14.5 H3 Z M4.6,2 H13 L10.8,5 L13,8 H4.6 Z");
 
     private static readonly string TimerFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "timer.json");
+        CodexBar.Providers.AppPaths.DataRoot, "timer.json");
 
     private static readonly string WatchFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "stopwatch.json");
+        CodexBar.Providers.AppPaths.DataRoot, "stopwatch.json");
 
     // Two slots, like DynamicLake's stacked timers: a countdown (pomodoro or timer, plus the alarm)
     // and a stopwatch, each running on its own and shown as its own row.

@@ -18,8 +18,7 @@ public sealed class JsonSettingsStore
     public JsonSettingsStore(string? baseDirectory = null)
     {
         BaseDirectory = baseDirectory ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CodexBar");
+            CodexBar.Providers.AppPaths.DataRoot);
         SettingsPath = Path.Combine(BaseDirectory, "settings.json");
     }
 

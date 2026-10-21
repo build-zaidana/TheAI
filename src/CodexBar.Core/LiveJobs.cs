@@ -30,7 +30,7 @@ public sealed class LiveJob
 }
 
 /// <summary>
-/// One update for a job: what <c>codexbar activity &lt;id&gt; …</c> sends down the pipe as a JSON line,
+/// One update for a job: what <c>TheAI.exe activity &lt;id&gt; …</c> sends down the pipe as a JSON line,
 /// e.g. <c>{"id":"build","title":"npm run build","progress":0.4}</c>, <c>{"id":"build","done":true}</c>,
 /// <c>{"id":"deploy","failed":"exit 1"}</c> or <c>{"id":"build","remove":true}</c>.
 /// </summary>
@@ -91,7 +91,7 @@ public sealed record LiveJobUpdate(
     {
         if (args.Count == 0 || args[0].StartsWith('-'))
         {
-            return (null, "Missing the activity id: codexbar activity <id> [--title …] [--progress 0.4] [--done | --failed reason]");
+            return (null, "Missing the activity id: TheAI.exe activity <id> [--title …] [--progress 0.4] [--done | --failed reason]");
         }
 
         var update = new LiveJobUpdate(args[0]);

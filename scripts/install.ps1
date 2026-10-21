@@ -1,5 +1,5 @@
-# Pasang CodexBar untuk user ini tanpa installer: salin exe hasil publish ke
-# %LOCALAPPDATA%\Programs\CodexBar (folder yang sama dengan installer Inno Setup), buat
+# Pasang TheAI untuk user ini tanpa installer: salin exe hasil publish ke
+# %LOCALAPPDATA%\Programs\TheAI (folder yang sama dengan installer Inno Setup), buat
 # shortcut Start Menu, dan opsional shortcut desktop + jalankan saat login. Tidak butuh admin.
 #
 #   .\scripts\install.ps1                      # pasang dari artifacts\win-x64
@@ -14,12 +14,12 @@ param(
     [switch]$Desktop,
     [switch]$NoStartMenu,
     [switch]$NoLaunch,
-    [string]$InstallDir = (Join-Path $env:LOCALAPPDATA "Programs\CodexBar")
+    [string]$InstallDir = (Join-Path $env:LOCALAPPDATA "Programs\TheAI")
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$exeName = "CodexBar.App.exe"
+$exeName = "TheAI.exe"
 $source = Join-Path $repoRoot "artifacts\win-x64\$exeName"
 
 if ($Publish) {
@@ -31,7 +31,7 @@ if (-not (Test-Path -LiteralPath $source)) {
 }
 
 # The running copy holds the exe (and the single-instance mutex): stop it first.
-Get-Process CodexBar.App -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process TheAI -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 500
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
@@ -45,23 +45,23 @@ function New-Shortcut([string]$path) {
     $link.TargetPath = $target
     $link.WorkingDirectory = $InstallDir
     $link.IconLocation = "$target,0"
-    $link.Description = "CodexBar"
+    $link.Description = "TheAI"
     $link.Save()
     Write-Host "Shortcut: $path"
 }
 
 if (-not $NoStartMenu) {
-    New-Shortcut (Join-Path ([Environment]::GetFolderPath("Programs")) "CodexBar.lnk")
+    New-Shortcut (Join-Path ([Environment]::GetFolderPath("Programs")) "TheAI.lnk")
 }
 
 if ($Desktop) {
-    New-Shortcut (Join-Path ([Environment]::GetFolderPath("Desktop")) "CodexBar.lnk")
+    New-Shortcut (Join-Path ([Environment]::GetFolderPath("Desktop")) "TheAI.lnk")
 }
 
 if ($LaunchAtLogin) {
     # The same Run value the app writes itself, plus the setting, so the app keeps it on.
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "CodexBar" -Value "`"$target`""
-    $settingsPath = Join-Path $env:LOCALAPPDATA "CodexBar\settings.json"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "TheAI" -Value "`"$target`""
+    $settingsPath = Join-Path $env:LOCALAPPDATA "TheAI\settings.json"
     if (Test-Path -LiteralPath $settingsPath) {
         $json = Get-Content -LiteralPath $settingsPath -Raw
         $json = $json -replace '"launchAtLogin"\s*:\s*false', '"launchAtLogin": true'
@@ -71,13 +71,13 @@ if ($LaunchAtLogin) {
 }
 else {
     # A Run value from an older copy (e.g. the build folder) now points at the installed one.
-    $run = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "CodexBar" -ErrorAction SilentlyContinue
+    $run = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "TheAI" -ErrorAction SilentlyContinue
     if ($run) {
-        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "CodexBar" -Value "`"$target`""
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "TheAI" -Value "`"$target`""
     }
 }
 
 if (-not $NoLaunch) {
     Start-Process -FilePath $target -WorkingDirectory $InstallDir
-    Write-Host "CodexBar dijalankan dari $InstallDir"
+    Write-Host "TheAI dijalankan dari $InstallDir"
 }

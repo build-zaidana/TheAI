@@ -68,7 +68,7 @@ public sealed class GlobalHotKey : IDisposable
 
         if (_registered && !UnregisterHotKey(_handle, _hotKeyId))
         {
-            throw new InvalidOperationException("Hotkey lama tidak dapat dilepas. Coba tutup lalu buka kembali CodexBar.");
+            throw new InvalidOperationException("Hotkey lama tidak dapat dilepas. Coba tutup lalu buka kembali TheAI.");
         }
 
         _registered = false;

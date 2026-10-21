@@ -9,7 +9,7 @@ namespace CodexBar.App;
 // faint guess of what the user will send next (Tab takes it, Enter sends it, typing ignores it).
 // The guess comes from the user's own habits (PromptHabits, learnt from short prompts sent right
 // after a turn); with "habits + AI" a small Claude model is asked when the habits are not sure.
-// The habits are seeded once from existing CodexBar threads and Claude Code sessions.
+// The habits are seeded once from existing TheAI threads and Claude Code sessions.
 public partial class MainWindow
 {
     private static readonly TimeSpan HabitWindow = TimeSpan.FromMinutes(30);

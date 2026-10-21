@@ -379,8 +379,8 @@ public partial class MainWindow
             OnboardingKind.LoginNeeded => new(
                 claude ? Tr.Text("Hubungkan Claude", "Connect Claude") : Tr.Text("Hubungkan Codex", "Connect Codex"),
                 detail ?? (claude
-                    ? Tr.Text("CodexBar memakai Claude Code yang login dengan langganan Pro atau Max. Tidak perlu API key.", "CodexBar uses Claude Code signed in with a Pro or Max subscription. No API key needed.")
-                    : Tr.Text("CodexBar memakai Codex CLI yang login dengan akun ChatGPT.", "CodexBar uses the Codex CLI signed in with your ChatGPT account.")),
+                    ? Tr.Text("TheAI memakai Claude Code yang login dengan langganan Pro atau Max. Tidak perlu API key.", "TheAI uses Claude Code signed in with a Pro or Max subscription. No API key needed.")
+                    : Tr.Text("TheAI memakai Codex CLI yang login dengan akun ChatGPT.", "TheAI uses the Codex CLI signed in with your ChatGPT account.")),
                 status, _onboardingCommand,
                 Tr.Text("Masuk…", "Sign in…"), () => { OnboardingActionButton_Click(this, args); return Task.CompletedTask; },
                 Tr.Text("Periksa lagi", "Check again"), Retry,

@@ -7,7 +7,7 @@ namespace CodexBar.App;
 
 // The pull request of the branch being worked on, as a live activity: its checks as a ring while
 // CI runs, then a check or the failed checks (with "ask the agent"). Read with the GitHub CLI the
-// user is already signed in to (no token of CodexBar's own), in the folder of the last terminal
+// user is already signed in to (no token of TheAI's own), in the folder of the last terminal
 // command or else the workspace; every 30 s while checks run, every 5 min otherwise, and soon
 // after a push. Nothing happens without gh, a sign-in or a PR.
 public partial class NotchWindow

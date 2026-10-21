@@ -8,7 +8,7 @@ using CodexBar.Core;
 namespace CodexBar.App;
 
 /// <summary>
-/// One hook call relayed to CodexBar (the hook's JSON input). Gemini CLI's events arrive under
+/// One hook call relayed to TheAI (the hook's JSON input). Gemini CLI's events arrive under
 /// Claude Code's names (BeforeAgent → UserPromptSubmit, BeforeTool → PreToolUse, AfterAgent → Stop)
 /// with <see cref="Agent"/> = "gemini".
 /// </summary>
@@ -19,7 +19,7 @@ internal sealed record ClaudeHookEvent(string Name, string SessionId, string Cwd
 /// loopback port. The hooks themselves are one-line <c>curl</c> commands that post the hook input
 /// here and, for <c>PermissionRequest</c>, wait for the answer. Requests must carry the
 /// <c>X-CodexBar-Hook</c> header, which a web page cannot add without a CORS preflight this server
-/// never grants, and sessions CodexBar runs itself (tagged with <c>CODEXBAR_CHILD=1</c>) are skipped.
+/// never grants, and sessions TheAI runs itself (tagged with <c>CODEXBAR_CHILD=1</c>) are skipped.
 /// </summary>
 internal sealed class ClaudeHookServer : IDisposable
 {
@@ -117,7 +117,7 @@ internal sealed class ClaudeHookServer : IDisposable
 
             if (request.Headers["X-CodexBar-Child"] == "1")
             {
-                return; // CodexBar's own claude process: already shown by CodexBar
+                return; // TheAI's own claude process: already shown by TheAI
             }
 
             using var document = JsonDocument.Parse(body);
@@ -150,7 +150,7 @@ internal sealed class ClaudeHookServer : IDisposable
                             {
                                 hookEventName = "PermissionRequest",
                                 decision = behavior == "deny"
-                                    ? (object)new { behavior, message = "Ditolak dari CodexBar." }
+                                    ? (object)new { behavior, message = "Ditolak dari TheAI." }
                                     : new { behavior }
                             }
                         });
@@ -197,9 +197,9 @@ internal sealed class ClaudeHookServer : IDisposable
 }
 
 /// <summary>
-/// Adds CodexBar's relay hooks to (and removes them from) the user's <c>~/.claude/settings.json</c>.
+/// Adds TheAI's relay hooks to (and removes them from) the user's <c>~/.claude/settings.json</c>.
 /// Everything else in the file is kept as is; a backup is written before the first change, and
-/// CodexBar's entries are recognised by the relay URL in their command.
+/// TheAI's entries are recognised by the relay URL in their command.
 /// </summary>
 internal static class ClaudeHooksInstaller
 {
@@ -318,7 +318,7 @@ internal static class ClaudeHooksInstaller
               ?? throw new InvalidDataException($"{path} is not a JSON object.");
     }
 
-    /// <summary>Writes the file atomically, keeping a backup of how it was before CodexBar first touched it.</summary>
+    /// <summary>Writes the file atomically, keeping a backup of how it was before TheAI first touched it.</summary>
     internal static void SaveJson(string path, JsonObject root)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -349,7 +349,7 @@ internal static class GeminiHooksInstaller
     public static string SettingsPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gemini", "settings.json");
 
-    /// <summary>Gemini's event name → the Claude Code event CodexBar already handles.</summary>
+    /// <summary>Gemini's event name → the Claude Code event TheAI already handles.</summary>
     public static string ClaudeName(string gemini) => gemini switch
     {
         "BeforeAgent" => "UserPromptSubmit",
@@ -393,7 +393,7 @@ internal static class GeminiHooksInstaller
                     ["type"] = "command",
                     ["command"] = Command,
                     ["timeout"] = 5000,
-                    ["description"] = "Shows this session in the CodexBar notch"
+                    ["description"] = "Shows this session in the TheAI notch"
                 })
             };
             if (name == "BeforeTool")

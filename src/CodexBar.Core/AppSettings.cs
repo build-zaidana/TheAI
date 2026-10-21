@@ -5,8 +5,8 @@ public sealed class AppSettings
     public int SchemaVersion { get; set; } = 12;
     public string Provider { get; set; } = "codex";
 
-    /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
-    public string Language { get; set; } = "id";
+    /// <summary>Bahasa UI: "auto" (ikuti Windows: Indonesia bila Windows berbahasa Indonesia, selain itu Inggris), "id" atau "en".</summary>
+    public string Language { get; set; } = "auto";
     public string Hotkey { get; set; } = "Win+Shift+C";
 
     /// <summary>Hotkey khusus quick-capture: kirim teks terseleksi langsung tanpa membuka window.</summary>
@@ -49,7 +49,9 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
 
     /// <summary>Repositori rilis publik ("pemilik/nama").</summary>
-    public string UpdateRepository { get; set; } = "build-zaidana/CodexBar";
+    public const string ReleaseRepository = "build-zaidana/theai-app";
+
+    public string UpdateRepository { get; set; } = ReleaseRepository;
 
     /// <summary>Tag rilis yang dipilih untuk dilewati (tidak diberi tahu lagi).</summary>
     public string? SkippedUpdate { get; set; }
@@ -88,7 +90,7 @@ public sealed class AppSettings
     /// <summary>Sembunyikan notch selama aplikasi layar penuh (game, video, presentasi) menutupi monitornya.</summary>
     public bool HideInFullscreen { get; set; } = true;
 
-    /// <summary>Skrip boleh menampilkan aktivitas di notch lewat `codexbar activity` / named pipe pengguna ini.</summary>
+    /// <summary>Skrip boleh menampilkan aktivitas di notch lewat `TheAI.exe activity` / named pipe pengguna ini.</summary>
     public bool LiveActivities { get; set; } = true;
 
     /// <summary>CI pull request branch yang sedang dikerjakan tampil di notch (lewat GitHub CLI yang sudah login).</summary>
@@ -98,7 +100,7 @@ public sealed class AppSettings
     public bool RecapEvening { get; set; } = true;
 
     /// <summary>Riwayat clipboard di notch (hanya di memori; yang disematkan disimpan). Isian pribadi dari password manager dilewati.</summary>
-    public bool ClipboardHistory { get; set; } = true;
+    public bool ClipboardHistory { get; set; }
 
     /// <summary>Unduhan yang selesai masuk rak file selama 2 jam.</summary>
     public bool DownloadsToShelf { get; set; } = true;

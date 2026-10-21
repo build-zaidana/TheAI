@@ -7,12 +7,12 @@ namespace CodexBar.App.Hud;
 
 /// <summary>
 /// The live activity API: a named pipe any script of the same Windows user can write JSON lines
-/// to (<c>\\.\pipe\codexbar-&lt;user&gt;</c>), and the <c>CodexBar.App.exe activity …</c> command that
+/// to (<c>\\.\pipe\theai-&lt;user&gt;</c>), and the <c>TheAI.exe activity …</c> command that
 /// does it for you. No port, no network: the pipe only accepts the user's own processes.
 /// </summary>
 internal sealed class LiveJobPipe : IDisposable
 {
-    public static string Name => "codexbar-" + Environment.UserName.ToLowerInvariant();
+    public static string Name => "theai-" + Environment.UserName.ToLowerInvariant();
 
     private const int MaxLine = 4096;
     private readonly CancellationTokenSource _stop = new();
@@ -41,7 +41,7 @@ internal sealed class LiveJobPipe : IDisposable
             }
             catch (Exception exception)
             {
-                // Another CodexBar of this user holds the name, or the pipe can't be made: try again later.
+                // Another TheAI of this user holds the name, or the pipe can't be made: try again later.
                 DiagnosticsLog.Error("LiveJobs", exception.Message);
                 try
                 {
@@ -80,7 +80,7 @@ internal sealed class LiveJobPipe : IDisposable
         }
     }
 
-    /// <summary>Client side: send one update to the running CodexBar. Returns an error message or null.</summary>
+    /// <summary>Client side: send one update to the running TheAI. Returns an error message or null.</summary>
     public static string? Send(LiveJobUpdate update)
     {
         try
@@ -94,7 +94,7 @@ internal sealed class LiveJobPipe : IDisposable
         }
         catch (TimeoutException)
         {
-            return "CodexBar is not running.";
+            return "TheAI is not running.";
         }
         catch (Exception exception)
         {

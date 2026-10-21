@@ -1,5 +1,5 @@
 param(
-    [string]$OutputPath = (Join-Path $PSScriptRoot "..\artifacts\codexbar-layout.png")
+    [string]$OutputPath = (Join-Path $PSScriptRoot "..\artifacts\theai-layout.png")
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,7 +9,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-public static class CodexBarCaptureNative
+public static class TheAICaptureNative
 {
     public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 
@@ -33,15 +33,15 @@ public static class CodexBarCaptureNative
 }
 "@
 
-$process = Get-Process CodexBar.App -ErrorAction Stop | Select-Object -First 1
+$process = Get-Process TheAI -ErrorAction Stop | Select-Object -First 1
 $window = [IntPtr]::Zero
-$callback = [CodexBarCaptureNative+EnumWindowsProc]{
+$callback = [TheAICaptureNative+EnumWindowsProc]{
     param([IntPtr]$handle, [IntPtr]$state)
     [uint32]$processId = 0
-    [void][CodexBarCaptureNative]::GetWindowThreadProcessId($handle, [ref]$processId)
+    [void][TheAICaptureNative]::GetWindowThreadProcessId($handle, [ref]$processId)
     if ($processId -eq $process.Id) {
-        $rect = New-Object CodexBarCaptureNative+Rect
-        if ([CodexBarCaptureNative]::GetWindowRect($handle, [ref]$rect) -and
+        $rect = New-Object TheAICaptureNative+Rect
+        if ([TheAICaptureNative]::GetWindowRect($handle, [ref]$rect) -and
             ($rect.Right - $rect.Left) -ge 500 -and ($rect.Bottom - $rect.Top) -gt 40) {
             $script:window = $handle
             return $false
@@ -49,13 +49,13 @@ $callback = [CodexBarCaptureNative+EnumWindowsProc]{
     }
     return $true
 }
-[void][CodexBarCaptureNative]::EnumWindows($callback, [IntPtr]::Zero)
-if ($window -eq [IntPtr]::Zero) { throw "Window CodexBar tidak ditemukan." }
+[void][TheAICaptureNative]::EnumWindows($callback, [IntPtr]::Zero)
+if ($window -eq [IntPtr]::Zero) { throw "Window TheAI tidak ditemukan." }
 
-[void][CodexBarCaptureNative]::ShowWindow($window, 5)
+[void][TheAICaptureNative]::ShowWindow($window, 5)
 Start-Sleep -Milliseconds 300
-$rect = New-Object CodexBarCaptureNative+Rect
-[void][CodexBarCaptureNative]::GetWindowRect($window, [ref]$rect)
+$rect = New-Object TheAICaptureNative+Rect
+[void][TheAICaptureNative]::GetWindowRect($window, [ref]$rect)
 $width = $rect.Right - $rect.Left
 $height = $rect.Bottom - $rect.Top
 $bitmap = New-Object System.Drawing.Bitmap $width, $height
@@ -63,7 +63,7 @@ $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
 try {
     $hdc = $graphics.GetHdc()
     try {
-        if (-not [CodexBarCaptureNative]::PrintWindow($window, $hdc, 2)) {
+        if (-not [TheAICaptureNative]::PrintWindow($window, $hdc, 2)) {
             throw "PrintWindow gagal."
         }
     }

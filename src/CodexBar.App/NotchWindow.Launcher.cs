@@ -143,7 +143,7 @@ public partial class NotchWindow
 
     private string? _recentFilter;
 
-    // Chips appear only when the list mixes sources (CodexBar threads and sessions started in the
+    // Chips appear only when the list mixes sources (TheAI threads and sessions started in the
     // terminal, an IDE or the desktop app).
     private void RenderRecentFilters()
     {

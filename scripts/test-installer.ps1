@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $installer = (Resolve-Path -LiteralPath $InstallerPath).Path
-$testRoot = Join-Path $env:TEMP ("CodexBar-installer-smoke-" + [Guid]::NewGuid().ToString("N"))
+$testRoot = Join-Path $env:TEMP ("TheAI-installer-smoke-" + [Guid]::NewGuid().ToString("N"))
 $installDir = Join-Path $testRoot "app"
 $logPath = Join-Path $testRoot "install.log"
 $app = $null
@@ -27,9 +27,9 @@ try {
         throw "Installer gagal dengan exit code $($install.ExitCode). Log: $logPath"
     }
 
-    $appPath = Join-Path $installDir "CodexBar.App.exe"
+    $appPath = Join-Path $installDir "TheAI.exe"
     if (-not (Test-Path -LiteralPath $appPath)) {
-        throw "Installer tidak menghasilkan CodexBar.App.exe."
+        throw "Installer tidak menghasilkan TheAI.exe."
     }
     $uninstaller = Get-ChildItem -LiteralPath $installDir -Filter "unins*.exe" |
         Select-Object -First 1 -ExpandProperty FullName
@@ -78,9 +78,9 @@ try {
         throw "Executable masih tersisa setelah uninstall."
     }
     $registration = Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" `
-        -ErrorAction SilentlyContinue | Where-Object DisplayName -eq "CodexBar"
+        -ErrorAction SilentlyContinue | Where-Object DisplayName -eq "TheAI"
     if ($registration) {
-        throw "Registrasi uninstall CodexBar masih tersisa."
+        throw "Registrasi uninstall TheAI masih tersisa."
     }
 
     Write-Output "PASS installer install=true launch=true child=$childPid orphan=false uninstall=true"
@@ -96,7 +96,7 @@ finally {
     }
     if (Test-Path -LiteralPath $testRoot) {
         $resolved = [IO.Path]::GetFullPath($testRoot)
-        $expectedRoot = [IO.Path]::GetFullPath($env:TEMP).TrimEnd('\') + '\CodexBar-installer-smoke-'
+        $expectedRoot = [IO.Path]::GetFullPath($env:TEMP).TrimEnd('\') + '\TheAI-installer-smoke-'
         if ($resolved.StartsWith($expectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
             Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue
         }

@@ -13,7 +13,7 @@ namespace CodexBar.App;
 public partial class NotchWindow
 {
     private static readonly string DownloadsFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "shelf-downloads.json");
+        CodexBar.Providers.AppPaths.DataRoot, "shelf-downloads.json");
 
     private readonly Dictionary<string, DateTimeOffset> _downloadExpiry = new(StringComparer.OrdinalIgnoreCase);
     private readonly DispatcherTimer _downloadPrune = new() { Interval = TimeSpan.FromMinutes(5) };

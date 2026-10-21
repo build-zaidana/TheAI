@@ -10,7 +10,7 @@ namespace CodexBar.App;
 // IDE and desktop session to the notch as its own activity ("cc:<session id>"): the prompt, each
 // tool step, the final answer, and permission requests the notch can answer (Claude Code asks in
 // its own UI if nobody answers within 30 s). History: past sessions are read from
-// ~/.claude/projects and listed under "Lanjutkan" next to CodexBar's own threads.
+// ~/.claude/projects and listed under "Lanjutkan" next to TheAI's own threads.
 public partial class MainWindow
 {
     private const string ExternalKeyPrefix = "cc:";
@@ -266,7 +266,7 @@ public partial class MainWindow
         }
     }
 
-    // A permission prompt from a session elsewhere, answered in the notch like CodexBar's own.
+    // A permission prompt from a session elsewhere, answered in the notch like TheAI's own.
     private async Task<string?> AskPermissionAsync(ClaudeHookEvent hook, CancellationToken token)
     {
         if (!ClaudeLiveActive)
@@ -405,10 +405,10 @@ public partial class MainWindow
 
         var ownIds = own.Select(thread => thread.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var byId = sessions.GroupBy(s => s.SessionId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        // A session continued from CodexBar has a local copy too; the session file knows its folder.
+        // A session continued from TheAI has a local copy too; the session file knows its folder.
         return own.Select(thread => thread with
             {
-                Source = thread.Source ?? "CodexBar",
+                Source = thread.Source ?? "TheAI",
                 WorkspacePath = thread.WorkspacePath is { Length: > 0 } || !byId.TryGetValue(thread.Id, out var session)
                     ? thread.WorkspacePath
                     : session.Cwd

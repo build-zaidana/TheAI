@@ -22,7 +22,7 @@ public sealed class ClipItem
 /// What was copied lately, newest first: <see cref="MaxItems"/> at most, of them
 /// <see cref="MaxImages"/> images (they are big). Copying the same thing again moves it to the
 /// top. Pinned texts stay (and are the only thing written to disk); everything else lives in
-/// memory and is gone when CodexBar quits.
+/// memory and is gone when TheAI quits.
 /// </summary>
 public sealed class ClipboardHistory
 {

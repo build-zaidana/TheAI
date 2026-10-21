@@ -1,4 +1,4 @@
-# Membuat ikon aplikasi CodexBar (codexbar.ico) multi-resolusi.
+# Membuat ikon aplikasi TheAI (codexbar.ico) multi-resolusi.
 # Ikon: kotak membulat biru aksen + panah "enter" putih (konsisten dgn tombol kirim).
 Add-Type -AssemblyName System.Drawing
 

@@ -7,7 +7,7 @@ namespace CodexBar.Core;
 public sealed record UpdateInfo(Version Version, string Tag, string PageUrl, string? DownloadUrl, string Notes);
 
 /// <summary>
-/// Looks for a newer CodexBar release in a public GitHub repository ("owner/name"). It only
+/// Looks for a newer TheAI release in a public GitHub repository ("owner/name"). It only
 /// reads the latest release; downloading and installing stay with the person.
 /// </summary>
 public static class UpdateChecker
@@ -17,7 +17,7 @@ public static class UpdateChecker
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("CodexBar-UpdateCheck");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TheAI-UpdateCheck");
         client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return client;
     }

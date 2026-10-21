@@ -13,6 +13,8 @@ using CodexBar.Providers.OpenAI;
 using CodexBar.Providers.OpenAiCompatible;
 using CodexBar.Providers.OpenRouter;
 
+// Never the user's own data: settings, conversations and caches go to a throwaway folder.
+Environment.SetEnvironmentVariable("THEAI_DATA_DIR", Path.Combine(Path.GetTempPath(), "theai-tests", Environment.ProcessId.ToString()));
 var metadataOnly = args.Contains("--metadata", StringComparer.OrdinalIgnoreCase);
 var resumeCheck = args.Contains("--resume-check", StringComparer.OrdinalIgnoreCase);
 var reconnectCheck = args.Contains("--reconnect-check", StringComparer.OrdinalIgnoreCase);
@@ -255,7 +257,7 @@ return 0;
 
 static async Task<int> RunDeterministicTestsAsync()
 {
-    var temporaryRoot = Path.Combine(Path.GetTempPath(), $"CodexBar-tests-{Guid.NewGuid():N}");
+    var temporaryRoot = Path.Combine(Path.GetTempPath(), $"TheAI-tests-{Guid.NewGuid():N}");
     Directory.CreateDirectory(temporaryRoot);
 
     try
@@ -442,9 +444,10 @@ static async Task<int> RunDeterministicTestsAsync()
             "Navigasi prompt history Up/Down harus mempertahankan draft input.");
 
         // Localization: parsing, lookup with fallback, and live-switch notification.
+        var windows = System.Globalization.CultureInfo.InstalledUICulture.TwoLetterISOLanguageName == "id" ? AppLanguage.Id : AppLanguage.En;
         Assert(Localization.Parse("en") == AppLanguage.En && Localization.Parse("ID") == AppLanguage.Id &&
-               Localization.Parse("xx") == AppLanguage.Id && Localization.ToCode(AppLanguage.En) == "en",
-            "Parsing/serialisasi kode bahasa harus benar dengan fallback ke Indonesia.");
+               Localization.Parse("auto") == windows && Localization.Parse("xx") == windows && Localization.ToCode(AppLanguage.En) == "en",
+            "Parsing/serialisasi kode bahasa harus benar; 'auto' dan yang tak dikenal mengikuti bahasa Windows.");
         Assert(Strings.Get(AppLanguage.En, "settings.close") == "Close" &&
                Strings.Get(AppLanguage.Id, "settings.close") == "Tutup" &&
                Strings.Get(AppLanguage.En, "kunci.tidak.ada") == "kunci.tidak.ada",
@@ -506,7 +509,7 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(DiagnosticsLog.IsEnabled && DiagnosticsLog.LogDirectory is not null,
             "DiagnosticsLog harus aktif setelah Configure(enabled:true).");
         DiagnosticsLog.Error("Test", "pesan diagnostik", new InvalidOperationException("boom"));
-        var logFiles = Directory.GetFiles(DiagnosticsLog.LogDirectory!, "codexbar-*.log");
+        var logFiles = Directory.GetFiles(DiagnosticsLog.LogDirectory!, "theai-*.log");
         Assert(logFiles.Length == 1, "DiagnosticsLog harus menulis satu file log per hari.");
         var logText = await File.ReadAllTextAsync(logFiles[0]);
         Assert(logText.Contains("pesan diagnostik", StringComparison.Ordinal) &&
@@ -647,7 +650,7 @@ static async Task<int> RunDeterministicTestsAsync()
             """);
         var mcpUrl = protocolEvent as ProviderUserInputEvent;
         Assert(mcpUrl is not null && mcpUrl.Title == "Connect test-server" &&
-               mcpUrl.Message == "Complete the steps in your browser, then return to CodexBar." &&
+               mcpUrl.Message == "Complete the steps in your browser, then return to TheAI." &&
                mcpUrl.Questions.Single().Header == "Confirmation" &&
                mcpUrl.Questions.Single().Options.Single().Label == "I'm finished",
             "Teks fallback MCP URL elicitation harus mengikuti bahasa aplikasi.");
@@ -1121,13 +1124,13 @@ static int RunFileChangeTests()
         // Update check: a GitHub "latest release" response, the installer preferred, versions compared.
         var release = UpdateChecker.Parse("""
             {"tag_name":"v1.3.0","html_url":"https://github.com/o/r/releases/tag/v1.3.0","body":"Baru",
-             "assets":[{"name":"CodexBar.App.exe","browser_download_url":"https://x/app.exe"},
-                       {"name":"CodexBar-Setup-1.3.0.exe","browser_download_url":"https://x/setup.exe"}]}
+             "assets":[{"name":"TheAI.exe","browser_download_url":"https://x/app.exe"},
+                       {"name":"TheAI-Setup-1.3.0.exe","browser_download_url":"https://x/setup.exe"}]}
             """);
         Assert(release is { Tag: "v1.3.0", DownloadUrl: "https://x/setup.exe" } && release.Version == new Version(1, 3, 0, 0),
             $"Rilis GitHub salah terbaca: {release}");
         Assert(UpdateChecker.Parse("""{"tag_name":"nightly"}""") is null, "Tag tanpa versi bukan rilis.");
-        Assert(UpdateChecker.IsRepository("build-zaidana/CodexBar") && !UpdateChecker.IsRepository("https://github.com/x"),
+        Assert(UpdateChecker.IsRepository("build-zaidana/TheAI") && !UpdateChecker.IsRepository("https://github.com/x"),
             "Format repositori pemilik/nama harus dikenali.");
 
         var habits = new PromptHabits();
@@ -1364,8 +1367,7 @@ static async Task AssertLocalConversationPersistsAsync(string providerId, Func<I
     finally
     {
         var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CodexBar", "conversations", providerId, $"{threadId}.json");
+            CodexBar.Providers.AppPaths.DataRoot, "conversations", providerId, $"{threadId}.json");
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -1422,7 +1424,7 @@ static int RunRateLimitTests()
 
 static int RunBugReportTests()
 {
-    var root = Path.Combine(Path.GetTempPath(), $"CodexBar-bugreport-{Guid.NewGuid():N}");
+    var root = Path.Combine(Path.GetTempPath(), $"TheAI-bugreport-{Guid.NewGuid():N}");
     try
     {
         var logsDir = Path.Combine(root, "logs");
@@ -1431,7 +1433,7 @@ static int RunBugReportTests()
         File.WriteAllText(Path.Combine(logsDir, "codexbar-20260102.log"), "baris log lain");
         File.WriteAllText(Path.Combine(logsDir, "ignore.txt"), "bukan log");
 
-        var zipPath = BugReport.Create(root, "CodexBar 9.9.9\nOS: test");
+        var zipPath = BugReport.Create(root, "TheAI 9.9.9\nOS: test");
         Assert(File.Exists(zipPath), "Zip laporan bug harus dibuat.");
 
         using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
@@ -1562,6 +1564,29 @@ static int RunDayLogTests()
         new DayLog { Day = day.AddDays(-40) }.Save(folder);
         DayLog.Prune(TimeSpan.FromDays(30), day, folder);
         Assert(!File.Exists(DayLog.PathFor(day.AddDays(-40), folder)) && File.Exists(DayLog.PathFor(day, folder)), "Hari lama dihapus.");
+        // CodexBar -> TheAI: the old folder moves in once; the old copy wins over leftovers; never twice.
+        var migration = Path.Combine(Path.GetTempPath(), "codexbar-migration-test");
+        if (Directory.Exists(migration))
+        {
+            Directory.Delete(migration, recursive: true);
+        }
+
+        var legacy = Path.Combine(migration, "CodexBar");
+        var target = Path.Combine(migration, "TheAI");
+        Directory.CreateDirectory(Path.Combine(legacy, "conversations"));
+        File.WriteAllText(Path.Combine(legacy, "settings.json"), "real");
+        File.WriteAllText(Path.Combine(legacy, "conversations", "a.json"), "a");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "settings.json"), "trial run");
+        File.WriteAllText(Path.Combine(target, "extra.json"), "x");
+        Assert(AppPaths.MigrateLegacyData(legacy, target), "Migrasi berjalan.");
+        Assert(File.ReadAllText(Path.Combine(target, "settings.json")) == "real" && File.Exists(Path.Combine(target, "conversations", "a.json")) &&
+               File.Exists(Path.Combine(target, "extra.json")) && !Directory.Exists(legacy), "Data lama menang dan pindah semua.");
+        Directory.CreateDirectory(legacy);
+        File.WriteAllText(Path.Combine(legacy, "settings.json"), "again");
+        Assert(!AppPaths.MigrateLegacyData(legacy, target) && File.ReadAllText(Path.Combine(target, "settings.json")) == "real", "Tidak diulang.");
+        var fresh = Path.Combine(migration, "TheAI2");
+        Assert(AppPaths.MigrateLegacyData(legacy, fresh) && File.ReadAllText(Path.Combine(fresh, "settings.json")) == "again", "Folder baru: dipindah utuh.");
         Console.WriteLine("PASS day log tests");
         return 0;
     }
@@ -1598,7 +1623,7 @@ static int RunPullRequestTests()
         Assert(failed is { Pending: false, Passed: false }, "Semua selesai, satu gagal.");
         Assert(failed.ToJob(@"C:\r", reported, out var end) is { Failed: "lint" }, "Gagal dilaporkan sekali di akhir.");
         Assert(failed.ToJob(@"C:\r", end, out _) is null, "Akhir yang sama tidak diulang.");
-        Assert(failed.ToJob(@"C:\r", string.Empty, out var fresh) is null && fresh == "abc/failed", "Yang selesai sebelum CodexBar melihat: diam.");
+        Assert(failed.ToJob(@"C:\r", string.Empty, out var fresh) is null && fresh == "abc/failed", "Yang selesai sebelum TheAI melihat: diam.");
 
         // A re-run: the later entry of the same name wins.
         var rerun = PullRequestStatus.Parse("""
@@ -1912,7 +1937,7 @@ static int RunSyncedLyricsTests()
 
 static int RunCredentialStoreTests()
 {
-    var target = $"CodexBar-tests-{Guid.NewGuid():N}";
+    var target = $"TheAI-tests-{Guid.NewGuid():N}";
     try
     {
         Assert(CredentialStore.TryRead(target) is null, "Target belum tersimpan harus mengembalikan null.");
@@ -2065,7 +2090,7 @@ static async Task<int> RunCrashHostAsync(string[] arguments)
     await provider.InitializeAsync();
     var child = GetChildProcess(provider);
     await File.WriteAllTextAsync(pidFile, child.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
-    Environment.FailFast("CodexBar lifecycle crash smoke test");
+    Environment.FailFast("TheAI lifecycle crash smoke test");
     return 99;
 }
 

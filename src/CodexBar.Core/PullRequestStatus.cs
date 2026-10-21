@@ -140,7 +140,7 @@ public sealed record PullRequestStatus(
         }
 
         reported = $"{HeadSha}/{(Passed ? "passed" : "failed")}";
-        // Already reported, or it ended before CodexBar started looking (no news at every launch).
+        // Already reported, or it ended before TheAI started looking (no news at every launch).
         if (reported == lastReported || lastReported.Length == 0)
         {
             return null;

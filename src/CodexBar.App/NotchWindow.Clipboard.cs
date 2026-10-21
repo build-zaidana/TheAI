@@ -24,7 +24,7 @@ namespace CodexBar.App;
 // What was copied lately, as a page of the open notch: click one to copy it again, drag it into an
 // app or the prompt, right-click to pin it. Windows tells us when the clipboard changes (a format
 // listener on the notch's window). Password managers mark what they copy as private — that is
-// skipped — and only pinned texts are written to disk; the rest is forgotten when CodexBar quits.
+// skipped — and only pinned texts are written to disk; the rest is forgotten when TheAI quits.
 public partial class NotchWindow
 {
     private const double ClipWidth = 440;
@@ -34,11 +34,11 @@ public partial class NotchWindow
     private readonly ClipboardHistory _clips = new();
     private readonly DispatcherTimer _clipRead = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private bool _clipListening;
-    private string? _clipSelf;   // what CodexBar just put on the clipboard itself
+    private string? _clipSelf;   // what TheAI just put on the clipboard itself
     private Point _clipDragStart;
 
     private static string ClipPinsPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "clipboard-pins.json");
+        CodexBar.Providers.AppPaths.DataRoot, "clipboard-pins.json");
 
     private bool ClipboardAvailable => _clipListening && _clips.Items.Count > 0;
 

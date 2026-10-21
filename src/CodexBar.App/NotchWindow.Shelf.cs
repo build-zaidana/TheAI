@@ -27,7 +27,7 @@ public partial class NotchWindow
     private const int ShelfLimit = 24;
 
     private static readonly string ShelfFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "shelf.json");
+        CodexBar.Providers.AppPaths.DataRoot, "shelf.json");
 
     private readonly List<string> _shelf = [];
     private Point _shelfDragStart;

@@ -37,7 +37,7 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += (_, args) =>
             DiagnosticsLog.Error("UnobservedTask", args.Exception.Message, args.Exception);
 
-        // "CodexBar.App.exe activity build --progress 0.4": a live activity for the running notch, then exit.
+        // "TheAI.exe activity build --progress 0.4": a live activity for the running notch, then exit.
         if (e.Args.Length > 0 && e.Args[0].Equals("activity", StringComparison.OrdinalIgnoreCase))
         {
             Shutdown(SendActivity(e.Args.Skip(1).ToArray()));
@@ -56,8 +56,8 @@ public partial class App : System.Windows.Application
             catch (WaitHandleCannotBeOpenedException)
             {
                 System.Windows.MessageBox.Show(
-                    "CodexBar sedang berjalan, tetapi tidak dapat ditampilkan. Gunakan hotkey yang dipilih atau menu tray CodexBar.",
-                    "CodexBar",
+                    "TheAI sedang berjalan, tetapi tidak dapat ditampilkan. Gunakan hotkey yang dipilih atau menu tray TheAI.",
+                    "TheAI",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
@@ -74,12 +74,24 @@ public partial class App : System.Windows.Application
                 ActivationEventName);
             _activationCancellation = new CancellationTokenSource();
 
+            // CodexBar became TheAI: its data folder, saved keys and sign-in entry move over once.
+            var migrated = CodexBar.Providers.AppPaths.MigrateLegacyData();
+            MigrateLegacyCredentials();
             var settingsStore = new JsonSettingsStore();
             var settings = await settingsStore.LoadAsync();
+            if (settings.UpdateRepository is "build-zaidana/CodexBar" or "build-zaidana/TheAI")
+            {
+                settings.UpdateRepository = AppSettings.ReleaseRepository;
+            }
+
             CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(settings.Language));
             DiagnosticsLog.Configure(settings.EnableDiagnosticsLogging, settingsStore.BaseDirectory);
             DiagnosticsLog.Info("App",
-                $"CodexBar {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
+                $"TheAI {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?"} dimulai.");
+            if (migrated)
+            {
+                DiagnosticsLog.Info("App", "Data CodexBar dipindahkan ke " + CodexBar.Providers.AppPaths.DataRoot);
+            }
             if (settings.LaunchAtLogin)
             {
                 // Refresh the Run-key path in case the executable was moved since last run.
@@ -96,13 +108,26 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
-            DiagnosticsLog.Error("Startup", "CodexBar gagal dimulai.", exception);
+            DiagnosticsLog.Error("Startup", "TheAI gagal dimulai.", exception);
             System.Windows.MessageBox.Show(
-                $"CodexBar gagal dimulai.\n\n{exception.Message}",
-                "CodexBar",
+                $"TheAI gagal dimulai.\n\n{exception.Message}",
+                "TheAI",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    private static void MigrateLegacyCredentials()
+    {
+        foreach (var target in new[] { "apiKey/anthropic", "apiKey/openai", "apiKey/openrouter", "CalendarIcs" })
+        {
+            if (CodexBar.Core.CredentialStore.TryRead("CodexBar/" + target) is { } secret &&
+                CodexBar.Core.CredentialStore.TryRead("TheAI/" + target) is null &&
+                CodexBar.Core.CredentialStore.Save("TheAI/" + target, secret))
+            {
+                CodexBar.Core.CredentialStore.Delete("CodexBar/" + target);
+            }
         }
     }
 
@@ -120,7 +145,7 @@ public partial class App : System.Windows.Application
         {
             using var stderr = new System.IO.StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
             stderr.WriteLine();
-            stderr.WriteLine("codexbar: " + error);
+            stderr.WriteLine("theai: " + error);
         }
 
         return 1;
@@ -130,7 +155,7 @@ public partial class App : System.Windows.Application
     private static extern bool AttachConsole(int processId);
 
     /// <summary>Credential Manager target name for a provider's API key.</summary>
-    public static string ApiKeyCredentialTarget(string providerId) => $"CodexBar/apiKey/{providerId}";
+    public static string ApiKeyCredentialTarget(string providerId) => $"TheAI/apiKey/{providerId}";
 
     // Selects the provider implementation from settings. Codex is the default. Each API-key
     // provider reads its key from Windows Credential Manager (set via Settings), falling back
@@ -176,7 +201,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        DiagnosticsLog.Info("App", "CodexBar keluar.");
+        DiagnosticsLog.Info("App", "TheAI keluar.");
         _activationCancellation?.Cancel();
         _activationEvent?.Set();
         try
@@ -192,7 +217,7 @@ public partial class App : System.Windows.Application
             // Jalankan di thread pool agar tidak deadlock: OnExit berada di UI thread,
             // dan DisposeAsync menunggu read loop yang continuation-nya bisa tertangkap
             // oleh SynchronizationContext WPF. Tanpa ini, child process Codex tidak
-            // pernah ter-kill dan CodexBar.App.exe menggantung.
+            // pernah ter-kill dan TheAI.exe menggantung.
             var provider = _provider;
             var disposeTask = Task.Run(async () => await provider.DisposeAsync().ConfigureAwait(false));
 

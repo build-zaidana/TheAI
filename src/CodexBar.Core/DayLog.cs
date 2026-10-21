@@ -7,7 +7,7 @@ namespace CodexBar.Core;
 /// <summary>
 /// What happened today, for the recap: focus sessions, what the agents finished, files they
 /// changed, long terminal commands and pull request runs. One small JSON file per day under
-/// <c>%LOCALAPPDATA%\CodexBar\days</c>; nothing leaves the PC.
+/// <c>%LOCALAPPDATA%\TheAI\days</c>; nothing leaves the PC.
 /// </summary>
 public sealed class DayLog
 {
@@ -137,7 +137,7 @@ public sealed class DayLog
     // ---- Storage ---------------------------------------------------------------------------
 
     public static string Folder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "days");
+        CodexBar.Providers.AppPaths.DataRoot, "days");
 
     public static string PathFor(DateOnly day, string? folder = null) =>
         Path.Combine(folder ?? Folder, day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".json");

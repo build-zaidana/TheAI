@@ -85,7 +85,7 @@ public partial class SettingsWindow : Window
             "Klik kolom, lalu tekan kombinasi baru (misalnya Ctrl+Shift+A). Esc untuk batal.",
             "Click a field, then press the new combination (e.g. Ctrl+Shift+A). Esc cancels.");
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
-        VersionText.Text = $"CodexBar {version}";
+        VersionText.Text = $"TheAI {version}";
 
         _host.StateChanged += Host_StateChanged;
         Closed += (_, _) => _host.StateChanged -= Host_StateChanged;
@@ -156,8 +156,8 @@ public partial class SettingsWindow : Window
             ? Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal")
             : Tr.Text("PowerShell: perintah ≥ 10 detik tampil di notch (menambah 1 baris di $PROFILE)", "PowerShell: commands of 10 s or more show in the notch (adds 1 line to $PROFILE)");
         LiveActivitiesHint.Text = Tr.Text(
-            $@"CodexBar.App.exe activity build --progress 0.4 — atau JSON ke \\.\pipe\{Hud.LiveJobPipe.Name}",
-            $@"CodexBar.App.exe activity build --progress 0.4 — or JSON to \\.\pipe\{Hud.LiveJobPipe.Name}");
+            $@"TheAI.exe activity build --progress 0.4 — atau JSON ke \\.\pipe\{Hud.LiveJobPipe.Name}",
+            $@"TheAI.exe activity build --progress 0.4 — or JSON to \\.\pipe\{Hud.LiveJobPipe.Name}");
         Select(CalendarSourcePopup, s.CalendarSource);
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         CalendarLinkField.ToolTip = CodexBar.Core.CredentialStore.TryRead(CodexBar.App.Hud.CalendarReader.IcsCredential) is { Length: > 0 }
@@ -311,7 +311,7 @@ public partial class SettingsWindow : Window
         }
 
         var s = _host.Settings;
-        s.Language = TagOf(LanguagePopup) == "en" ? "en" : "id";
+        s.Language = TagOf(LanguagePopup) is "en" or "id" ? TagOf(LanguagePopup)! : "auto";
         s.Appearance.Theme = TagOf(ThemePopup) ?? "system";
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;

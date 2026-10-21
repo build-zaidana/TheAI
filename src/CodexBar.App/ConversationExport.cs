@@ -10,7 +10,7 @@ internal static class ConversationExport
         var text = new StringBuilder();
         text.AppendLine($"# {title}");
         text.AppendLine();
-        text.AppendLine($"_{context} · {Tr.Text("diekspor dari CodexBar", "exported from CodexBar")} {DateTime.Now:yyyy-MM-dd HH:mm}_");
+        text.AppendLine($"_{context} · {Tr.Text("diekspor dari TheAI", "exported from TheAI")} {DateTime.Now:yyyy-MM-dd HH:mm}_");
 
         foreach (var message in messages)
         {

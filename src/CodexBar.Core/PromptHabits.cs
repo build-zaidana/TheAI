@@ -67,7 +67,7 @@ public sealed partial class PromptHabits
     }
 
     public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "prompt-habits.json");
+        CodexBar.Providers.AppPaths.DataRoot, "prompt-habits.json");
 
     /// <summary>Remember a prompt sent right after a turn of the given kind.</summary>
     public void Record(string prompt, TurnContext context, DateTimeOffset? now = null)

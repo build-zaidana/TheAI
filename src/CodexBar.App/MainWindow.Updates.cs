@@ -42,13 +42,13 @@ public partial class MainWindow
             _availableUpdate = update;
             if (update is null)
             {
-                return string.Format(Tr.Text("CodexBar {0} sudah yang terbaru.", "CodexBar {0} is up to date."), CurrentVersion.ToString(3));
+                return string.Format(Tr.Text("TheAI {0} sudah yang terbaru.", "TheAI {0} is up to date."), CurrentVersion.ToString(3));
             }
 
             if (manual || update.Tag != _settings.SkippedUpdate)
             {
                 _notifier.Show(
-                    string.Format(Tr.Text("CodexBar {0} tersedia", "CodexBar {0} is available"), update.Version.ToString(3)),
+                    string.Format(Tr.Text("TheAI {0} tersedia", "TheAI {0} is available"), update.Version.ToString(3)),
                     CompletionNotifier.Preview(update.Notes.Length > 0 ? update.Notes : Tr.Text("Versi baru sudah dirilis.", "A new version is out.")),
                     "update",
                     withSound: false,

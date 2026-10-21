@@ -18,7 +18,7 @@ using Path = System.Windows.Shapes.Path;
 namespace CodexBar.App;
 
 // Live activities from anything on this PC: a build, a deploy, a download reports itself with
-// "CodexBar.App.exe activity build --progress 0.4" (or a JSON line down the user's pipe) and the
+// "TheAI.exe activity build --progress 0.4" (or a JSON line down the user's pipe) and the
 // compact notch shows a ring, its name and how far it is; finished, a check and how long it took;
 // failed, the one red cross, with a button to hand the failure to the agent.
 public partial class NotchWindow
