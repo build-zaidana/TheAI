@@ -307,7 +307,7 @@ public partial class NotchWindow
             pages.Add(NotchView.Activity);
         }
 
-        if (_jobs.Jobs.Count > 0)
+        if (_jobs.Visible(DateTimeOffset.Now).Count > 0)
         {
             pages.Add(NotchView.Jobs);
         }

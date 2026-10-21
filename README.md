@@ -80,6 +80,8 @@ CodexBar.App.exe activity build --remove
 
 Opsi lain: `--detail "teks"` (ditampilkan bila tidak ada persen) dan `--url https://…` (dibuka saat barisnya diklik). Tanpa CLI, tulis satu baris JSON per pembaruan ke named pipe `\\.\pipe\codexbar-<nama pengguna>`, misalnya `{"id":"build","progress":0.4}`. Hanya proses milik pengguna Windows yang sama yang diterima; tidak ada port atau jaringan.
 
+Perintah PowerShell yang berjalan ≥ 10 detik bisa tampil otomatis: nyalakan **Pengaturan → Notch → Perintah terminal yang lama di notch** (menambah satu baris bertanda di `$PROFILE`; mematikannya menghapus baris itu lagi).
+
 ## Shortcut
 
 | Shortcut | Aksi |

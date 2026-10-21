@@ -32,6 +32,7 @@ public partial class NotchWindow
     private readonly DispatcherTimer _jobTick = new() { Interval = TimeSpan.FromSeconds(1) };
     private LiveJobPipe? _jobPipe;
     private bool _jobSpinning;
+    private string _jobFace = string.Empty;   // what the compact notch showed last tick (id/state)
 
     private bool JobsShowing => _jobs.Headline(DateTimeOffset.Now) is not null;
 
@@ -39,7 +40,12 @@ public partial class NotchWindow
     {
         _jobTick.Tick += (_, _) =>
         {
-            var changed = _jobs.Prune(DateTimeOffset.Now);
+            var now = DateTimeOffset.Now;
+            var changed = _jobs.Prune(now);
+            // A terminal command coming into view (after its first seconds) changes the face too.
+            var face = _jobs.Headline(now) is { } headline ? headline.Id + "/" + headline.State : string.Empty;
+            changed |= face != _jobFace;
+            _jobFace = face;
             if (changed || _jobs.Jobs.Count > 0)
             {
                 JobsChanged(layout: changed);
@@ -107,7 +113,7 @@ public partial class NotchWindow
         ApplyMusicCompact();
         if (_view == NotchView.Jobs)
         {
-            if (_jobs.Jobs.Count == 0)
+            if (_jobs.Visible(DateTimeOffset.Now).Count == 0)
             {
                 Collapse();
             }
@@ -233,7 +239,7 @@ public partial class NotchWindow
     private void RenderJobs()
     {
         var now = DateTimeOffset.Now;
-        var jobs = _jobs.Jobs.OrderBy(job => job.State == LiveJobState.Failed ? 0 : job.State == LiveJobState.Running ? 1 : 2)
+        var jobs = _jobs.Visible(now).OrderBy(job => job.State == LiveJobState.Failed ? 0 : job.State == LiveJobState.Running ? 1 : 2)
             .ThenByDescending(job => job.Updated).ToList();
         // Same rows, new numbers: update in place so a hovered button doesn't flicker away.
         if (JobRows.Children.Count == jobs.Count && JobRows.Children.OfType<FrameworkElement>().Select(row => row.Tag as string)
@@ -357,9 +363,14 @@ public partial class NotchWindow
                 _jobs.Dismiss(job.Id);
                 JobsChanged(layout: true);
                 var detailText = job.Detail.Length > 0 ? $" ({job.Detail})" : string.Empty;
-                await _host.SubmitFromNotchAsync(string.Format(
-                    Tr.Text("`{0}` baru saja gagal{1}. Cari tahu penyebabnya di folder ini dan perbaiki.", "`{0}` just failed{1}. Find out why in this folder and fix it."),
-                    job.Title, detailText));
+                await _host.SubmitFromNotchAsync(job.Folder.Length > 0
+                    ? string.Format(
+                        Tr.Text("`{0}` baru saja gagal{1} di folder `{2}`. Jalankan lagi di sana, cari penyebabnya, dan perbaiki.",
+                            "`{0}` just failed{1} in `{2}`. Run it there again, find out why, and fix it."),
+                        job.Title, detailText, job.Folder)
+                    : string.Format(
+                        Tr.Text("`{0}` baru saja gagal{1}. Cari tahu penyebabnya di folder ini dan perbaiki.", "`{0}` just failed{1}. Find out why in this folder and fix it."),
+                        job.Title, detailText));
                 SelectActivity(MainActivity);
                 OpenActivity();
             };

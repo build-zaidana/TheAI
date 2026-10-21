@@ -215,6 +215,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             StartClaudeSync();
             StartUpdateChecks();
             _ = Task.Run(() => ImageThumb.PruneCache(TimeSpan.FromDays(30), 300L * 1024 * 1024));
+            _ = Task.Run(Hud.ShellIntegration.Refresh);
             if (_settings.PromptSuggestions)
             {
                 _ = Habits; // seeds the habits from existing conversations on first run

@@ -19,8 +19,14 @@ public sealed class LiveJob
     public DateTimeOffset Started { get; set; }
     public DateTimeOffset Updated { get; set; }
     public DateTimeOffset? Finished { get; set; }
+    /// <summary>Hidden until then: a terminal command shows only once it has run a while.</summary>
+    public DateTimeOffset VisibleFrom { get; set; }
+    /// <summary>The folder it runs in, when known (terminal commands): what "ask the agent" tells it.</summary>
+    public string Folder { get; set; } = string.Empty;
 
     public TimeSpan Elapsed(DateTimeOffset now) => (Finished ?? now) - Started;
+
+    public bool IsVisible(DateTimeOffset now) => now >= VisibleFrom;
 }
 
 /// <summary>
@@ -36,7 +42,9 @@ public sealed record LiveJobUpdate(
     string? Url = null,
     bool Done = false,
     string? Failed = null,
-    bool Remove = false)
+    bool Remove = false,
+    double? After = null,
+    string? Folder = null)
 {
     public const int MaxText = 120;
 
@@ -65,7 +73,9 @@ public sealed record LiveJobUpdate(
                 Text(root, "url"),
                 root.TryGetProperty("done", out var d) && d.ValueKind == JsonValueKind.True,
                 failed,
-                root.TryGetProperty("remove", out var r) && r.ValueKind == JsonValueKind.True));
+                root.TryGetProperty("remove", out var r) && r.ValueKind == JsonValueKind.True,
+                root.TryGetProperty("after", out var a) && a.ValueKind == JsonValueKind.Number ? a.GetDouble() : null,
+                Text(root, "folder")));
         }
         catch (JsonException)
         {
@@ -116,6 +126,17 @@ public sealed record LiveJobUpdate(
                 case "--remove":
                     update = update with { Remove = true };
                     break;
+                case "--after":
+                    if (!double.TryParse(Next(), NumberStyles.Float, CultureInfo.InvariantCulture, out var after))
+                    {
+                        return (null, "--after takes seconds (10).");
+                    }
+
+                    update = update with { After = after };
+                    break;
+                case "--folder":
+                    update = update with { Folder = Next() };
+                    break;
                 default:
                     return (null, $"Unknown option {args[i]}.");
             }
@@ -133,7 +154,9 @@ public sealed record LiveJobUpdate(
         ["url"] = Url,
         ["done"] = Done ? true : null,
         ["failed"] = Failed,
-        ["remove"] = Remove ? true : null
+        ["remove"] = Remove ? true : null,
+        ["after"] = After,
+        ["folder"] = Folder
     }.Where(pair => pair.Value is not null).ToDictionary(pair => pair.Key, pair => pair.Value));
 
     private static double? ParseProgress(string? text)
@@ -159,7 +182,9 @@ public sealed record LiveJobUpdate(
         Title = Cut(update.Title?.Trim(), MaxText),
         Detail = Cut(update.Detail?.Trim(), MaxText),
         Failed = Cut(update.Failed?.Trim(), MaxText),
-        Progress = update.Progress is { } p && double.IsFinite(p) ? Math.Clamp(p, 0, 1) : null
+        Progress = update.Progress is { } p && double.IsFinite(p) ? Math.Clamp(p, 0, 1) : null,
+        After = update.After is { } a && double.IsFinite(a) ? Math.Clamp(a, 0, 3600) : null,
+        Folder = Cut(update.Folder?.Trim(), 260)
     };
 
     private static string? Cut(string? text, int max) =>
@@ -200,7 +225,7 @@ public sealed class LiveJobBoard
 
         if (job is null)
         {
-            job = new LiveJob { Id = update.Id, Title = update.Id, Started = now };
+            job = new LiveJob { Id = update.Id, Title = update.Id, Started = now, VisibleFrom = now.AddSeconds(update.After ?? 0) };
             _jobs.Add(job);
             while (_jobs.Count > MaxJobs)
             {
@@ -212,6 +237,7 @@ public sealed class LiveJobBoard
             // Reused id after it finished: a new run.
             job.State = LiveJobState.Running;
             job.Started = now;
+            job.VisibleFrom = now.AddSeconds(update.After ?? 0);
             job.Finished = null;
             job.Progress = null;
             job.Detail = string.Empty;
@@ -227,6 +253,11 @@ public sealed class LiveJobBoard
             job.Detail = update.Detail;
         }
 
+        if (update.Folder is { Length: > 0 } folder)
+        {
+            job.Folder = folder;
+        }
+
         if (update.Progress is { } progress)
         {
             job.Progress = progress;
@@ -235,6 +266,11 @@ public sealed class LiveJobBoard
         if (update.Url is { } url && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
         {
             job.Url = uri;
+        }
+
+        if ((update.Done || update.Failed is not null) && job.VisibleFrom > now)
+        {
+            job.VisibleFrom = now;   // the sender judged it long enough to report how it ended
         }
 
         if (update.Failed is { } failed)
@@ -266,9 +302,15 @@ public sealed class LiveJobBoard
         _ => now - job.Updated > Stale
     }) > 0;
 
+    /// <summary>The jobs to show now (a terminal command waits until it has run a while).</summary>
+    public IReadOnlyList<LiveJob> Visible(DateTimeOffset now) => _jobs.Where(job => job.IsVisible(now)).ToList();
+
     /// <summary>What the compact notch shows: a failure first, then a fresh finish, then the latest running job.</summary>
-    public LiveJob? Headline(DateTimeOffset now) =>
-        _jobs.Where(job => job.State == LiveJobState.Failed).MaxBy(job => job.Updated)
-        ?? _jobs.Where(job => job.State == LiveJobState.Done && now - job.Finished!.Value <= DoneShown).MaxBy(job => job.Finished)
-        ?? _jobs.Where(job => job.State == LiveJobState.Running).MaxBy(job => job.Updated);
+    public LiveJob? Headline(DateTimeOffset now)
+    {
+        var visible = Visible(now);
+        return visible.Where(job => job.State == LiveJobState.Failed).MaxBy(job => job.Updated)
+            ?? visible.Where(job => job.State == LiveJobState.Done && now - job.Finished!.Value <= DoneShown).MaxBy(job => job.Finished)
+            ?? visible.Where(job => job.State == LiveJobState.Running).MaxBy(job => job.Updated);
+    }
 }

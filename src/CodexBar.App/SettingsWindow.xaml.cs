@@ -146,6 +146,10 @@ public partial class SettingsWindow : Window
         FullscreenSwitch.IsChecked = s.HideInFullscreen;
         HoldFocusSwitch.IsChecked = s.HoldDuringFocus;
         LiveActivitiesSwitch.IsChecked = s.LiveActivities;
+        ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
+        ShellStatus.Text = ShellSwitch.IsChecked == true
+            ? Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal")
+            : Tr.Text("PowerShell: perintah ≥ 10 detik tampil di notch (menambah 1 baris di $PROFILE)", "PowerShell: commands of 10 s or more show in the notch (adds 1 line to $PROFILE)");
         LiveActivitiesHint.Text = Tr.Text(
             $@"CodexBar.App.exe activity build --progress 0.4 — atau JSON ke \\.\pipe\{Hud.LiveJobPipe.Name}",
             $@"CodexBar.App.exe activity build --progress 0.4 — or JSON to \\.\pipe\{Hud.LiveJobPipe.Name}");
@@ -538,6 +542,29 @@ public partial class SettingsWindow : Window
         }
 
         ClaudeLiveStatus.Text = message;
+    }
+
+    private void Shell_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (ShellSwitch.IsChecked == true)
+            {
+                Hud.ShellIntegration.Install();
+                ShellStatus.Text = Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal");
+            }
+            else
+            {
+                Hud.ShellIntegration.Uninstall();
+                ShellStatus.Text = Tr.Text("Dilepas dari profil PowerShell", "Removed from your PowerShell profile");
+            }
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("Shell", exception.Message);
+            ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
+            ShellStatus.Text = exception.Message;
+        }
     }
 
     private void GeminiLive_Click(object sender, RoutedEventArgs e)

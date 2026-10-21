@@ -1480,6 +1480,16 @@ static int RunLiveJobTests()
         }
 
         Assert(board.Jobs.Count == LiveJobBoard.MaxJobs && board.Jobs[0].Id == "j2", "Maksimal 4, yang tertua keluar.");
+
+        var shell = new LiveJobBoard();
+        shell.Apply(new LiveJobUpdate("sh-1", "npm install", After: 10, Folder: @"C:\proj"), t0);
+        Assert(shell.Headline(t0.AddSeconds(9)) is null && shell.Headline(t0.AddSeconds(10))?.Id == "sh-1", "Perintah terminal tampil setelah 10 detik.");
+        shell.Apply(new LiveJobUpdate("sh-1", Remove: true), t0.AddSeconds(3));
+        Assert(shell.Jobs.Count == 0, "Perintah cepat ditarik lagi.");
+        shell.Apply(new LiveJobUpdate("sh-1", "npm test", After: 10), t0);
+        shell.Apply(new LiveJobUpdate("sh-1", Failed: "exit 1"), t0.AddSeconds(2));
+        Assert(shell.Headline(t0.AddSeconds(2)) is { State: LiveJobState.Failed, Detail: "exit 1" }, "Selesai/gagal langsung tampil.");
+        Assert(LiveJobUpdate.Parse("{\"id\":\"sh-9\",\"after\":10,\"folder\":\"C:\\\\p\"}") is { After: 10, Folder: @"C:\p" }, "JSON after + folder.");
         board.Apply(new LiveJobUpdate("j5", Remove: true), t0);
         Assert(board.Jobs.All(job => job.Id != "j5"), "--remove menghapus.");
         Console.WriteLine("PASS live job tests");

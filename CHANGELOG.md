@@ -8,6 +8,10 @@
 - The **activities page** (scroll the open notch) lists up to four jobs with bars or what they say they're doing; a row with a link opens it; a failed job has **Ask Claude/Codex**, which hands the failure to the agent in the current folder.
 - Local only: no port, no network; the pipe accepts only the same Windows user's processes, links are http(s) only, and silent jobs expire after 10 minutes. Can be turned off in Settings → Notch.
 
+### Added — long terminal commands, automatically
+
+- **PowerShell commands that run 10 seconds or more show up in the notch by themselves** (Settings → Notch, adds one marked line to `$PROFILE`, a backup is kept, switching it off takes it out): the command and its time while it runs, then a check and the duration or a cross and the exit code; "Ask Claude" tells the agent which command failed and in which folder. Quick commands never appear. Prompt themes keep their `$?` and `$LASTEXITCODE`.
+
 ### Added — agents × focus × calendar
 
 - **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.
