@@ -188,6 +188,7 @@ public partial class NotchWindow
             SelectActivity(ActivityFor(item.Key));
             OpenActivity();
         };
+        System.Windows.Automation.AutomationProperties.SetName(open, $"{open.Content}: {item.Agent} — {item.Text}");
         Grid.SetColumn(open, 2);
         grid.Children.Add(open);
 

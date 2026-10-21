@@ -295,12 +295,40 @@ public partial class NotchWindow
         tile.MouseMove += (_, e) => DragClip(tile, item, e);
         tile.MouseRightButtonUp += (_, e) =>
         {
-            _clips.TogglePin(item.Id);
-            _clips.SavePins(ClipPinsPath);
-            RenderClipboard();
+            TogglePin(item);
             e.Handled = true;
         };
+        // From the keyboard too: Tab to a tile, Enter / Space copies it, P (or the menu key) pins it.
+        tile.Focusable = true;
+        tile.FocusVisualStyle = null;
+        tile.GotKeyboardFocus += (_, _) => tile.BorderThickness = new Thickness(1.5);
+        tile.LostKeyboardFocus += (_, _) => tile.BorderThickness = new Thickness(0);
+        tile.BorderBrush = TimerFocusBrush;
+        tile.KeyDown += (_, e) =>
+        {
+            if (e.Key is Key.Enter or Key.Space)
+            {
+                CopyClip(item);
+                e.Handled = true;
+            }
+            else if (e.Key is Key.P or Key.Apps)
+            {
+                TogglePin(item);
+                e.Handled = true;
+            }
+        };
+        System.Windows.Automation.AutomationProperties.SetHelpText(tile,
+            Tr.Text("Enter untuk menyalin, P untuk menyematkan", "Enter to copy, P to pin"));
         return tile;
+    }
+
+    private void TogglePin(ClipItem item)
+    {
+        _clips.TogglePin(item.Id);
+        _clips.SavePins(ClipPinsPath);
+        RenderClipboard();
+        // Keep the keyboard where it was after the redraw.
+        ClipTiles.Children.OfType<Border>().FirstOrDefault(tile => (string?)tile.Tag == item.Id)?.Focus();
     }
 
     private void CopyClip(ClipItem item)

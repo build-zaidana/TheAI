@@ -221,6 +221,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 _ = Habits; // seeds the habits from existing conversations on first run
             }
             OpenDevPreviews();
+            DiagnosticsLog.Info("App", $"ready in {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms");
             _ = SettleMemoryAsync();
         }
         catch (Exception exception)
@@ -247,6 +248,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private async Task StartupAsync()
     {
         HideOnboarding();
+        var modelsTask = Task.CompletedTask;
 
         try
         {
@@ -266,6 +268,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         try
         {
+            // The model list doesn't need the sign-in: it loads while `auth status` runs (~0.5 s saved).
+            modelsTask = LoadModelsAsync();
             var account = await _controller.GetAccountAsync();
             if (!account.IsAuthenticated)
             {
@@ -309,7 +313,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         try
         {
             HideOnboarding();
-            await LoadModelsAsync();
+            await modelsTask;
             if (!_controller.Capabilities.SupportsWorkspace)
             {
                 // Threadless provider (e.g. Claude): no workspace needed; CWD is an inert placeholder.

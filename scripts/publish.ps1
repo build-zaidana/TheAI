@@ -22,6 +22,7 @@ if (-not (Test-Path $dotnet)) {
 $project = Join-Path $repositoryRoot "src\CodexBar.App\CodexBar.App.csproj"
 $output = Join-Path $repositoryRoot "artifacts\$Runtime"
 
+# ReadyToRun: precompiled code, so the first windows open without waiting on the JIT (~0.2 s).
 # Uncompressed bundle on purpose: a compressed single file is unpacked into private memory at
 # every start (~100 MB more RAM); the installer compresses it instead.
 & $dotnet publish $project `
@@ -32,6 +33,7 @@ $output = Join-Path $repositoryRoot "artifacts\$Runtime"
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=false `
     -p:PublishTrimmed=false `
+    -p:PublishReadyToRun=true `
     --output $output
 
 if ($LASTEXITCODE -ne 0) {
