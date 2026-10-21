@@ -60,6 +60,9 @@ internal interface INotchHost
     /// <summary>Keep what was copied lately as a page of the notch (memory only; pins on disk).</summary>
     bool ClipboardHistory { get; }
 
+    /// <summary>Finished downloads go on the shelf for two hours.</summary>
+    bool DownloadsToShelf { get; }
+
     /// <summary>During a focus session or a meeting, agents' results and requests wait for the break.</summary>
     bool HoldDuringFocus { get; }
 
@@ -204,6 +207,7 @@ public partial class NotchWindow : Window
         InitGitHub();
         InitRecap();
         InitClipboard();
+        InitDownloads();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -220,6 +224,7 @@ public partial class NotchWindow : Window
 
         RestartJobs();
         ApplyClipboardListener();
+        ApplyDownloadWatcher();
 
         ApplyView(animate: false);
         UpdateVisibility();

@@ -100,6 +100,9 @@ public sealed class AppSettings
     /// <summary>Riwayat clipboard di notch (hanya di memori; yang disematkan disimpan). Isian pribadi dari password manager dilewati.</summary>
     public bool ClipboardHistory { get; set; } = true;
 
+    /// <summary>Unduhan yang selesai masuk rak file selama 2 jam.</summary>
+    public bool DownloadsToShelf { get; set; } = true;
+
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 

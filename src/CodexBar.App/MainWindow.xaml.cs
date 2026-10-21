@@ -2347,6 +2347,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.GitHubChecks => _settings.GitHubChecks;
     bool INotchHost.RecapEvening => _settings.RecapEvening;
     bool INotchHost.ClipboardHistory => _settings.ClipboardHistory;
+    bool INotchHost.DownloadsToShelf => _settings.DownloadsToShelf;
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge

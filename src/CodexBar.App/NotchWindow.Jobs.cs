@@ -233,6 +233,7 @@ public partial class NotchWindow
     {
         LiveJobState.Running when job.Progress is { } progress => $"{Math.Round(progress * 100):0}%",
         LiveJobState.Failed => job.Detail.Length is > 0 and <= 10 ? job.Detail : "!",
+        LiveJobState.Done when job.Elapsed(now) < TimeSpan.FromSeconds(1) && job.Detail.Length > 0 => job.Detail,
         _ => Elapsed(job.Elapsed(now))
     };
 

@@ -1495,6 +1495,12 @@ static int RunClipboardTests()
         Assert(restored.Items is [{ Text: "git push", Pinned: true }], "Pin dibaca lagi.");
         history.Clear();
         Assert(history.Items.All(item => item.Pinned) && history.Items.Count == 1, "Bersihkan: hanya pin yang tersisa.");
+        foreach (var partial in new[] { "a.crdownload", "b.PART", "Unconfirmed 123.crdownload", "~$report.docx", ".hidden", "c.tmp", "desktop.ini" })
+        {
+            Assert(!DownloadFilter.IsCandidate(Path.Combine("C:\\Downloads", partial)), $"Bukan unduhan selesai: {partial}");
+        }
+
+        Assert(DownloadFilter.IsCandidate(@"C:\Downloads\laporan-Q3.pdf") && DownloadFilter.IsCandidate(@"C:\Downloads\setup.exe"), "Unduhan selesai diterima.");
         Console.WriteLine("PASS clipboard tests");
         return 0;
     }

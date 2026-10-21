@@ -43,6 +43,10 @@ public partial class NotchWindow
             {
                 // Files moved or deleted since leave the shelf quietly.
                 _shelf.AddRange(saved.Where(path => File.Exists(path) || Directory.Exists(path)).Distinct(StringComparer.OrdinalIgnoreCase).Take(ShelfLimit));
+                if (_shelf.Count != saved.Count)
+                {
+                    SaveShelf();
+                }
             }
         }
         catch (Exception exception)
