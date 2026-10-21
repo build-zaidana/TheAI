@@ -1136,6 +1136,23 @@ static int RunFileChangeTests()
         Assert(release is { Tag: "v1.3.0", DownloadUrl: "https://x/setup.exe" } && release.Version == new Version(1, 3, 0, 0),
             $"Rilis GitHub salah terbaca: {release}");
         Assert(UpdateChecker.Parse("""{"tag_name":"nightly"}""") is null, "Tag tanpa versi bukan rilis.");
+        Assert(release is { CanInstall: false }, "Tanpa checksum: tidak dipasang dari dalam app.");
+        var installable = UpdateChecker.Parse("""
+            {"tag_name":"v1.5.0","assets":[
+              {"name":"TheAI-Setup-1.5.0.exe","browser_download_url":"https://github.com/o/r/releases/download/v1.5.0/TheAI-Setup-1.5.0.exe"},
+              {"name":"TheAI-Setup-1.5.0.exe.sha256","browser_download_url":"https://github.com/o/r/releases/download/v1.5.0/TheAI-Setup-1.5.0.exe.sha256"}]}
+            """);
+        Assert(installable is { CanInstall: true, InstallerName: "TheAI-Setup-1.5.0.exe" } && installable.ChecksumUrl!.EndsWith(".sha256"),
+            $"Rilis dengan checksum bisa dipasang: {installable}");
+        var hash = new string('a', 64);
+        Assert(UpdateInstaller.ExpectedHash(hash + "\n", "x.exe") == hash, "Checksum satu baris.");
+        Assert(UpdateInstaller.ExpectedHash($"{new string('b', 64)}  other.exe\n{hash} *TheAI-Setup-1.5.0.exe\n", "TheAI-Setup-1.5.0.exe") == hash,
+            "Checksum format sha256sum.");
+        Assert(UpdateInstaller.ExpectedHash("not a hash", "x.exe") is null, "Bukan checksum: null.");
+        var payload = Path.Combine(Path.GetTempPath(), "theai-update-test.bin");
+        File.WriteAllText(payload, "installer");
+        var real = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(payload)));
+        Assert(UpdateInstaller.Matches(payload, real.ToLowerInvariant()) && !UpdateInstaller.Matches(payload, hash), "Hash diperiksa.");
         Assert(UpdateChecker.IsRepository("build-zaidana/TheAI") && !UpdateChecker.IsRepository("https://github.com/x"),
             "Format repositori pemilik/nama harus dikenali.");
 

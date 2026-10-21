@@ -29,11 +29,20 @@ public partial class App : System.Windows.Application
         // Best-effort crash capture. No-op until diagnostics logging is enabled from
         // settings below; we never mark the exception handled, so behavior is unchanged.
         DispatcherUnhandledException += (_, args) =>
+        {
             DiagnosticsLog.Error("UnhandledDispatcher", args.Exception.Message, args.Exception);
+            CodexBar.App.MainWindow.RememberCrash(args.Exception);
+        };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
             DiagnosticsLog.Error("UnhandledDomain",
                 (args.ExceptionObject as Exception)?.Message ?? "unknown",
                 args.ExceptionObject as Exception);
+            if (args.ExceptionObject is Exception exception)
+            {
+                CodexBar.App.MainWindow.RememberCrash(exception);
+            }
+        };
         TaskScheduler.UnobservedTaskException += (_, args) =>
             DiagnosticsLog.Error("UnobservedTask", args.Exception.Message, args.Exception);
 

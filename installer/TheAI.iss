@@ -85,3 +85,5 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchNow}"; \
     Flags: nowait postinstall skipifsilent
+; An update from inside TheAI runs silently: start the new version when it's done.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent

@@ -4,7 +4,16 @@ using System.Text.Json;
 namespace CodexBar.Core;
 
 /// <summary>A newer release on GitHub: its version, the page to download it from, and notes.</summary>
-public sealed record UpdateInfo(Version Version, string Tag, string PageUrl, string? DownloadUrl, string Notes);
+/// <summary>
+/// A newer release on GitHub: its version, the page to download it from, and notes. When the
+/// release carries an installer and its SHA-256 (a "&lt;installer&gt;.sha256" or SHA256SUMS asset) it
+/// can be installed from inside the app.
+/// </summary>
+public sealed record UpdateInfo(Version Version, string Tag, string PageUrl, string? DownloadUrl, string Notes,
+    string? InstallerName = null, string? ChecksumUrl = null)
+{
+    public bool CanInstall => InstallerName is not null && DownloadUrl is not null && ChecksumUrl is not null;
+}
 
 /// <summary>
 /// Looks for a newer TheAI release in a public GitHub repository ("owner/name"). It only
@@ -54,6 +63,8 @@ public static class UpdateChecker
         }
 
         string? download = null;
+        string? installer = null;
+        var checksums = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
         {
             // Prefer the installer, else any Windows executable.
@@ -61,24 +72,43 @@ public static class UpdateChecker
             {
                 var name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? string.Empty : string.Empty;
                 var url = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
-                if (url is null || !name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if (url is null)
                 {
                     continue;
                 }
 
-                if (download is null || name.Contains("Setup", StringComparison.OrdinalIgnoreCase))
+                if (name.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase) || name.Equals("SHA256SUMS", StringComparison.OrdinalIgnoreCase) ||
+                    name.Equals("SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase))
+                {
+                    checksums[name] = url;
+                    continue;
+                }
+
+                if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var isSetup = name.Contains("Setup", StringComparison.OrdinalIgnoreCase);
+                if (download is null || isSetup)
                 {
                     download = url;
+                    installer = isSetup ? name : installer;
                 }
             }
         }
+
+        var checksum = installer is null ? null
+            : checksums.GetValueOrDefault(installer + ".sha256") ?? checksums.GetValueOrDefault("SHA256SUMS") ?? checksums.GetValueOrDefault("SHA256SUMS.txt");
 
         return new UpdateInfo(
             Normalize(version),
             tag,
             root.TryGetProperty("html_url", out var page) ? page.GetString() ?? string.Empty : string.Empty,
             download,
-            root.TryGetProperty("body", out var body) ? body.GetString() ?? string.Empty : string.Empty);
+            root.TryGetProperty("body", out var body) ? body.GetString() ?? string.Empty : string.Empty,
+            installer,
+            checksum);
     }
 
     public static bool IsRepository(string? repository) =>

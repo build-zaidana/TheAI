@@ -108,5 +108,8 @@ $setup = Get-ChildItem (Join-Path $repoRoot "artifacts\installer") -Filter "TheA
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($setup) {
     Invoke-Sign $setup.FullName
-    Write-Host "Installer siap: $($setup.FullName)"
+    $hash = (Get-FileHash -Algorithm SHA256 $setup.FullName).Hash.ToLowerInvariant()
+    Set-Content -Path ($setup.FullName + ".sha256") -Value "$hash  $($setup.Name)" -Encoding ascii -NoNewline
+    Write-Host "Installer ready: $($setup.FullName)"
+    Write-Host "SHA-256: $hash (also in $($setup.Name).sha256 — upload both to the release)"
 }

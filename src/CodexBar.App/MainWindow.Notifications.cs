@@ -50,6 +50,23 @@ public partial class MainWindow
             return;
         }
 
+        if (action == "update-install")
+        {
+            _ = InstallUpdateAsync();
+            return;
+        }
+
+        if (action == "crash-report" || action.Length == 0 && activityKey == "crash")
+        {
+            ReportCrash();
+            return;
+        }
+
+        if (action == "crash-dismiss" || activityKey == "crash")
+        {
+            return;
+        }
+
         if (action == "update-skip")
         {
             SkipUpdate();

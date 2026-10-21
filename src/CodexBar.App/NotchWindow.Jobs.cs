@@ -81,6 +81,15 @@ public partial class NotchWindow
         }
     }
 
+    /// <summary>A job of TheAI's own (an update downloading): shown even when scripts' activities are off.</summary>
+    internal void ShowJob(LiveJobUpdate update)
+    {
+        var preview = _jobsPreview;
+        _jobsPreview = true;
+        ApplyJob(update);
+        _jobsPreview = preview;
+    }
+
     private void ApplyJob(LiveJobUpdate update)
     {
         if (_jobPipe is null && !_jobsPreview)

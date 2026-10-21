@@ -223,6 +223,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             OpenDevPreviews();
             DiagnosticsLog.Info("App", $"ready in {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms");
             _ = SettleMemoryAsync();
+            OfferCrashReport();
         }
         catch (Exception exception)
         {
