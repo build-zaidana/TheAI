@@ -148,6 +148,7 @@ public partial class SettingsWindow : Window
         LiveActivitiesSwitch.IsChecked = s.LiveActivities;
         GitHubSwitch.IsChecked = s.GitHubChecks;
         RecapSwitch.IsChecked = s.RecapEvening;
+        ClipboardSwitch.IsChecked = s.ClipboardHistory;
         ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
         ShellStatus.Text = ShellSwitch.IsChecked == true
             ? Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal")
@@ -335,6 +336,7 @@ public partial class SettingsWindow : Window
         s.LiveActivities = LiveActivitiesSwitch.IsChecked == true;
         s.GitHubChecks = GitHubSwitch.IsChecked == true;
         s.RecapEvening = RecapSwitch.IsChecked == true;
+        s.ClipboardHistory = ClipboardSwitch.IsChecked == true;
         s.CalendarSource = TagOf(CalendarSourcePopup) ?? s.CalendarSource;
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         s.OutputDocked = DockedSwitch.IsChecked == true;

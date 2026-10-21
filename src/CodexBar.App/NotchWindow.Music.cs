@@ -244,6 +244,7 @@ public partial class NotchWindow
             NotchView.Calendar => CalendarShowing,
             NotchView.Jobs => JobsShowing,
             NotchView.Recap => false,
+            NotchView.Clipboard => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -285,6 +286,9 @@ public partial class NotchWindow
             case NotchView.Recap:
                 OpenRecap();
                 break;
+            case NotchView.Clipboard:
+                OpenClipboard();
+                break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
                 _musicTick.Stop();
@@ -325,6 +329,11 @@ public partial class NotchWindow
         if (ShelfShowing)
         {
             pages.Add(NotchView.Shelf);
+        }
+
+        if (ClipboardAvailable)
+        {
+            pages.Add(NotchView.Clipboard);
         }
 
         if (RecapAvailable)

@@ -114,6 +114,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return dayLog;
     }
 
+    var clipboard = RunClipboardTests();
+    if (clipboard != 0)
+    {
+        return clipboard;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1447,6 +1453,55 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunClipboardTests()
+{
+    try
+    {
+        var t0 = new DateTimeOffset(2026, 10, 21, 9, 0, 0, TimeSpan.Zero);
+        var history = new ClipboardHistory();
+        Assert(history.AddText("   ", t0) is null, "Teks kosong diabaikan.");
+        var first = history.AddText("git push", t0)!;
+        history.AddText("https://example.com", t0.AddSeconds(1));
+        var again = history.AddText("git push", t0.AddSeconds(2));
+        Assert(ReferenceEquals(first, again) && history.Items.Count == 2 && history.Items[0].Text == "git push", "Disalin lagi: naik ke atas, tidak dobel.");
+
+        history.TogglePin(first.Id);
+        for (var i = 0; i < ClipboardHistory.MaxItems + 5; i++)
+        {
+            history.AddText($"item {i}", t0.AddMinutes(i));
+        }
+
+        Assert(history.Items.Count == ClipboardHistory.MaxItems && history.Items.Any(item => item.Text == "git push" && item.Pinned),
+            "Maksimal 30; yang disematkan tidak terdorong keluar.");
+
+        for (var i = 0; i < 8; i++)
+        {
+            history.AddImage([1, 2, (byte)i], t0.AddHours(1).AddMinutes(i));
+        }
+
+        Assert(history.Items.Count(item => item.IsImage) == ClipboardHistory.MaxImages, "Maksimal 5 gambar.");
+        Assert(history.AddImage([1, 2, 7], t0.AddHours(2)) is { IsImage: true } && history.Items.Count(item => item.IsImage) == ClipboardHistory.MaxImages,
+            "Gambar yang sama tidak dobel.");
+        Assert(history.AddText(new string('x', 30_000), t0)!.Text!.Length == ClipboardHistory.MaxText, "Teks panjang dipotong.");
+
+        var path = Path.Combine(Path.GetTempPath(), "codexbar-clip-test", "pins.json");
+        history.SavePins(path);
+        Assert(!File.ReadAllText(path).Contains("item 3") && File.ReadAllText(path).Contains("git push"), "Hanya yang disematkan yang ditulis ke disk.");
+        var restored = new ClipboardHistory();
+        restored.LoadPins(path);
+        Assert(restored.Items is [{ Text: "git push", Pinned: true }], "Pin dibaca lagi.");
+        history.Clear();
+        Assert(history.Items.All(item => item.Pinned) && history.Items.Count == 1, "Bersihkan: hanya pin yang tersisa.");
+        Console.WriteLine("PASS clipboard tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

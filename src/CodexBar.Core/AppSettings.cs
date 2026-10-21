@@ -97,6 +97,9 @@ public sealed class AppSettings
     /// <summary>Rekap hari ini muncul sendiri sekali di sore hari (17.00).</summary>
     public bool RecapEvening { get; set; } = true;
 
+    /// <summary>Riwayat clipboard di notch (hanya di memori; yang disematkan disimpan). Isian pribadi dari password manager dilewati.</summary>
+    public bool ClipboardHistory { get; set; } = true;
+
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 

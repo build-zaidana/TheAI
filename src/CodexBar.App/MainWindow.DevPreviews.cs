@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_CLIPBOARD=1: the clipboard page with sample copies (nothing is read or saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CLIPBOARD") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewClipboard();
+        }
+
         // CODEXBAR_PREVIEW_RECAP=1: today's recap with sample numbers (nothing is saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_RECAP") is { Length: > 0 } && _notch is not null)
         {

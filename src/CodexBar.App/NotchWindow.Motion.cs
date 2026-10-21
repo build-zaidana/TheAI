@@ -76,6 +76,7 @@ public partial class NotchWindow
         NotchView.Jobs => JobsPanel,
         NotchView.Held => HeldPanel,
         NotchView.Recap => RecapPanel,
+        NotchView.Clipboard => ClipPanel,
         _ => CompactPanel
     };
 
@@ -92,6 +93,7 @@ public partial class NotchWindow
         NotchView.Calendar => CalendarWidth,
         NotchView.Jobs or NotchView.Held => JobsWidth,
         NotchView.Recap => RecapWidth,
+        NotchView.Clipboard => ClipWidth,
         _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
     };
 
@@ -130,7 +132,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

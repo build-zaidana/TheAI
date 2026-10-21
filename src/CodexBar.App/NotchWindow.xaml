@@ -1005,6 +1005,28 @@
                             Content="{local:Tr Salin untuk standup, En=Copy for standup}" Click="RecapCopy_Click" />
                 </StackPanel>
 
+                <!-- Clipboard history: tiles of what was copied lately (click = copy, drag = paste, right-click = pin). -->
+                <StackPanel x:Name="ClipPanel" Margin="20,14,26,14" Width="394" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Clipboard">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Clipboard" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
+                        <TextBlock x:Name="ClipHint" Grid.Column="1" FontSize="11.5" Foreground="#99FFFFFF" Margin="12,0,8,0" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" Text="{local:Tr Klik untuk menyalin · klik kanan untuk menyematkan, En=Click to copy · right-click to pin}" />
+                        <Button Grid.Column="2" Style="{StaticResource NotchTextButton}" Content="{local:Tr Bersihkan, En=Clear}" Click="ClipClear_Click" />
+                    </Grid>
+                    <UniformGrid x:Name="ClipTiles" Columns="3" Margin="0,0,-7,-7" />
+                    <TextBlock x:Name="ClipEmpty" Visibility="Collapsed" FontSize="12" Foreground="#99FFFFFF"
+                               Text="{local:Tr Belum ada yang disalin, En=Nothing copied yet}" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">

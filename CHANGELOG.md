@@ -20,6 +20,10 @@
 
 - **A recap of the day** as a page of the open notch: focus sessions and time, what the agents finished, files they changed, long terminal commands (and how many failed), PR runs. It opens by itself once at 5 pm (Settings → Notch) and copies as a few lines of Markdown for a standup. Kept in a small local file per day, 30 days.
 
+### Added — clipboard history
+
+- **What you copied lately** as a page of the open notch (Settings → Notch): the last 30 texts and 5 images; click one to copy it again, drag it into an app or the prompt, right-click to pin it. Copies marked private (password managers, the Windows "keep out of history" flags) are skipped; only pinned texts are saved, the rest is forgotten when CodexBar quits.
+
 ### Added — agents × focus × calendar
 
 - **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.
