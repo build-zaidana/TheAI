@@ -75,9 +75,9 @@ public sealed class ClaudeCodeProvider : IAgentProvider
             threadId = Guid.NewGuid().ToString();
         }
 
-        // A Claude Code transcript can be tens of megabytes: read it off the caller's (UI) thread.
-        var id = threadId;
-        await Task.Run(() => LoadThread(id), cancellationToken).ConfigureAwait(false);
+        // The history is read when it's needed (the first prompt, or opening the conversation), not
+        // here: at startup this would read a transcript of 100+ MB that nobody may look at.
+        await Task.CompletedTask.ConfigureAwait(false);
         return threadId;
     }
 
@@ -151,7 +151,8 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         CancellationToken cancellationToken = default)
     {
         var executable = _executable ?? ClaudeCodeExecutableLocator.Locate();
-        LoadThread(threadId);
+        // A Claude Code transcript can be tens of megabytes: read it off the caller's (UI) thread.
+        await Task.Run(() => LoadThread(threadId), cancellationToken).ConfigureAwait(false);
 
         var fullPrompt = AppendAttachments(prompt, attachments);
         var resume = _messages.Any(m => m.Role == "assistant");

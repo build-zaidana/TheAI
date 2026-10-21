@@ -19,6 +19,7 @@
 ### Changed — lighter
 
 - **About a third of the memory**: idle private memory goes from ~430 MB to ~125 MB (working set ~610 → ~230 MB). The app is no longer a compressed single file (that unpacked every assembly into memory at each start; the installer compresses it now, and is smaller for it), the startup garbage is collected once a minute in, and listing Claude Code sessions skips their tool output as bytes instead of reading 100 MB transcripts into strings (1.9 s → 0.35 s).
+- **No memory spike at launch**: the last Claude Code conversation's transcript is read when it's opened or continued, not at startup (it used to allocate ~270 MB in the first seconds); memory now stays around 110–125 MB from the start.
 
 ### Added — out of the way
 
