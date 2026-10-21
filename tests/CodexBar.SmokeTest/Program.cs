@@ -102,6 +102,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return liveJobs;
     }
 
+    var pullRequests = RunPullRequestTests();
+    if (pullRequests != 0)
+    {
+        return pullRequests;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1435,6 +1441,54 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunPullRequestTests()
+{
+    try
+    {
+        const string running = """
+            {"number":128,"title":"Live activity API","url":"https://github.com/o/r/pull/128","headRefOid":"abc",
+             "statusCheckRollup":[
+               {"__typename":"CheckRun","name":"build","status":"COMPLETED","conclusion":"SUCCESS"},
+               {"__typename":"CheckRun","name":"lint","status":"COMPLETED","conclusion":"FAILURE"},
+               {"__typename":"CheckRun","name":"tests","status":"IN_PROGRESS","conclusion":""},
+               {"__typename":"StatusContext","context":"ci/vercel","state":"PENDING"},
+               {"__typename":"CheckRun","name":"docs","status":"COMPLETED","conclusion":"SKIPPED"}]}
+            """;
+        var pr = PullRequestStatus.Parse(running)!;
+        Assert(pr is { Number: 128, Total: 5, Finished: 3, Pending: true, Passed: false }, $"PR dibaca salah: {pr}");
+        Assert(pr.Failed.SequenceEqual(["lint"]) && pr.Running.SequenceEqual(["tests", "ci/vercel"]), "Check gagal/berjalan salah.");
+
+        var job = pr.ToJob(@"C:\r", "abc/passed-earlier", out var reported);
+        Assert(job is { Id: "gh-pr", Title: "CI #128", Progress: 0.6, Done: false, Failed: null } && job.Url == "https://github.com/o/r/pull/128/checks",
+            $"Job PR berjalan salah: {job}");
+        Assert(pr.ToJob(@"C:\r", reported, out _) is null, "Keadaan sama tidak dilaporkan dua kali.");
+
+        var failed = PullRequestStatus.Parse(running.Replace("IN_PROGRESS", "COMPLETED").Replace("\"conclusion\":\"\"", "\"conclusion\":\"SUCCESS\"").Replace("PENDING", "SUCCESS"))!;
+        Assert(failed is { Pending: false, Passed: false }, "Semua selesai, satu gagal.");
+        Assert(failed.ToJob(@"C:\r", reported, out var end) is { Failed: "lint" }, "Gagal dilaporkan sekali di akhir.");
+        Assert(failed.ToJob(@"C:\r", end, out _) is null, "Akhir yang sama tidak diulang.");
+        Assert(failed.ToJob(@"C:\r", string.Empty, out var fresh) is null && fresh == "abc/failed", "Yang selesai sebelum CodexBar melihat: diam.");
+
+        // A re-run: the later entry of the same name wins.
+        var rerun = PullRequestStatus.Parse("""
+            {"number":7,"headRefOid":"d","statusCheckRollup":[
+              {"name":"tests","status":"COMPLETED","conclusion":"FAILURE"},
+              {"name":"tests","status":"COMPLETED","conclusion":"SUCCESS"}]}
+            """)!;
+        Assert(rerun is { Total: 1, Passed: true }, "Check yang diulang: yang terakhir berlaku.");
+        Assert(rerun.ToJob("", "d/running/0", out _) is { Done: true, Progress: 1 }, "Lulus = selesai.");
+        Assert(PullRequestStatus.Parse("""{"number":9,"statusCheckRollup":[]}""")!.ToJob("", "x", out _) is null, "Tanpa check: tidak ada apa-apa.");
+        Assert(PullRequestStatus.Parse("no pull requests found") is null, "Bukan JSON: null.");
+        Console.WriteLine("PASS pull request tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

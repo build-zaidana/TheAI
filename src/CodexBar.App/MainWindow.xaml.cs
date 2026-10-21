@@ -2344,6 +2344,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     bool INotchHost.HideInFullscreen => _settings.HideInFullscreen;
     bool INotchHost.LiveActivities => _settings.LiveActivities;
+    bool INotchHost.GitHubChecks => _settings.GitHubChecks;
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge

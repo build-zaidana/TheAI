@@ -394,6 +394,15 @@
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,60,0">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr CI pull request di notch, En=Pull request CI in the notch}" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Lewat GitHub CLI (gh) yang sudah login — tanpa token baru, En=Through the signed-in GitHub CLI (gh) — no new token}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="GitHubSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Volume / kecerahan / baterai di notch, En=Volume / brightness / battery in the notch}" />
                                         <CheckBox x:Name="SystemHudSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>

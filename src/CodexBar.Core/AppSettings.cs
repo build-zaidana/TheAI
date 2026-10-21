@@ -91,6 +91,9 @@ public sealed class AppSettings
     /// <summary>Skrip boleh menampilkan aktivitas di notch lewat `codexbar activity` / named pipe pengguna ini.</summary>
     public bool LiveActivities { get; set; } = true;
 
+    /// <summary>CI pull request branch yang sedang dikerjakan tampil di notch (lewat GitHub CLI yang sudah login).</summary>
+    public bool GitHubChecks { get; set; } = true;
+
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 

@@ -12,6 +12,10 @@
 
 - **PowerShell commands that run 10 seconds or more show up in the notch by themselves** (Settings → Notch, adds one marked line to `$PROFILE`, a backup is kept, switching it off takes it out): the command and its time while it runs, then a check and the duration or a cross and the exit code; "Ask Claude" tells the agent which command failed and in which folder. Quick commands never appear. Prompt themes keep their `$?` and `$LASTEXITCODE`.
 
+### Added — pull request CI
+
+- **The current branch's PR checks in the notch** (Settings → Notch, on when the GitHub CLI is signed in): a ring with how many checks are done while CI runs, then a check — or a cross with the failed checks and "Ask Claude"; the row opens the PR's checks on GitHub. Read with `gh` (no token of CodexBar's own) in the folder of the last terminal command or the workspace, every 30 s while CI runs, every 5 min otherwise, and right after a `git push`. Runs that ended before CodexBar started aren't announced.
+
 ### Added — agents × focus × calendar
 
 - **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.

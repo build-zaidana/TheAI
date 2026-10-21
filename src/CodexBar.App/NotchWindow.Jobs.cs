@@ -97,6 +97,13 @@ public partial class NotchWindow
         {
             PulseCompact();
         }
+
+        // A push from the terminal: its PR's checks are about to start.
+        if (job is { State: LiveJobState.Done } && job.Id.StartsWith("sh-", StringComparison.Ordinal) &&
+            (job.Title.StartsWith("git push", StringComparison.OrdinalIgnoreCase) || job.Title.StartsWith("gh pr create", StringComparison.OrdinalIgnoreCase)))
+        {
+            PullRequestSoon();
+        }
     }
 
     private void JobsChanged(bool layout)

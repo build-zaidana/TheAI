@@ -51,6 +51,9 @@ internal interface INotchHost
     /// <summary>Scripts may report live activities (codexbar activity …) to the notch.</summary>
     bool LiveActivities { get; }
 
+    /// <summary>The current branch's pull request checks in the notch (through the signed-in GitHub CLI).</summary>
+    bool GitHubChecks { get; }
+
     /// <summary>During a focus session or a meeting, agents' results and requests wait for the break.</summary>
     bool HoldDuringFocus { get; }
 
@@ -192,6 +195,7 @@ public partial class NotchWindow : Window
         InitFullscreen();
         InitJobs();
         InitFocus();
+        InitGitHub();
         ApplyView(animate: false);
         ApplyState();
     }
