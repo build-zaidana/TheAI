@@ -103,6 +103,9 @@ public sealed class AppSettings
     /// <summary>Unduhan yang selesai masuk rak file selama 2 jam.</summary>
     public bool DownloadsToShelf { get; set; } = true;
 
+    /// <summary>Halaman sistem (CPU, GPU, RAM, disk) di notch dan peringatan saat RAM / disk C: hampir penuh.</summary>
+    public bool SystemMonitor { get; set; } = true;
+
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 

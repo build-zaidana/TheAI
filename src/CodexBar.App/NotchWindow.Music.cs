@@ -245,6 +245,7 @@ public partial class NotchWindow
             NotchView.Jobs => JobsShowing,
             NotchView.Recap => false,
             NotchView.Clipboard => false,
+            NotchView.System => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -288,6 +289,9 @@ public partial class NotchWindow
                 break;
             case NotchView.Clipboard:
                 OpenClipboard();
+                break;
+            case NotchView.System:
+                OpenSystem();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -339,6 +343,11 @@ public partial class NotchWindow
         if (RecapAvailable)
         {
             pages.Add(NotchView.Recap);
+        }
+
+        if (SystemPageAvailable)
+        {
+            pages.Add(NotchView.System);
         }
 
         return pages;

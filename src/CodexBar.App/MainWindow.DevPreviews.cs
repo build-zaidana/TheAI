@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_SYSTEM=open|alert: the machine page (live numbers) or the low-memory HUD.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SYSTEM") is { Length: > 0 } systemPreview && _notch is not null)
+        {
+            _notch.PreviewSystem(systemPreview);
+        }
+
         // CODEXBAR_PREVIEW_CLIPBOARD=1: the clipboard page with sample copies (nothing is read or saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CLIPBOARD") is { Length: > 0 } && _notch is not null)
         {

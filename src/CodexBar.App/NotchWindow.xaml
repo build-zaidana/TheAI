@@ -1027,6 +1027,15 @@
                                Text="{local:Tr Belum ada yang disalin, En=Nothing copied yet}" />
                 </StackPanel>
 
+                <!-- The machine: CPU, GPU, memory, the system drive. -->
+                <StackPanel x:Name="SystemPanel" Margin="20,12,26,12" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Sistem">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <StackPanel x:Name="SystemRows" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">

@@ -2348,6 +2348,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.RecapEvening => _settings.RecapEvening;
     bool INotchHost.ClipboardHistory => _settings.ClipboardHistory;
     bool INotchHost.DownloadsToShelf => _settings.DownloadsToShelf;
+    bool INotchHost.SystemMonitor => _settings.SystemMonitor;
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge

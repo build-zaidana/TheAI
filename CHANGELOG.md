@@ -28,6 +28,10 @@
 
 - **Finished downloads go on the file shelf for two hours** (Settings → Notch), with a short check and the file's name in the notch. The real Downloads folder is watched; partial files (.crdownload, .part…) are ignored and a file is taken only once it has stopped growing. Files put on the shelf by hand stay as before.
 
+### Added — system monitor
+
+- **The machine as a page of the open notch** (Settings → Notch): CPU and GPU the way Task Manager counts them, memory used of total, free space on the system drive — read only while the page is shown. A short HUD warning when memory stays at 90 % or more, or the drive drops under 5 % / 5 GB, then quiet for 10 minutes; a busy CPU or GPU is never a warning. No temperatures: Windows has no standard way to read them without admin rights or a vendor SDK.
+
 ### Added — agents × focus × calendar
 
 - **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.

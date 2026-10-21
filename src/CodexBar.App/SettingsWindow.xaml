@@ -422,6 +422,15 @@
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,60,0">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Monitor sistem, En=System monitor}" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Halaman CPU / GPU / RAM / disk dan peringatan saat RAM atau C: hampir penuh, En=A CPU / GPU / RAM / disk page and a warning when memory or C: runs short}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="SystemMonitorSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Volume / kecerahan / baterai di notch, En=Volume / brightness / battery in the notch}" />
                                         <CheckBox x:Name="SystemHudSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>

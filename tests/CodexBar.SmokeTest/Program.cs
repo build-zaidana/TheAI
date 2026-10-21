@@ -1501,6 +1501,17 @@ static int RunClipboardTests()
         }
 
         Assert(DownloadFilter.IsCandidate(@"C:\Downloads\laporan-Q3.pdf") && DownloadFilter.IsCandidate(@"C:\Downloads\setup.exe"), "Unduhan selesai diterima.");
+        var alerts = new SystemAlerts();
+        const ulong GB = 1024UL * 1024 * 1024;
+        SystemSample Sample(double memory, ulong free) => new(99, 99, memory, 0, 32 * GB, free, 500 * GB);
+        var s0 = DateTimeOffset.Now;
+        Assert(alerts.Check(Sample(50, 200 * GB), s0) is null, "Normal (CPU/GPU 99 % bukan peringatan).");
+        Assert(alerts.Check(Sample(93, 200 * GB), s0) is null, "RAM tinggi sekali: belum.");
+        Assert(alerts.Check(Sample(94, 200 * GB), s0) is { Kind: SystemAlertKind.Memory, Value: 94 }, "RAM tinggi dua kali: peringatan.");
+        Assert(alerts.Check(Sample(95, 200 * GB), s0.AddMinutes(1)) is null, "Lalu diam 10 menit.");
+        Assert(alerts.Check(Sample(95, 200 * GB), s0.AddMinutes(11)) is { Kind: SystemAlertKind.Memory }, "Setelah 10 menit boleh lagi.");
+        Assert(alerts.Check(Sample(40, 4 * GB), s0.AddMinutes(12)) is { Kind: SystemAlertKind.Disk }, "Disk C: < 5 GB: peringatan.");
+        Assert(SystemAlerts.Bytes(20 * GB) == "20 GB" && SystemAlerts.Bytes(512UL * 1024 * 1024) == "512 MB", "Format ukuran.");
         Console.WriteLine("PASS clipboard tests");
         return 0;
     }
