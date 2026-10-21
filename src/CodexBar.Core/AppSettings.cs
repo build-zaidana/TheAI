@@ -94,6 +94,9 @@ public sealed class AppSettings
     /// <summary>CI pull request branch yang sedang dikerjakan tampil di notch (lewat GitHub CLI yang sudah login).</summary>
     public bool GitHubChecks { get; set; } = true;
 
+    /// <summary>Rekap hari ini muncul sendiri sekali di sore hari (17.00).</summary>
+    public bool RecapEvening { get; set; } = true;
+
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 

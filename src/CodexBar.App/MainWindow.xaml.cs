@@ -2345,6 +2345,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.HideInFullscreen => _settings.HideInFullscreen;
     bool INotchHost.LiveActivities => _settings.LiveActivities;
     bool INotchHost.GitHubChecks => _settings.GitHubChecks;
+    bool INotchHost.RecapEvening => _settings.RecapEvening;
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge
@@ -4052,6 +4053,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private void ShowError(string message)
     {
+        DiagnosticsLog.Error("UI", message);
         SetStatus(L("status.error"), StatusErrorBrush);
         _streamingAgent = null;
         var markdown = $"**Error:** {message}";

@@ -16,6 +16,10 @@
 
 - **The current branch's PR checks in the notch** (Settings → Notch, on when the GitHub CLI is signed in): a ring with how many checks are done while CI runs, then a check — or a cross with the failed checks and "Ask Claude"; the row opens the PR's checks on GitHub. Read with `gh` (no token of CodexBar's own) in the folder of the last terminal command or the workspace, every 30 s while CI runs, every 5 min otherwise, and right after a `git push`. Runs that ended before CodexBar started aren't announced.
 
+### Added — today's recap
+
+- **A recap of the day** as a page of the open notch: focus sessions and time, what the agents finished, files they changed, long terminal commands (and how many failed), PR runs. It opens by itself once at 5 pm (Settings → Notch) and copies as a few lines of Markdown for a standup. Kept in a small local file per day, 30 days.
+
 ### Added — agents × focus × calendar
 
 - **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.
@@ -28,6 +32,10 @@
 
 - **About a third of the memory**: idle private memory goes from ~430 MB to ~125 MB (working set ~610 → ~230 MB). The app is no longer a compressed single file (that unpacked every assembly into memory at each start; the installer compresses it now, and is smaller for it), the startup garbage is collected once a minute in, and listing Claude Code sessions skips their tool output as bytes instead of reading 100 MB transcripts into strings (1.9 s → 0.35 s).
 - **No memory spike at launch**: the last Claude Code conversation's transcript is read when it's opened or continued, not at startup (it used to allocate ~270 MB in the first seconds); memory now stays around 110–125 MB from the start.
+
+### Fixed
+
+- A media player that reports no playback or timeline info yet (a browser tab still loading) no longer breaks the music page.
 
 ### Added — out of the way
 

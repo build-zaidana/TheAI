@@ -735,6 +735,11 @@ public partial class NotchWindow
 
     private void OnTimerFinished(TimerFinished finished)
     {
+        if (finished is { Mode: TimerMode.Pomodoro, Phase: PomodoroPhase.Focus } && !_timerPreview)
+        {
+            RecordDay(day => day.Focus(finished.Duration));
+        }
+
         if (!_timerPreview)
         {
             CompletionNotifier.PlaySound();

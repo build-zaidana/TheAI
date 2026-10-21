@@ -114,6 +114,7 @@ internal sealed class MediaMonitor : IDisposable
             if (session is not null)
             {
                 var properties = await session.TryGetMediaPropertiesAsync();
+                // Some players (browser tabs mid-load) report no playback or timeline info yet.
                 var playback = session.GetPlaybackInfo();
                 var timeline = session.GetTimelineProperties();
                 var title = properties?.Title ?? string.Empty;
@@ -134,13 +135,13 @@ internal sealed class MediaMonitor : IDisposable
                         properties?.AlbumTitle ?? string.Empty,
                         appId,
                         AppName(appId),
-                        playback.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
-                        timeline.Position,
-                        timeline.EndTime - timeline.StartTime,
-                        timeline.LastUpdatedTime == default ? DateTimeOffset.Now : timeline.LastUpdatedTime,
-                        playback.Controls.IsPlaybackPositionEnabled,
-                        playback.Controls.IsNextEnabled,
-                        playback.Controls.IsPreviousEnabled,
+                        playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
+                        timeline?.Position ?? TimeSpan.Zero,
+                        timeline is null ? TimeSpan.Zero : timeline.EndTime - timeline.StartTime,
+                        timeline is null || timeline.LastUpdatedTime == default ? DateTimeOffset.Now : timeline.LastUpdatedTime,
+                        playback?.Controls?.IsPlaybackPositionEnabled == true,
+                        playback?.Controls?.IsNextEnabled == true,
+                        playback?.Controls?.IsPreviousEnabled == true,
                         _art);
                 }
             }
@@ -153,7 +154,7 @@ internal sealed class MediaMonitor : IDisposable
         }
         catch (Exception exception)
         {
-            CodexBar.Core.DiagnosticsLog.Error("Media", exception.Message);
+            CodexBar.Core.DiagnosticsLog.Error("Media", exception.Message, exception);
         }
         finally
         {

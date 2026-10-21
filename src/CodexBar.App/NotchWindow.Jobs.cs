@@ -98,6 +98,18 @@ public partial class NotchWindow
             PulseCompact();
         }
 
+        if (job is { State: LiveJobState.Done or LiveJobState.Failed } && (update.Done || update.Failed is not null))
+        {
+            if (job.Id.StartsWith("sh-", StringComparison.Ordinal))
+            {
+                RecordDay(day => day.Command(job.State == LiveJobState.Done));
+            }
+            else if (job.Id == "gh-pr")
+            {
+                RecordDay(day => day.PullRequest(job.Title + (job.State == LiveJobState.Done ? " ✓" : " ✕ " + job.Detail)));
+            }
+        }
+
         // A push from the terminal: its PR's checks are about to start.
         if (job is { State: LiveJobState.Done } && job.Id.StartsWith("sh-", StringComparison.Ordinal) &&
             (job.Title.StartsWith("git push", StringComparison.OrdinalIgnoreCase) || job.Title.StartsWith("gh pr create", StringComparison.OrdinalIgnoreCase)))

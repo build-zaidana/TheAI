@@ -108,6 +108,12 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
         return pullRequests;
     }
 
+    var dayLog = RunDayLogTests();
+    if (dayLog != 0)
+    {
+        return dayLog;
+    }
+
     return await RunDeterministicTestsAsync();
 }
 
@@ -1441,6 +1447,56 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunDayLogTests()
+{
+    try
+    {
+        static string En(string id, string en) => en;
+        var folder = Path.Combine(Path.GetTempPath(), "codexbar-daylog-test");
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+
+        var day = new DateOnly(2026, 10, 21);
+        var log = DayLog.Load(day, folder);
+        Assert(log.IsEmpty && log.Day == day, "Hari baru: kosong.");
+        log.Focus(TimeSpan.FromMinutes(25));
+        log.Focus(TimeSpan.FromMinutes(25));
+        log.Focus(TimeSpan.FromMinutes(50));
+        log.AgentTask("Claude", "Refactor   auth\nmodule");
+        log.AgentTask("Codex", "Fix the login test");
+        log.AgentTask("Claude", "Refactor auth module");   // the same task again: once, moved last
+        log.ChangedFiles([@"C:\p\a.cs", @"C:\P\A.cs", @"C:\p\b.cs"]);
+        log.Command(true);
+        log.Command(false);
+        log.PullRequest("CI #128 passed");
+        Assert(log is { FocusSessions: 3, FocusMinutes: 100, Commands: 2, FailedCommands: 1 } && log.Files.Count == 2 &&
+               log.AgentTasks.SequenceEqual(["Fix the login test", "Refactor auth module"]) && log.Agents.SequenceEqual(["Claude", "Codex"]),
+            "Catatan hari salah.");
+        log.Save(folder);
+        var again = DayLog.Load(day, folder);
+        Assert(again.FocusMinutes == 100 && again.Files.Contains(@"c:\p\A.CS") && again.AgentTasks.Count == 2, "Disimpan dan dibaca lagi.");
+
+        var markdown = again.ToMarkdown(En);
+        Assert(markdown.Contains("Focus: 3 sessions, 1h 40m") && markdown.Contains("Done with agents (Claude, Codex):") &&
+               markdown.Contains("  - Refactor auth module") && markdown.Contains("2 files changed, 2 commands (1 failed)") &&
+               markdown.Contains("- CI #128 passed"), $"Markdown standup salah:\n{markdown}");
+        Assert(DayLog.Duration(45, En) == "45m" && DayLog.Duration(120, En) == "2h", "Format durasi.");
+
+        new DayLog { Day = day.AddDays(-40) }.Save(folder);
+        DayLog.Prune(TimeSpan.FromDays(30), day, folder);
+        Assert(!File.Exists(DayLog.PathFor(day.AddDays(-40), folder)) && File.Exists(DayLog.PathFor(day, folder)), "Hari lama dihapus.");
+        Console.WriteLine("PASS day log tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 

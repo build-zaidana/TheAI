@@ -243,6 +243,7 @@ public partial class NotchWindow
             NotchView.Shelf => ShelfShowing,
             NotchView.Calendar => CalendarShowing,
             NotchView.Jobs => JobsShowing,
+            NotchView.Recap => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -280,6 +281,9 @@ public partial class NotchWindow
                 break;
             case NotchView.Jobs:
                 OpenJobs();
+                break;
+            case NotchView.Recap:
+                OpenRecap();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -321,6 +325,11 @@ public partial class NotchWindow
         if (ShelfShowing)
         {
             pages.Add(NotchView.Shelf);
+        }
+
+        if (RecapAvailable)
+        {
+            pages.Add(NotchView.Recap);
         }
 
         return pages;

@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_RECAP=1: today's recap with sample numbers (nothing is saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_RECAP") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewRecap();
+        }
+
         // CODEXBAR_PREVIEW_HELD=compact|open: agents held during focus — the count, then the break panel.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HELD") is { Length: > 0 } heldPreview && _notch is not null)
         {

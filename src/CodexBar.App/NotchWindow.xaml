@@ -989,6 +989,22 @@
                     <StackPanel x:Name="HeldRows" />
                 </StackPanel>
 
+                <!-- Today, recapped: tiles with the day's numbers, the latest things done, a copy for standup. -->
+                <StackPanel x:Name="RecapPanel" Margin="20,14,26,16" Width="414" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rekap hari ini">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock x:Name="RecapTitle" Text="{local:Tr Hari ini, En=Today}" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
+                        <TextBlock x:Name="RecapDate" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <UniformGrid x:Name="RecapTiles" Columns="4" Rows="1" Margin="0,0,0,10" />
+                    <StackPanel x:Name="RecapRows" />
+                    <Button x:Name="RecapCopy" Style="{StaticResource NotchPrimaryPill}" Height="28" FontSize="12" HorizontalAlignment="Right" Margin="0,8,0,0"
+                            Content="{local:Tr Salin untuk standup, En=Copy for standup}" Click="RecapCopy_Click" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
