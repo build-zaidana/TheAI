@@ -181,7 +181,7 @@ public sealed class JsonSettingsStore
             "openrouter" => "openrouter",
             _ => "codex"
         };
-        settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";
+        settings.Language = settings.Language?.ToLowerInvariant() is "en" or "id" ? settings.Language.ToLowerInvariant() : "auto";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
         settings.NotchOffset = double.IsFinite(settings.NotchOffset) ? Math.Clamp(settings.NotchOffset, -0.45, 0.45) : 0;

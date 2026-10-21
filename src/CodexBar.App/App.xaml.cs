@@ -87,7 +87,13 @@ public partial class App : System.Windows.Application
             var migrated = CodexBar.Providers.AppPaths.MigrateLegacyData();
             MigrateLegacyCredentials();
             var settingsStore = new JsonSettingsStore();
+            var firstStart = !System.IO.File.Exists(settingsStore.SettingsPath);
             var settings = await settingsStore.LoadAsync();
+            if (firstStart)
+            {
+                // A new user starts with the agent they already have, not an onboarding for another one.
+                settings.Provider = InstalledAgent() ?? settings.Provider;
+            }
             if (settings.UpdateRepository is "build-zaidana/CodexBar" or "build-zaidana/TheAI")
             {
                 settings.UpdateRepository = AppSettings.ReleaseRepository;
@@ -125,6 +131,21 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>The CLI agent installed on this PC: Codex first (the original default), else Claude Code.</summary>
+    private static string? InstalledAgent()
+    {
+        try
+        {
+            CodexExecutableLocator.Locate();
+            return "codex";
+        }
+        catch (Exception)
+        {
+        }
+
+        return ClaudeCodeExecutableLocator.TryLocate() is not null ? "claude-code" : null;
     }
 
     private static void MigrateLegacyCredentials()
