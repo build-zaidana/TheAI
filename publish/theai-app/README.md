@@ -27,7 +27,7 @@ Free · Windows 10 (1809+) and 11 · x64 · no account needed
 3. If Windows shows "Windows protected your PC", choose **More info → Run anyway**. The installer isn't code-signed yet; each release lists its SHA-256 so you can check the download:
 
    ```powershell
-   Get-FileHash .\TheAI-Setup-1.5.0.exe -Algorithm SHA256
+   Get-FileHash .\TheAI-Setup-1.6.0.exe -Algorithm SHA256
    ```
 
 TheAI needs one AI to talk to: Claude Code or Codex (signed in with your subscription), or an API key for Anthropic, OpenAI or OpenRouter. It walks you through this on first start.

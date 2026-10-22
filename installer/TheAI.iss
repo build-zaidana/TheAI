@@ -4,7 +4,7 @@
 
 #define MyAppName "TheAI"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.5.0"
+  #define MyAppVersion "1.6.0"
 #endif
 #define MyAppPublisher "build-zaidana"
 #define MyAppURL "https://build-zaidana.github.io/theai-app/"
@@ -56,6 +56,8 @@ en.Extras=Extras:
 id.Extras=Tambahan:
 en.LaunchNow=Start TheAI now
 id.LaunchNow=Jalankan TheAI sekarang
+en.RemoveData=Also delete your TheAI settings, conversations and history on this PC?%n%nChoose No to keep them for a later reinstall. Saved API keys stay in Windows Credential Manager either way.
+id.RemoveData=Hapus juga pengaturan, percakapan, dan riwayat TheAI di PC ini?%n%nPilih No untuk menyimpannya kalau nanti dipasang lagi. API key yang tersimpan tetap ada di Windows Credential Manager.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopIcon}"; GroupDescription: "{cm:Extras}"; Flags: unchecked
@@ -91,4 +93,15 @@ Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent; Check: IsInApp
 function IsInAppUpdate: Boolean;
 begin
   Result := ExpandConstant('{param:update|0}') = '1';
+end;
+
+// Uninstalling asks whether to remove the data folder too (kept by default, and always kept when
+// uninstalling silently).
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if (CurUninstallStep = usPostUninstall) and not UninstallSilent then
+  begin
+    if MsgBox(ExpandConstant('{cm:RemoveData}'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      DelTree(ExpandConstant('{localappdata}\TheAI'), True, True, True);
+  end;
 end;

@@ -1,18 +1,10 @@
 # Changelog
 
-## 1.5.0 — 2026-10-21 · CodexBar is now TheAI
+## 1.6.0 — 2026-10-22 · Today, water, lyrics
 
-### Changed — a new name
+### Added — fewer pages, if you like
 
-- **CodexBar is now TheAI** (there's another app called CodexBar, and "Codex" is OpenAI's name). Upgrading keeps everything: settings, conversations, the shelf, timers and saved keys move over on the first start, and the installer replaces the old app.
-- The interface follows Windows' language by default (Indonesian or English); either can still be chosen in Settings.
-- Windows 10 (1809 and later) is supported again.
-
-### Changed — only what you want
-
-- **Every notch feature is optional.** A new user starts with the agent and the launcher; the first start shows a short tour and a feature picker (music, timer and the HUD suggested). Settings → Notch → Choose features changes it any time. Existing users keep what they had.
-- A new **TheAI icon**: the notch at the top of a screen.
-- The release also has a **portable zip** for running TheAI without installing it.
+- **Two page modes.** Combined: weather, the next meeting, water and reminders share one **Today** page of short rows (a row opens the full page; `/today` opens it). Separate: a page per feature, as before. New users start combined; Settings → Appearance switches it.
 
 ### Added — small things in the notch
 
@@ -26,9 +18,30 @@
 
 - At rest TheAI now uses under 0.5% of one CPU core (from about 0.8%): the compact equalizer stands still, fullscreen apps are noticed through Windows events instead of a poll, and timers run only while their feature needs them.
 
+### Changed — quicker and clearer
+
+- The notch opens faster: it reacts to the pointer in 150 ms (from 280) and the page settles sooner.
+- The first-start feature picker shows a picture of each feature in the notch as you go through the list.
+- Settings: the water reminder has its own fields (goal, glass, minutes, hours) and the page mode has a switch.
+- Uninstalling asks whether to delete your TheAI data too (kept unless you say yes).
+
 ### Fixed
 
 - The lyric placeholder note and the "…" for cut-off text showed as garbled characters.
+
+## 1.5.0 — 2026-10-21 · CodexBar is now TheAI
+
+### Changed — a new name
+
+- **CodexBar is now TheAI** (there's another app called CodexBar, and "Codex" is OpenAI's name). Upgrading keeps everything: settings, conversations, the shelf, timers and saved keys move over on the first start, and the installer replaces the old app.
+- The interface follows Windows' language by default (Indonesian or English); either can still be chosen in Settings.
+- Windows 10 (1809 and later) is supported again.
+
+### Changed — only what you want
+
+- **Every notch feature is optional.** A new user starts with the agent and the launcher; the first start shows a short tour and a feature picker (music, timer and the HUD suggested). Settings → Notch → Choose features changes it any time. Existing users keep what they had.
+- A new **TheAI icon**: the notch at the top of a screen.
+- The release also has a **portable zip** for running TheAI without installing it.
 
 ### Added — reminders, weather, selection
 
