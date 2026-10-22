@@ -281,6 +281,7 @@ public partial class NotchWindow
             NotchView.Reminders => false,
             NotchView.Weather => false,
             NotchView.Water => false,
+            NotchView.Today => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -337,6 +338,9 @@ public partial class NotchWindow
             case NotchView.Water:
                 OpenWater();
                 break;
+            case NotchView.Today:
+                OpenToday();
+                break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
                 _musicTick.Stop();
@@ -372,7 +376,17 @@ public partial class NotchWindow
         {
             pages.Add(NotchView.Timer);
         }
-        if (CalendarPageAvailable)
+        var combined = TodayAvailable;
+        if (combined)
+        {
+            pages.Add(NotchView.Today);
+            if (FoldedIntoToday(_view))
+            {
+                pages.Add(_view);   // a row's full page, one scroll from Today
+            }
+        }
+
+        if (CalendarPageAvailable && !combined)
         {
             pages.Add(NotchView.Calendar);
         }
@@ -382,19 +396,22 @@ public partial class NotchWindow
             pages.Add(NotchView.Shelf);
         }
 
-        if (WeatherAvailable)
+        if (!combined)
         {
-            pages.Add(NotchView.Weather);
-        }
+            if (WeatherAvailable)
+            {
+                pages.Add(NotchView.Weather);
+            }
 
-        if (RemindersAvailable)
-        {
-            pages.Add(NotchView.Reminders);
-        }
+            if (RemindersAvailable)
+            {
+                pages.Add(NotchView.Reminders);
+            }
 
-        if (WaterAvailable)
-        {
-            pages.Add(NotchView.Water);
+            if (WaterAvailable)
+            {
+                pages.Add(NotchView.Water);
+            }
         }
 
         if (ClipboardAvailable)

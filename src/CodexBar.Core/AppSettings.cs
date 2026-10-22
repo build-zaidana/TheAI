@@ -126,6 +126,9 @@ public sealed class AppSettings
     /// <summary>HUD Caps Lock dan pergantian bahasa keyboard (hanya tombol Caps Lock yang dibaca; tidak ada yang disimpan).</summary>
     public bool KeyboardHud { get; set; }
 
+    /// <summary>Cuaca, rapat berikutnya, air, dan pengingat digabung jadi satu halaman "Hari ini" (false = satu halaman per fitur).</summary>
+    public bool CombinedPages { get; set; }
+
     /// <summary>Sepasang mata kecil di notch saat tidak ada apa-apa: berkedip, tertidur saat komputer ditinggal.</summary>
     public bool CompanionEyes { get; set; }
 
@@ -158,6 +161,7 @@ public sealed class AppSettings
         MusicInNotch = false;
         SystemHud = false;
         KeyboardHud = false;
+        CombinedPages = true;
         TimerInNotch = false;
         LiveActivities = false;
         HoldDuringFocus = false;
@@ -253,6 +257,7 @@ public sealed class AppSettings
         KeyboardHud = source.KeyboardHud;
         WaterEnabled = source.WaterEnabled;
         CompanionEyes = source.CompanionEyes;
+        CombinedPages = source.CombinedPages;
         WaterGoalMl = source.WaterGoalMl;
         WaterGlassMl = source.WaterGlassMl;
         WaterEveryMinutes = source.WaterEveryMinutes;

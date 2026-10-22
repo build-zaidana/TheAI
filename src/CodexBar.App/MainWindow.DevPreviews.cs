@@ -151,6 +151,12 @@ public partial class MainWindow
             _notch.PreviewSelection();
         }
 
+        // CODEXBAR_PREVIEW_TODAY=1: the combined Today page with sample weather, water and reminders (never saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TODAY") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewToday();
+        }
+
         // CODEXBAR_PREVIEW_EYES=awake|asleep: the idle companion in the compact notch.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_EYES") is { Length: > 0 } eyesPreview && _notch is not null)
         {

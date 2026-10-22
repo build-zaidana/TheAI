@@ -248,6 +248,9 @@ public partial class NotchWindow
             case "water":
                 OpenWater();
                 break;
+            case "today":
+                OpenToday();
+                break;
             case "activities":
                 if (_jobs.Visible(now).Count > 0)
                 {

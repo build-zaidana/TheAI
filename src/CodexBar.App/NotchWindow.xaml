@@ -1100,6 +1100,15 @@
                     <StackPanel x:Name="WorldClockRows" />
                 </StackPanel>
 
+                <!-- Today (the combined page mode): weather, the next meeting, water and reminders as rows. -->
+                <StackPanel x:Name="TodayPanel" Margin="20,12,20,12" Width="380" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Hari ini">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <StackPanel x:Name="TodayRows" />
+                </StackPanel>
+
                 <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
                 <StackPanel x:Name="WaterPanel" Margin="20,14,20,12" Width="380" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">
