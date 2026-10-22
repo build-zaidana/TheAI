@@ -78,6 +78,30 @@ if (-not (Test-Path $exe)) { throw "Publish tidak menghasilkan $exe" }
 # 2) Sign exe (opsional)
 Invoke-Sign $exe
 
+# 2b) The portable version: the same signed exe in a zip, for people who don't want an installer.
+$projectXmlEarly = [xml](Get-Content (Join-Path $repoRoot "src\CodexBar.App\CodexBar.App.csproj"))
+$portableVersion = ([string]$projectXmlEarly.Project.PropertyGroup.Version).Trim()
+$portableDir = Join-Path $env:TEMP ("TheAI-portable-" + [Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force (Join-Path $portableDir "Fonts") | Out-Null
+Copy-Item $exe $portableDir
+$ofl = Join-Path $repoRoot "artifacts\$Runtime\Fonts\OFL.txt"
+if (Test-Path $ofl) { Copy-Item $ofl (Join-Path $portableDir "Fonts") }
+@"
+TheAI $portableVersion - portable
+
+Run TheAI.exe. Nothing is installed: no Start menu entry, no uninstaller.
+Settings and conversations are kept in %LOCALAPPDATA%\TheAI (delete that folder to remove them).
+To start TheAI when you sign in, turn it on in TheAI's Settings.
+
+https://build-zaidana.github.io/theai-app/
+"@ | Set-Content (Join-Path $portableDir "README.txt") -Encoding ascii
+New-Item -ItemType Directory -Force (Join-Path $repoRoot "artifacts\installer") | Out-Null
+$zip = Join-Path $repoRoot "artifacts\installer\TheAI-$portableVersion-portable.zip"
+if (Test-Path $zip) { Remove-Item $zip }
+Compress-Archive -Path (Join-Path $portableDir "*") -DestinationPath $zip -CompressionLevel Optimal
+Remove-Item $portableDir -Recurse -Force
+Write-Host "Portable zip: $zip"
+
 # 3) Kompilasi installer dgn Inno Setup (ISCC)
 $isccCandidates = @(
     $env:THEAI_ISCC,

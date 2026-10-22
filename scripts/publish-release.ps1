@@ -7,7 +7,7 @@
 #      from its /docs folder (the website).
 #   3. Copies publish\theai-app into it and pushes.
 #   4. Creates the release v<version> with the CHANGELOG section as notes and uploads the
-#      installer, its .sha256 and the portable TheAI.exe.
+#      installer, its .sha256 and the portable zip.
 #
 # Needs: the GitHub CLI signed in (`gh auth login`), Inno Setup 6, git.
 # Nothing is published without -Confirm; without it the script only shows what it would do.
@@ -47,7 +47,7 @@ if (-not $SkipBuild) {
 
 $setup = Join-Path $root "artifacts\installer\TheAI-Setup-$version.exe"
 $checksum = "$setup.sha256"
-$portable = Join-Path $root "artifacts\win-x64\TheAI.exe"
+$portable = Join-Path $root "artifacts\installer\TheAI-$version-portable.zip"
 foreach ($file in $setup, $checksum, $portable) {
     if (-not (Test-Path $file)) { throw "Missing $file (build the installer first)." }
 }
