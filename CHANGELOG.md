@@ -6,6 +6,12 @@
 
 - **Two page modes.** Combined: weather, the next meeting, water and reminders share one **Today** page of short rows (a row opens the full page; `/today` opens it). Separate: a page per feature, as before. New users start combined; Settings → Appearance switches it.
 
+### Added — prayer times, microphone and camera
+
+- **Prayer times** (optional): the next prayer for your weather city, worked out on your PC with Kemenag's angles (Fajr 20°, Isha 18°, Shafi'i Asr, 2 minutes of ihtiyat), on the Today and weather pages, with a quiet note in the notch when it begins.
+- **Microphone & camera indicator** (optional): a dot at the notch's edge while an app uses the microphone (orange) or the camera (green), and its name when it starts. It reads what Windows itself records for its privacy indicator.
+- **`/mute`** mutes or unmutes the microphone; while the microphone is in use, the Today page has a Mute button too.
+
 ### Added — small things in the notch
 
 - **Caps Lock and keyboard language** in the HUD (optional): the notch says when Caps Lock goes on or off and which language you switched to.

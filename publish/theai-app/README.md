@@ -15,8 +15,8 @@ Free · Windows 10 (1809+) and 11 · x64 · no account needed
 - **Select anything, ask about it.** Select text in any app, press the quick-capture hotkey, and the notch offers to translate, explain, summarize or fix it — the answer comes back in the notch.
 - **Builds, CI and scripts report themselves.** Long PowerShell commands, your pull request's checks (through your GitHub CLI) and anything a script sends with `TheAI.exe activity` show up as live activities. A failure goes to your agent in one click.
 - **Focus first.** During a pomodoro or a meeting, agent results and permission requests wait and appear together at the break.
-- **The rest of your day.** Reminders and to-dos, a water reminder, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
-- **Small things, in the notch.** Volume, brightness, battery, Caps Lock, keyboard language and the internet dropping, in place of Windows' pop-ups; and, if you like, a pair of eyes that blink while nothing is going on and doze off while you're away.
+- **The rest of your day.** Reminders and to-dos, a water reminder, prayer times, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
+- **Small things, in the notch.** Volume, brightness, battery, Caps Lock, keyboard language and the internet dropping, in place of Windows' pop-ups; a dot while an app uses your microphone or camera, and `/mute`; and, if you like, a pair of eyes that blink while nothing is going on and doze off while you're away.
 - **Only what you want.** Everything except the agent and the launcher is optional: TheAI asks on first start, and Settings → Notch → Choose features changes it any time.
 - **Out of the way.** Hides while a game or video is fullscreen; at rest under 0.5% of one CPU core and ~125 MB of memory, redrawing only when something changes.
 
@@ -44,7 +44,7 @@ No account, no analytics, nothing sent in the background.
 |---|---|
 | Your AI provider | Only what you ask, through the agent or API key you choose |
 | GitHub (api.github.com), once a day | To see whether a new version is out |
-| Optional, off until enabled | Weather (open-meteo.com: your city and its coordinates) · PR checks via your own GitHub CLI · synced lyrics (lrclib.net) · an iCal calendar link |
+| Optional, off until enabled | Weather and prayer times (open-meteo.com: your city's name, to find its coordinates; the prayer times themselves are worked out on your PC) · PR checks via your own GitHub CLI · synced lyrics (lrclib.net) · an iCal calendar link |
 
 Everything else stays on your PC: settings, conversations and the daily recap in `%LOCALAPPDATA%\TheAI`; API keys and the calendar link in Windows Credential Manager; clipboard history in memory only.
 
