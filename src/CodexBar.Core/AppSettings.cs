@@ -123,6 +123,9 @@ public sealed class AppSettings
     /// <summary>Zona waktu tambahan untuk jam dunia (ID Windows atau IANA), dipisah koma.</summary>
     public string WorldClocks { get; set; } = string.Empty;
 
+    /// <summary>HUD Caps Lock dan pergantian bahasa keyboard (hanya tombol Caps Lock yang dibaca; tidak ada yang disimpan).</summary>
+    public bool KeyboardHud { get; set; }
+
     /// <summary>Pengingat dan to-do singkat di notch.</summary>
     public bool RemindersEnabled { get; set; }
 
@@ -137,6 +140,7 @@ public sealed class AppSettings
     {
         MusicInNotch = false;
         SystemHud = false;
+        KeyboardHud = false;
         TimerInNotch = false;
         LiveActivities = false;
         HoldDuringFocus = false;
@@ -229,6 +233,7 @@ public sealed class AppSettings
         MusicTrackToast = source.MusicTrackToast;
         MusicLyrics = source.MusicLyrics;
         SystemHud = source.SystemHud;
+        KeyboardHud = source.KeyboardHud;
         CalendarSource = source.CalendarSource;
         HideInFullscreen = source.HideInFullscreen;
         LiveActivities = source.LiveActivities;

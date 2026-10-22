@@ -42,6 +42,9 @@ internal interface INotchHost
     /// <summary>Volume, brightness, battery and headphones shown in the notch as a short HUD.</summary>
     bool SystemHud { get; }
 
+    /// <summary>Caps Lock and keyboard-language changes in the HUD.</summary>
+    bool KeyboardHud { get; }
+
     /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
     string CalendarSource { get; }
 
@@ -257,6 +260,7 @@ public partial class NotchWindow : Window
         RestartWeather();
         RestartSystem();
         RestartGitHub();
+        ApplyKeyboardWatcher();
         ScheduleFullscreenCheck();
         ScheduleRecap();
         UpdateQuietCheck();

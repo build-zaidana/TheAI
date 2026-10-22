@@ -59,8 +59,11 @@ public static class NotchFeatures
             s => s.GitHubChecks, (s, on) => s.GitHubChecks = on),
 
         new("hud", Computer, "Volume, kecerahan & baterai", "Volume, brightness & battery",
-            "Menggantikan pop-up Windows dengan notch.", "Shown in the notch instead of Windows' pop-ups.",
+            "Menggantikan pop-up Windows dengan notch; juga saat internet putus dan kembali.", "Shown in the notch instead of Windows' pop-ups; also when the internet drops and comes back.",
             s => s.SystemHud, (s, on) => s.SystemHud = on, Recommended: true),
+        new("keys", Computer, "Caps Lock & bahasa keyboard", "Caps Lock & keyboard language",
+            "Notch memberi tahu saat Caps Lock menyala atau bahasa keyboard berganti.", "The notch tells you when Caps Lock goes on or the keyboard language changes.",
+            s => s.KeyboardHud, (s, on) => s.KeyboardHud = on),
         new("clipboard", Computer, "Riwayat clipboard", "Clipboard history",
             "30 salinan terakhir, hanya di memori. Salinan password manager dilewati.", "Your last 30 copies, in memory only. Password managers' copies are skipped.",
             s => s.ClipboardHistory, (s, on) => s.ClipboardHistory = on),

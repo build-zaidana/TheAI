@@ -28,10 +28,16 @@ public partial class NotchWindow
     private static readonly Geometry SunRays = Geometry.Parse("M 9,1.2 L 9,3.2 M 9,14.8 L 9,16.8 M 1.2,9 L 3.2,9 M 14.8,9 L 16.8,9 M 3.5,3.5 L 4.9,4.9 M 13.1,13.1 L 14.5,14.5 M 3.5,14.5 L 4.9,13.1 M 13.1,4.9 L 14.5,3.5");
     private static readonly Geometry Bolt = Geometry.Parse("M 8,1 L 2,9 L 6.5,9 L 5.5,15 L 12,7 L 7.5,7 Z");
     private static readonly Geometry HeadphoneBand = Geometry.Parse("M 2,10 L 2,8 A 7,7 0 0 1 16,8 L 16,10");
+    private static readonly Geometry CapsGlyph = Geometry.Parse("M 9,2 L 16,9.5 L 12,9.5 L 12,13 L 6,13 L 6,9.5 L 2,9.5 Z M 6,16 L 12,16");
+    private static readonly Geometry KeyboardGlyph = Geometry.Parse("M 2,5 L 16,5 Q 17,5 17,6 L 17,13 Q 17,14 16,14 L 2,14 Q 1,14 1,13 L 1,6 Q 1,5 2,5 Z M 4,8 L 4.1,8 M 7,8 L 7.1,8 M 10,8 L 10.1,8 M 13,8 L 13.1,8 M 5,11 L 13,11");
+    private static readonly Geometry WifiGlyph = Geometry.Parse("M 2,7 A 10,10 0 0 1 16,7 M 4.5,9.8 A 6.5,6.5 0 0 1 13.5,9.8 M 7,12.5 A 3,3 0 0 1 11,12.5 M 9,15 L 9,15.1");
+    private static readonly Geometry WifiOffGlyph = Geometry.Parse("M 2,7 A 10,10 0 0 1 16,7 M 4.5,9.8 A 6.5,6.5 0 0 1 13.5,9.8 M 7,12.5 A 3,3 0 0 1 11,12.5 M 9,15 L 9,15.1 M 2,2 L 16,16");
     private static readonly Geometry HeadphoneCups = Geometry.Parse("M 1,10.5 Q 1,9 2.5,9 L 3.5,9 Q 5,9 5,10.5 L 5,13.5 Q 5,15 3.5,15 L 2.5,15 Q 1,15 1,13.5 Z M 13,10.5 Q 13,9 14.5,9 L 15.5,9 Q 17,9 17,10.5 L 17,13.5 Q 17,15 15.5,15 L 14.5,15 Q 13,15 13,13.5 Z");
 
     private readonly DispatcherTimer _hudTimer = new();
     private AudioWatcher? _audio;
+    private KeyboardWatcher? _keyboard;
+    private bool _online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
     private BrightnessWatcher? _brightness;
     private int _lastBatteryWarning = 101;
     private bool _wasOnPower;
@@ -60,8 +66,21 @@ public partial class NotchWindow
         _wasOnPower = power.PowerLineStatus == Forms.PowerLineStatus.Online;
         SystemEvents.PowerModeChanged += PowerModeChanged;
 
+        // The internet dropping and coming back: Windows' own event, no polling.
+        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += NetworkAvailabilityChanged;
+        if (new System.Windows.Interop.WindowInteropHelper(this).Handle == IntPtr.Zero)
+        {
+            SourceInitialized += (_, _) => ApplyKeyboardWatcher();
+        }
+        else
+        {
+            ApplyKeyboardWatcher();
+        }
+
         Closed += (_, _) =>
         {
+            System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged;
+            _keyboard?.Dispose();
             SystemEvents.PowerModeChanged -= PowerModeChanged;
             _audio?.Dispose();
             _brightness?.Dispose();
@@ -102,6 +121,63 @@ public partial class NotchWindow
     }
 
     private static int WarningStep(int percent) => percent <= 5 ? 5 : 10;
+
+    /// <summary>Settings may have turned the keyboard HUD on or off.</summary>
+    private void ApplyKeyboardWatcher()
+    {
+        var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (_host.KeyboardHud && _keyboard is null && handle != IntPtr.Zero &&
+            System.Windows.Interop.HwndSource.FromHwnd(handle) is { } source)
+        {
+            _keyboard = new KeyboardWatcher(source);
+            _keyboard.CapsLockChanged += ShowCapsHud;
+            _keyboard.LanguageChanged += ShowLanguageHud;
+        }
+        else if (!_host.KeyboardHud && _keyboard is not null)
+        {
+            _keyboard.Dispose();
+            _keyboard = null;
+        }
+    }
+
+    private void NetworkAvailabilityChanged(object? sender, System.Net.NetworkInformation.NetworkAvailabilityEventArgs e) =>
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (e.IsAvailable == _online)
+            {
+                return;
+            }
+
+            _online = e.IsAvailable;
+            ShowNetworkHud(e.IsAvailable);
+        });
+
+    private void ShowTextHud(Geometry glyph, string text, bool red)
+    {
+        HudIconFill.Data = Geometry.Empty;
+        HudIconBattery.Visibility = Visibility.Collapsed;
+        HudIconStroke.Data = glyph;
+        HudIconStroke.Stroke = red ? (Brush)FindResource("NotchRed") : TimerFocusBrush;
+        HudBar.Visibility = Visibility.Collapsed;
+        HudValue.Visibility = Visibility.Collapsed;
+        HudName.Text = text;
+        HudName.Visibility = Visibility.Visible;
+        ShowHud(HudShort);
+    }
+
+    private void ShowCapsHud(bool on) =>
+        ShowTextHud(CapsGlyph, on ? Tr.Text("Caps Lock nyala", "Caps Lock on") : Tr.Text("Caps Lock mati", "Caps Lock off"), red: false);
+
+    private void ShowLanguageHud(System.Globalization.CultureInfo culture)
+    {
+        var name = (culture.IsNeutralCulture ? culture : culture.Parent).NativeName;
+        name = name.Length > 0 ? char.ToUpper(name[0], culture) + name[1..] : culture.Name;
+        ShowTextHud(KeyboardGlyph, $"{culture.TwoLetterISOLanguageName.ToUpperInvariant()} · {name}", red: false);
+    }
+
+    private void ShowNetworkHud(bool online) =>
+        ShowTextHud(online ? WifiGlyph : WifiOffGlyph,
+            online ? Tr.Text("Kembali online", "Back online") : Tr.Text("Internet terputus", "Internet connection lost"), red: !online);
 
     // ---- The HUD's faces ---------------------------------------------------------------------
 
@@ -231,6 +307,15 @@ public partial class NotchWindow
                 break;
             case "low":
                 ShowLowBatteryHud(10);
+                break;
+            case "caps":
+                ShowCapsHud(true);
+                break;
+            case "language":
+                ShowLanguageHud(new System.Globalization.CultureInfo("id-ID"));
+                break;
+            case "offline":
+                ShowNetworkHud(false);
                 break;
             case "headphones":
                 ShowHeadphonesHud("WH-1000XM5", null);

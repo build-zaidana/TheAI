@@ -2459,6 +2459,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.MusicLyrics => _settings.MusicLyrics;
 
     bool INotchHost.SystemHud => _settings.SystemHud;
+    bool INotchHost.KeyboardHud => _settings.KeyboardHud;
 
     string INotchHost.CalendarSource => _settings.CalendarSource;
 
