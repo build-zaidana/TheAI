@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_REMINDERS=open|due: sample reminders (never saved), or one ringing.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REMINDERS") is { Length: > 0 } remindersPreview && _notch is not null)
+        {
+            _notch.PreviewReminders(remindersPreview);
+        }
+
         // CODEXBAR_PREVIEW_PALETTE=/re: the launcher with that typed (the command palette for "/…").
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PALETTE") is { Length: > 0 } palette && _notch is not null)
         {

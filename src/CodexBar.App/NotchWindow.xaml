@@ -1036,6 +1036,30 @@
                     <StackPanel x:Name="SystemRows" />
                 </StackPanel>
 
+                <!-- Reminders & to-dos: the open ones (due first), and a field to add one. -->
+                <StackPanel x:Name="ReminderPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pengingat">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Text="{local:Tr Pengingat, En=Reminders}" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" />
+                        <TextBlock x:Name="ReminderCount" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" />
+                    </Grid>
+                    <StackPanel x:Name="ReminderRows" />
+                    <TextBlock x:Name="ReminderEmpty" Visibility="Collapsed" FontSize="12" Foreground="#99FFFFFF" Margin="0,2,0,6"
+                               Text="{local:Tr Belum ada — ketik di bawah atau /remind dari launcher., En=Nothing yet — type below or /remind from the launcher.}" />
+                    <Border Height="34" CornerRadius="12" Background="{StaticResource NotchFill}" Padding="12,0" Margin="0,8,0,0">
+                        <Grid>
+                            <TextBlock x:Name="ReminderHint" Foreground="#73FFFFFF" FontSize="12.5" VerticalAlignment="Center" IsHitTestVisible="False"
+                                       Text="{local:Tr Mis. 15m minum air · 14:30 telepon · beli susu, En=e.g. 15m drink water · 14:30 call · buy milk}" />
+                            <TextBox x:Name="ReminderInput" Style="{StaticResource NotchInput}" FontSize="12.5"
+                                     KeyDown="ReminderInput_KeyDown" TextChanged="ReminderInput_TextChanged"
+                                     AutomationProperties.Name="Tambah pengingat" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">

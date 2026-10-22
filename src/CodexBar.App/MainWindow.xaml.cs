@@ -2404,6 +2404,16 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.DownloadsToShelf => _settings.DownloadsToShelf;
     bool INotchHost.SystemMonitor => _settings.SystemMonitor;
     bool INotchHost.TimerInNotch => _settings.TimerInNotch;
+    bool INotchHost.RemindersEnabled => _settings.RemindersEnabled;
+
+    void INotchHost.ShowReminder(string text, int more) =>
+        _notifier.Show(
+            Tr.Text("Pengingat", "Reminder"),
+            more > 0 ? string.Format(Tr.Text("{0} (+{1} lagi)", "{0} (+{1} more)"), text, more) : text,
+            "reminder",
+            withSound: false,
+            [(Tr.Text("Selesai", "Done"), "reminder-done"), (Tr.Text("Tunda 10m", "Snooze 10m"), "reminder-snooze")],
+            "reminder");
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge

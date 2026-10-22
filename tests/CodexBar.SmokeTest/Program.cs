@@ -1536,6 +1536,36 @@ static int RunSmartCommandTests()
         var imported = new AppSettings();
         imported.ApplyFrom(fresh);
         Assert(imported is { MusicInNotch: true, TimerInNotch: false, RemindersEnabled: true, CalendarSource: "ics" }, "Impor membawa pengaturan notch.");
+        // Reminders: said the way people say them.
+        var at = new DateTimeOffset(2026, 10, 22, 18, 0, 0, TimeSpan.FromHours(7));
+        Assert(ReminderList.Parse("15m stretch", at) == ("stretch", at.AddMinutes(15)), "15m.");
+        Assert(ReminderList.Parse("1h30m call mom", at) == ("call mom", at.AddMinutes(90)), "1h30m.");
+        Assert(ReminderList.Parse("2 jam rapat", at) is null || ReminderList.Parse("2jam rapat", at) == ("rapat", at.AddHours(2)), "2jam.");
+        Assert(ReminderList.Parse("19:30 gym", at)!.Value.DueAt == at.Date.AddHours(19.5).ToDateTimeOffsetAt(at), "19:30 hari ini.");
+        Assert(ReminderList.Parse("7:30 lari pagi", at)!.Value.DueAt == at.Date.AddDays(1).AddHours(7.5).ToDateTimeOffsetAt(at), "7:30 yang sudah lewat = besok.");
+        Assert(ReminderList.Parse("7pm makan", at)!.Value.DueAt == at.Date.AddHours(19).ToDateTimeOffsetAt(at), "7pm.");
+        Assert(ReminderList.Parse("besok 9.00 standup", at) == ("standup", at.Date.AddDays(1).AddHours(9).ToDateTimeOffsetAt(at)), "besok 9.00.");
+        Assert(ReminderList.Parse("tomorrow call the bank", at) == ("call the bank", at.Date.AddDays(1).AddHours(9).ToDateTimeOffsetAt(at)), "besok tanpa jam = 9:00.");
+        Assert(ReminderList.Parse("buy milk", at) == ("buy milk", null) && ReminderList.Parse("3 apples", at) == ("3 apples", null), "Tanpa waktu = to-do.");
+        Assert(ReminderList.Parse("   ", at) is null && ReminderList.Parse("15m", at) is null, "Tanpa teks: null.");
+
+        var list = new ReminderList();
+        var stretch = list.Add("15m stretch", at)!;
+        var milk = list.Add("buy milk", at)!;
+        Assert(list.DueNow(at.AddMinutes(14)).Count == 0 && list.DueNow(at.AddMinutes(15)) is [{ Text: "stretch" }], "Jatuh tempo tepat waktu.");
+        stretch.Announced = true;
+        Assert(list.DueNow(at.AddMinutes(20)).Count == 0, "Diumumkan sekali.");
+        list.Snooze(stretch.Id, TimeSpan.FromMinutes(10), at.AddMinutes(20));
+        Assert(list.DueNow(at.AddMinutes(30)) is [{ Text: "stretch" }], "Tunda 10 menit.");
+        Assert(list.Open.First() == stretch && list.Open.Last() == milk, "Yang berwaktu di atas.");
+        list.Complete(milk.Id);
+        Assert(list.Open.Count() == 1, "Selesai hilang dari daftar.");
+        var remindersPath = Path.Combine(Path.GetTempPath(), "theai-reminders-test.json");
+        list.Save(remindersPath);
+        Assert(ReminderList.Load(remindersPath).Items.Count == 2, "Disimpan dan dibaca lagi.");
+        list.Prune(at.AddDays(9));
+        Assert(list.Items.All(item => !item.Done), "Yang selesai lebih dari seminggu dihapus.");
+        Assert(ReminderList.When(stretch, at.AddMinutes(21), (id, en) => en) == "9m", "Sisa waktu.");
         Console.WriteLine("PASS smart command tests");
         return 0;
     }
@@ -2439,4 +2469,9 @@ sealed class TestCodexTransport : ICodexTransport
 
         return null;
     }
+}
+
+static class ReminderTestExtensions
+{
+    public static DateTimeOffset ToDateTimeOffsetAt(this DateTime local, DateTimeOffset reference) => new(local, reference.Offset);
 }

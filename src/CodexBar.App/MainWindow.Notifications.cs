@@ -50,6 +50,17 @@ public partial class MainWindow
             return;
         }
 
+        if (action is "reminder-done" or "reminder-snooze")
+        {
+            _notch?.AnswerRingingReminder(done: action == "reminder-done");
+            return;
+        }
+
+        if (activityKey == "reminder")
+        {
+            return;
+        }
+
         if (action == "update-install")
         {
             _ = InstallUpdateAsync();

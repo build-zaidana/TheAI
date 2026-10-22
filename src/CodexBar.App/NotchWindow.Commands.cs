@@ -257,6 +257,18 @@ public partial class NotchWindow
                 Collapse();
                 _host.OpenSettings();
                 break;
+            case "remind" or "todo":
+                // "/todo 15m x" stays a to-do: only /remind reads a time.
+                if (argument.Length == 0 || (command.Name == "todo" ? AddTodo(argument) : AddReminder(argument)) is null)
+                {
+                    OpenReminders(focusInput: true);
+                    break;
+                }
+
+                OpenReminders();
+                _reminderCollapse.Stop();
+                _reminderCollapse.Start();
+                break;
         }
     }
 
