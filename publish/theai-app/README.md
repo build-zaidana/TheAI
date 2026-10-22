@@ -18,7 +18,7 @@ Free · Windows 10 (1809+) and 11 · x64 · no account needed
 - **The rest of your day.** Reminders and to-dos, a water reminder, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
 - **Small things, in the notch.** Volume, brightness, battery, Caps Lock, keyboard language and the internet dropping, in place of Windows' pop-ups; and, if you like, a pair of eyes that blink while nothing is going on and doze off while you're away.
 - **Only what you want.** Everything except the agent and the launcher is optional: TheAI asks on first start, and Settings → Notch → Choose features changes it any time.
-- **Out of the way.** Hides while a game or video is fullscreen; at rest about 0.3% of one CPU core and ~125 MB of memory, redrawing only when something changes.
+- **Out of the way.** Hides while a game or video is fullscreen; at rest under 0.5% of one CPU core and ~125 MB of memory, redrawing only when something changes.
 
 ## Install
 

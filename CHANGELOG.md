@@ -24,7 +24,7 @@
 
 ### Changed — lighter at rest
 
-- At rest TheAI now uses about 0.3% of one CPU core (from about 0.8%): the compact equalizer stands still, fullscreen apps are noticed through Windows events instead of a poll, and timers run only while their feature needs them.
+- At rest TheAI now uses under 0.5% of one CPU core (from about 0.8%): the compact equalizer stands still, fullscreen apps are noticed through Windows events instead of a poll, and timers run only while their feature needs them.
 
 ### Fixed
 
