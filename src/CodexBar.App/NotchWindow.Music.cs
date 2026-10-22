@@ -15,7 +15,7 @@ using Rectangle = System.Windows.Shapes.Rectangle;
 namespace CodexBar.App;
 
 // Now playing: whatever app plays through Windows' media controls shows up in the notch like on
-// a hardware notch â€” album art and an equalizer while compact, a player when opened, a short toast
+// a hardware notch — album art and an equalizer while compact, a player when opened, a short toast
 // when the track changes. Music and the agent are two pages of the open notch; scrolling switches.
 public partial class NotchWindow
 {
@@ -584,7 +584,7 @@ public partial class NotchWindow
         if (showLyrics)
         {
             var index = SyncedLyrics.IndexAt(_lyrics, position);
-            MusicLyricNow.Text = index >= 0 && _lyrics[index].Text.Length > 0 ? _lyrics[index].Text : "â™ª";
+            MusicLyricNow.Text = index >= 0 && _lyrics[index].Text.Length > 0 ? _lyrics[index].Text : "♪";
             MusicLyricNext.Text = index + 1 < _lyrics.Count ? _lyrics[index + 1].Text : string.Empty;
         }
     }

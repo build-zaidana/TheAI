@@ -1609,7 +1609,7 @@ public partial class NotchWindow : Window
     }
 
     private static string Truncate(string value, int max) =>
-        value.Length <= max ? value : value[..max] + "â€¦";
+        value.Length <= max ? value : value[..max] + "…";
 
     private static string FormatAge(DateTimeOffset updatedAt)
     {
