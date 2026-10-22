@@ -5,495 +5,286 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TheAI for Windows</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="TheAI turns the top of your Windows screen into a notch for Claude Code, Codex and Gemini CLI, your builds and CI, music, timers, calendar and clipboard. Free for Windows 10 and 11.">
+<meta name="description" content="TheAI turns the top of your Windows screen into a notch for your AI agents, builds, music and day. Free for Windows 10 and 11.">
 <meta property="og:title" content="TheAI — a notch for Windows">
 <meta property="og:description" content="Your AI agents, builds, music and day in one notch at the top of the screen.">
-<meta property="og:image" content="assets/notch-palette.png">
+<meta property="og:image" content="assets/notch-today.png">
+<meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="assets/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Layout: one column that starts at the top edge of a "screen" (the notch lives there), then
-   alternating text + screenshot rows, a privacy ledger and a download band. */
+/* Black like the notch itself. One column: a "screen" with the notch at its top edge, six
+   features as cards, three numbers, privacy, four questions, download. */
 :root {
-  --paper: #eef0f4;          /* desk light: a cool, slightly blue grey */
-  --ink: #15171c;
-  --ink-2: #555b68;
-  --rule: #d5d9e1;
-  --card: #ffffff;
-  --glass: #000000;          /* the notch itself is always black, like the hardware it imitates */
-  --glass-ink: #f5f5f7;
-  --glass-quiet: rgba(245, 245, 247, .58);
-  --signal: #ff453a;         /* the one red the app uses: a failure */
-  --screen-a: #4a4f5e;
-  --screen-b: #2a2d37;
-  --screen-c: #15161b;
-  --display: "Sora", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --body: "Hanken Grotesk", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", Consolas, "Cascadia Mono", monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #0d0e11; --ink: #eceef2; --ink-2: #9aa0ad; --rule: #23262d; --card: #16181d;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --paper: #0d0e11; --ink: #eceef2; --ink-2: #9aa0ad; --rule: #23262d; --card: #16181d;
+  --bg: #000;
+  --ink: #f5f5f7;
+  --ink-2: rgba(245, 245, 247, .62);
+  --ink-3: rgba(245, 245, 247, .38);
+  --rule: rgba(255, 255, 255, .09);
+  --card: #0c0c0e;
+  --screen-a: #23262e;
+  --screen-b: #101115;
+  --radius: 22px;
+  --wrap: 1080px;
   color-scheme: dark;
 }
-
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
-  font: 400 17px/1.6 var(--body);
+  font: 400 16px/1.55 "Hanken Grotesk", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-img { max-width: 100%; display: block; }
-a { color: inherit; }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
-
-/* Two languages, one page: html[data-lang] shows one. */
 [data-lang="en"] [lang="id"], [data-lang="id"] [lang="en"] { display: none !important; }
+a { color: inherit; }
+img { max-width: 100%; height: auto; display: block; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: Sora, system-ui, sans-serif; font-weight: 600; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
-.wrap {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding-left: max(20px, env(safe-area-inset-left, 0px));
-  padding-right: max(20px, env(safe-area-inset-right, 0px));
-}
-
-/* ---- The screen and its notch -------------------------------------------------------------- */
-.screen {
-  position: relative;
-  background: radial-gradient(120% 100% at 18% 0%, var(--screen-a) 0%, var(--screen-b) 52%, var(--screen-c) 100%);
-  color: var(--glass-ink);
-  overflow: hidden;
-}
-.screen .wrap { padding-block: 112px 64px; }
-.topbar {
-  position: absolute;
-  inset: 0 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px));
-  font: 600 14px var(--display);
-  z-index: 2;
-}
-.lang {
-  display: flex;
-  gap: 2px;
-  background: rgba(255, 255, 255, .1);
-  border-radius: 999px;
-  padding: 3px;
-}
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font: 600 17px Sora, sans-serif; text-decoration: none; }
+.brand img { width: 26px; height: 26px; border-radius: 7px; }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.lang { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
 .lang button {
-  font: 600 12px var(--body);
-  color: var(--glass-quiet);
-  background: none;
-  border: 0;
-  border-radius: 999px;
-  padding: 4px 10px;
-  cursor: pointer;
+  font: 600 12px "Hanken Grotesk", sans-serif; color: var(--ink-2); background: none; border: 0;
+  padding: 5px 10px; border-radius: 999px; cursor: pointer;
 }
-.lang button[aria-pressed="true"] { background: var(--glass-ink); color: #000; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: #000; }
 
-.notch {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  translate: -50% 0;
-  height: 36px;
-  width: 260px;
-  background: var(--glass);
-  border-radius: 0 0 16px 16px;
-  box-shadow: 0 0 0 .5px rgba(255, 255, 255, .22), 0 18px 44px rgba(0, 0, 0, .45);
-  transition: width .5s cubic-bezier(.3, 1.3, .5, 1);
-  z-index: 1;
-}
-.face {
-  position: absolute;
-  inset: 0 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
-  opacity: 0;
-  translate: 0 4px;
-  transition: opacity .3s, translate .3s;
-  white-space: nowrap;
-}
-.face.on { opacity: 1; translate: 0 0; }
-.face .lbl { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.digits { font: 600 14px var(--display); font-variant-numeric: tabular-nums; }
-.quiet { color: var(--glass-quiet); }
-.mono { font-family: var(--mono); font-size: .86em; }
-.ring { width: 16px; height: 16px; flex: none; }
-.art { width: 18px; height: 18px; border-radius: 4px; background: linear-gradient(135deg, #f0a35e, #a8508d); flex: none; }
-.eq { display: flex; gap: 2px; align-items: center; height: 12px; }
-.eq i { width: 2.4px; height: 100%; border-radius: 2px; background: #30d158; animation: eq 1s ease-in-out infinite; }
-.eq i:nth-child(2) { animation-delay: -.3s; } .eq i:nth-child(3) { animation-delay: -.6s; }
-@keyframes eq { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-.badge { background: var(--glass-ink); color: #000; border-radius: 999px; font: 700 10px var(--body); padding: 1px 6px; }
-
-.hero { display: grid; gap: 28px; max-width: 760px; }
-.brand { display: inline-flex; align-items: center; gap: 9px; }
-.brand img { width: 22px; height: 22px; }
-.demo {
-  margin: 56px 0 0;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-}
-.demo img {
-  width: 100%;
-  max-width: 760px;
-  height: auto;
-  border-radius: 16px;
-  box-shadow: 0 0 0 .5px rgba(255, 255, 255, .18), 0 30px 70px rgba(0, 0, 0, .5);
-}
-.demo figcaption { font-size: 13px; color: var(--glass-quiet); }
-.eyebrow { font: 600 12px var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--glass-quiet); }
-h1 {
-  font: 700 clamp(40px, 7vw, 76px)/1.02 var(--display);
-  letter-spacing: -.035em;
-  margin: 0;
-  text-wrap: balance;
-}
-h1 em { font-style: normal; color: var(--glass-quiet); }
-.lede { font-size: clamp(17px, 2.2vw, 20px); color: rgba(245, 245, 247, .82); max-width: 58ch; margin: 0; }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .btn {
-  display: inline-flex; align-items: center; gap: 10px;
-  font: 600 15px var(--body);
-  text-decoration: none;
-  border-radius: 999px;
-  padding: 13px 22px;
-  transition: transform .15s;
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  font: 600 15px "Hanken Grotesk", sans-serif; padding: 12px 20px; border-radius: 999px;
+  border: 1px solid var(--rule); transition: transform .15s ease, background .15s ease;
 }
 .btn:hover { transform: translateY(-1px); }
-.btn.primary { background: var(--glass-ink); color: #000; }
-.btn.ghost { color: var(--glass-ink); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
-.fine { font-size: 13px; color: var(--glass-quiet); }
+.btn.primary { background: var(--ink); color: #000; border-color: var(--ink); }
+.btn.small { padding: 8px 14px; font-size: 13px; }
+.btn.ghost:hover { background: rgba(255, 255, 255, .06); }
 
-/* ---- Sections ----------------------------------------------------------------------------- */
-section.band .wrap { padding-block: 88px; }
-section.band + section.band .wrap { border-top: 1px solid var(--rule); }
-h2 {
-  font: 700 clamp(28px, 4vw, 42px)/1.1 var(--display);
-  letter-spacing: -.025em;
-  margin: 0 0 14px;
-  text-wrap: balance;
+/* Hero: a screen with the notch at its top edge */
+.hero { text-align: center; padding: 40px 0 20px; }
+.screen {
+  position: relative; margin: 0 auto 44px; max-width: 760px; height: 260px;
+  border-radius: var(--radius); overflow: hidden;
+  background: radial-gradient(120% 140% at 20% 0%, var(--screen-a) 0%, var(--screen-b) 60%, #050506 100%);
+  border: 1px solid var(--rule);
 }
-h3 { font: 600 19px/1.3 var(--display); letter-spacing: -.01em; margin: 0 0 6px; }
-.intro { color: var(--ink-2); max-width: 62ch; margin: 0 0 48px; }
-p { margin: 0; }
-
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 48px;
-  align-items: center;
+.notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  height: 38px; background: #000; border-radius: 0 0 18px 18px;
+  border: 1px solid rgba(255, 255, 255, .14); border-top: 0;
+  transition: width .45s cubic-bezier(.3, 1.4, .5, 1);
+  overflow: hidden;
 }
-.row + .row { margin-top: 72px; }
-.row.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-.row.flip .copy { order: 2; }
-.copy { display: grid; gap: 12px; min-width: 0; }
-.copy p { color: var(--ink-2); max-width: 52ch; }
-.copy ul { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; color: var(--ink-2); }
-.copy li::before { content: "/"; font-family: var(--mono); color: var(--ink); margin-right: 8px; }
+.face {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; gap: 12px; opacity: 0; transition: opacity .25s ease; white-space: nowrap;
+  font: 500 13px "Hanken Grotesk", sans-serif;
+}
+.face.on { opacity: 1; transition-delay: .15s; }
+.face .num { font: 600 14px Sora, sans-serif; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.ring { width: 15px; height: 15px; border-radius: 50%; border: 2.2px solid rgba(255,255,255,.25); border-top-color: var(--ink); display: inline-block; }
+.lead { display: flex; align-items: center; gap: 9px; }
+.hero h1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; }
+.hero p { color: var(--ink-2); font-size: clamp(16px, 2.2vw, 19px); max-width: 620px; margin: 16px auto 28px; }
+.cta { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.fine { display: block; margin-top: 14px; color: var(--ink-3); font-size: 13px; }
 
-/* Screenshots sit on a slice of the "screen", as they do in Windows. */
+/* Features */
+section { padding: 64px 0 0; }
+.kicker { color: var(--ink-3); font: 600 12px "Hanken Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.section-title { font-size: clamp(26px, 4vw, 36px); margin-bottom: 28px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 22px 22px 0; display: flex; flex-direction: column; overflow: hidden;
+}
+.card h3 { font-size: 18px; display: flex; align-items: center; gap: 9px; }
+.card p { color: var(--ink-2); font-size: 14.5px; margin: 8px 0 18px; }
+.card code { font: 500 12.5px ui-monospace, Consolas, monospace; color: var(--ink); background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px; }
 .shot {
-  background: radial-gradient(120% 120% at 20% 0%, var(--screen-a), var(--screen-b) 55%, var(--screen-c));
-  border-radius: 18px;
-  padding: 0 24px 28px;
-  display: flex;
-  justify-content: center;
-  min-width: 0;
+  margin-top: auto; border-radius: 14px 14px 0 0; padding: 0 12px;
+  background: radial-gradient(120% 140% at 20% 0%, var(--screen-a) 0%, var(--screen-b) 70%);
+  display: flex; justify-content: center; min-height: 150px;
 }
-.shot img { border-radius: 0 0 22px 22px; box-shadow: 0 0 0 .5px rgba(255, 255, 255, .2), 0 20px 50px rgba(0, 0, 0, .45); }
-.shot.stack { flex-direction: column; align-items: center; gap: 22px; padding-bottom: 32px; }
-.shot.stack img:not(:first-child) { border-radius: 22px; }
+.shot img { width: 100%; max-width: 380px; object-fit: contain; object-position: top; }
+.more { color: var(--ink-2); font-size: 15px; margin-top: 22px; }
 
-pre {
-  margin: 0;
-  background: #111317;
-  color: #e9ebef;
-  border-radius: 14px;
-  padding: 18px 20px;
-  font: 500 13px/1.75 var(--mono);
-  overflow-x: auto;
-}
-pre .c { color: #7f8696; }
+/* Numbers */
+.numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.number { border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; }
+.number b { display: block; font: 600 34px Sora, sans-serif; letter-spacing: -.02em; }
+.number span { color: var(--ink-2); font-size: 14.5px; }
 
-/* The rest, smaller: a grid of what else lives in the notch. */
-.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 8px; align-content: start; }
-.tile p { color: var(--ink-2); font-size: 15px; }
-.tile .k { font: 600 12px var(--mono); color: var(--ink-2); }
+/* Privacy + FAQ */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.panel { border: 1px solid var(--rule); border-radius: var(--radius); padding: 24px; background: var(--card); }
+.panel h3 { font-size: 18px; margin-bottom: 12px; }
+.panel ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; }
+.panel li { margin: 6px 0; }
+details { border-top: 1px solid var(--rule); padding: 12px 0; }
+details:first-of-type { border-top: 0; padding-top: 0; }
+summary { cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; float: right; color: var(--ink-3); }
+details[open] summary::after { content: "–"; }
+details p { color: var(--ink-2); font-size: 14.5px; margin: 8px 0 0; }
 
-/* Privacy ledger: what stays, what talks to the network and why. */
-.ledger { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-.ledger .col { background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 22px; display: grid; gap: 12px; align-content: start; }
-.ledger dl { margin: 0; display: grid; gap: 12px; }
-.ledger dt { font: 600 15px var(--display); }
-.ledger dd { margin: -8px 0 0; color: var(--ink-2); font-size: 15px; }
-.ledger h3 { margin-bottom: 4px; }
-
-.faq { display: grid; gap: 10px; max-width: 760px; }
-details { background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 20px; }
-summary { cursor: pointer; font: 600 16px var(--display); }
-details p { color: var(--ink-2); margin-top: 10px; }
-
-.download .wrap { padding-block: 88px; }
-.download { background: radial-gradient(120% 140% at 80% 0%, var(--screen-a), var(--screen-b) 55%, var(--screen-c)); color: var(--glass-ink); }
-.download h2 { color: var(--glass-ink); }
-.specs { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--glass-quiet); font-size: 14px; margin: 18px 0 30px; }
-footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--ink-2); font-size: 14px; }
+/* Download */
+.download { text-align: center; padding: 72px 0 40px; }
+.download h2 { font-size: clamp(28px, 4.5vw, 42px); margin-bottom: 12px; }
+.download p { color: var(--ink-2); margin: 0 0 24px; }
+footer { border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 13px; padding: 22px 0 36px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+footer a { color: var(--ink-2); }
 
 @media (max-width: 860px) {
-  .row, .row.flip { grid-template-columns: minmax(0, 1fr); gap: 28px; }
-  .row.flip .copy { order: 0; }
-  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .ledger { grid-template-columns: minmax(0, 1fr); }
+  .grid { grid-template-columns: 1fr 1fr; }
+  .two { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
-  .grid { grid-template-columns: minmax(0, 1fr); }
-  .screen .wrap { padding-block: 96px 48px; }
-  .shot { padding: 0 12px 18px; }
+  .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .grid, .numbers { grid-template-columns: 1fr; }
+  .screen { height: 200px; }
+  .top .btn { display: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .notch, .face, .btn { transition: none; }
-  .eq i { animation: none; }
-}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-
-<header class="screen">
-  <div class="topbar">
-    <span class="brand"><img src="assets/icon-64.png" width="22" height="22" alt="">TheAI</span>
-    <div class="lang" role="group" aria-label="Language">
-      <button type="button" id="lang-en" aria-pressed="true">EN</button>
-      <button type="button" id="lang-id" aria-pressed="false">ID</button>
-    </div>
-  </div>
-
-  <!-- The notch, cycling through what it shows during a day. -->
-  <div class="notch" id="notch" aria-hidden="true">
-    <div class="face on" data-width="268">
-      <span class="lbl"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2.2"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#f5f5f7" stroke-width="2.2" stroke-dasharray="15.6 39" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="mono">npm run build</span></span>
-      <span class="digits">40%</span>
-    </div>
-    <div class="face" data-width="232">
-      <span class="lbl"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2.2"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#f5f5f7" stroke-width="2.2" stroke-dasharray="27 39" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="digits">18:42</span></span>
-      <span class="badge">2</span>
-    </div>
-    <div class="face" data-width="210">
-      <span class="lbl"><span class="art"></span><span class="eq"><i></i><i></i><i></i></span></span>
-      <span class="quiet">3:12</span>
-    </div>
-    <div class="face" data-width="250">
-      <span class="lbl"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#f5f5f7"/><path d="M4.6 8.2l2.2 2.2 4.6-4.8" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>CI #128</span></span>
-      <span class="digits quiet">2:41</span>
-    </div>
-    <div class="face" data-width="250">
-      <span class="lbl"><svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#ff453a"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg><span class="mono">npm test</span></span>
-      <span class="quiet">exit 1</span>
-    </div>
-  </div>
-
-  <div class="wrap">
-    <div class="hero">
-      <span class="eyebrow"><span lang="en">A notch for Windows</span><span lang="id">Notch untuk Windows</span></span>
-      <h1>
-        <span lang="en">Your agents, builds and day, <em>at the top of the screen.</em></span>
-        <span lang="id">Agent, build, dan harimu, <em>di puncak layar.</em></span>
-      </h1>
-      <p class="lede">
-        <span lang="en">TheAI turns the top edge of Windows into a live notch. Claude Code, Codex and Gemini CLI report what they're doing and ask for permission there. Long builds, CI and downloads show up on their own. Music, timers, your calendar and clipboard sit one scroll away.</span>
-        <span lang="id">TheAI mengubah tepi atas Windows jadi notch yang hidup. Claude Code, Codex, dan Gemini CLI melapor dan minta izin di sana. Build yang lama, CI, dan unduhan muncul sendiri. Musik, timer, kalender, dan clipboard tinggal satu scroll.</span>
-      </p>
-      <div class="actions">
-        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest">
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v9M4.5 7 8 10.5 11.5 7M2.5 14h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span>
-        </a>
-        <a class="btn ghost" href="#agents"><span lang="en">See what it does</span><span lang="id">Lihat fiturnya</span></a>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#"><img src="assets/icon-64.png" alt="" width="26" height="26">TheAI</a>
+    <div class="top-actions">
+      <div class="lang" role="group" aria-label="Language">
+        <button id="lang-en" type="button" aria-pressed="true">EN</button>
+        <button id="lang-id" type="button" aria-pressed="false">ID</button>
       </div>
-      <span class="fine"><span lang="en">Free · Windows 10 (1809+) and 11 · x64 · no account needed</span><span lang="id">Gratis · Windows 10 (1809+) dan 11 · x64 · tanpa akun</span></span>
+      <a class="btn primary small" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download</span><span lang="id">Unduh</span></a>
     </div>
-    <figure class="demo">
-      <img src="assets/demo.gif" width="760" height="420" alt="The notch at the top of a screen showing, one after another: a build at 40%, the activities page, translate options for selected text, the command palette, a reminder ringing, the weather, a focus timer, results held during focus, and the volume HUD.">
-      <figcaption><span lang="en">The real notch, page by page.</span><span lang="id">Notch aslinya, halaman demi halaman.</span></figcaption>
-    </figure>
-  </div>
-</header>
+  </header>
 
-<main>
-  <section class="band" id="agents">
-    <div class="wrap">
-      <h2><span lang="en">Agents you can see without switching windows</span><span lang="id">Agent yang terlihat tanpa pindah jendela</span></h2>
-      <p class="intro">
-        <span lang="en">Ask from the launcher, keep working, and glance up. TheAI follows the sessions you already run in the terminal, VS Code or the desktop apps, not only its own.</span>
-        <span lang="id">Tanya dari launcher, lanjut bekerja, lalu lirik ke atas. TheAI mengikuti sesi yang sudah kamu jalankan di terminal, VS Code, atau aplikasi desktop, bukan hanya miliknya sendiri.</span>
-      </p>
+  <main>
+    <div class="hero">
+      <div class="screen" aria-hidden="true">
+        <div class="notch" id="notch">
+          <div class="face on" data-width="250"><span class="lead"><span class="ring"></span>npm run build</span><span class="num">72%</span></div>
+          <div class="face" data-width="230"><span class="lead"><span class="dot" style="background:#30d158"></span><span lang="en">Claude: tests pass</span><span lang="id">Claude: tes lulus</span></span><span class="num">✓</span></div>
+          <div class="face" data-width="210"><span class="lead"><span class="dot" style="background:#5ac8fa"></span><span lang="en">Water</span><span lang="id">Air</span></span><span class="num">1,250 ml</span></div>
+          <div class="face" data-width="200"><span class="lead"><span class="dot" style="background:#63e6be"></span>Ashar</span><span class="num">15:12</span></div>
+          <div class="face" data-width="230"><span class="lead"><span class="dot" style="background:#ff453a"></span>Standup</span><span class="num"><span lang="en">in 5 min</span><span lang="id">5 mnt lagi</span></span></div>
+        </div>
+      </div>
+      <h1><span lang="en">A notch for Windows.</span><span lang="id">Notch untuk Windows.</span></h1>
+      <p><span lang="en">Your AI agents, builds, music and day, at the top of the screen. Pick only what you want; the rest stays out of the way.</span><span lang="id">Agent AI, build, musik, dan harimu di puncak layar. Pilih yang kamu mau saja; sisanya tidak mengganggu.</span></p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
+        <a class="btn ghost" href="#features"><span lang="en">See what it does</span><span lang="id">Lihat fiturnya</span></a>
+      </div>
+      <span class="fine"><span lang="en">Free · Windows 10 (1809+) and 11 · x64 · no account</span><span lang="id">Gratis · Windows 10 (1809+) dan 11 · x64 · tanpa akun</span></span>
+    </div>
 
-      <div class="row">
-        <div class="copy">
-          <h3><span lang="en">Type / and get the job done</span><span lang="id">Ketik / dan pekerjaan beres</span></h3>
-          <p><span lang="en">The launcher is a command palette. Smart commands turn into a complete request for the agent, using what you typed or what's on the clipboard.</span><span lang="id">Launcher-nya adalah command palette. Perintah pintar jadi permintaan lengkap untuk agent, dari teks yang kamu ketik atau isi clipboard.</span></p>
-          <ul class="mono">
-            <li>review</li><li>explain</li><li>fix</li><li>translate ja</li><li>commit</li><li>focus 25</li>
+    <section id="features">
+      <div class="kicker"><span lang="en">What it does</span><span lang="id">Yang bisa dilakukan</span></div>
+      <h2 class="section-title"><span lang="en">Everything at a glance. Nothing in the way.</span><span lang="id">Semua sekilas pandang. Tanpa mengganggu.</span></h2>
+      <div class="grid">
+        <article class="card">
+          <h3><span class="dot" style="background:#bf5af2"></span><span lang="en">Agents in the notch</span><span lang="id">Agent di notch</span></h3>
+          <p><span lang="en">Claude Code, Codex and Gemini CLI report progress and ask for permission here. Builds and CI too.</span><span lang="id">Claude Code, Codex, dan Gemini CLI melapor progres dan minta izin di sini. Build dan CI juga.</span></p>
+          <div class="shot"><img src="assets/notch-jobs-open.png" alt="Live activities: a build in progress and CI checks." loading="lazy"></div>
+        </article>
+        <article class="card">
+          <h3><span class="dot" style="background:#ffd60a"></span><span lang="en">Your day on one page</span><span lang="id">Harimu di satu halaman</span></h3>
+          <p><span lang="en">Weather, the next meeting, prayer times, water and reminders. Tap a row for more.</span><span lang="id">Cuaca, rapat berikutnya, jadwal sholat, air, dan pengingat. Ketuk baris untuk detail.</span></p>
+          <div class="shot"><img src="assets/notch-today.png" alt="The Today page: weather, microphone, prayer time, water and reminders." loading="lazy"></div>
+        </article>
+        <article class="card">
+          <h3><span class="dot" style="background:#5ac8fa"></span><span lang="en">Drink water</span><span lang="id">Minum air</span></h3>
+          <p><span lang="en">A daily goal, one click per glass, the last seven days, and a gentle nudge.</span><span lang="id">Target harian, satu klik per gelas, tujuh hari terakhir, dan pengingat lembut.</span></p>
+          <div class="shot"><img src="assets/notch-water.png" alt="Water: 1,250 of 2,000 ml and a week of bars." loading="lazy"></div>
+        </article>
+        <article class="card">
+          <h3><span class="dot" style="background:#ff9f0a"></span><span lang="en">Focus and timers</span><span lang="id">Fokus dan timer</span></h3>
+          <p><span lang="en">Pomodoro, countdowns and alarms. During focus, agent results wait for the break.</span><span lang="id">Pomodoro, hitung mundur, dan alarm. Saat fokus, hasil agent menunggu istirahat.</span></p>
+          <div class="shot"><img src="assets/notch-timer-open.png" alt="The timer page with a pomodoro running." loading="lazy"></div>
+        </article>
+        <article class="card">
+          <h3><span class="dot" style="background:#f5f5f7"></span><span lang="en">Small things, done right</span><span lang="id">Hal kecil, dibuat rapi</span></h3>
+          <p><span lang="en">Volume, brightness, battery, Caps Lock, keyboard language, the internet dropping, and a dot when your mic or camera is on.</span><span lang="id">Volume, kecerahan, baterai, Caps Lock, bahasa keyboard, internet putus, dan titik saat mic atau kamera menyala.</span></p>
+          <div class="shot"><img src="assets/notch-hud-caps.png" alt="Caps Lock on, shown in the notch." loading="lazy"></div>
+        </article>
+        <article class="card">
+          <h3><span class="dot" style="background:#30d158"></span><span lang="en">Type / for anything</span><span lang="id">Ketik / untuk apa saja</span></h3>
+          <p><span lang="en"><code>/review</code> <code>/translate</code> <code>/remind 15m</code> <code>/water</code> <code>/mute</code> and your own templates.</span><span lang="id"><code>/review</code> <code>/translate</code> <code>/remind 15m</code> <code>/water</code> <code>/mute</code> dan template buatanmu.</span></p>
+          <div class="shot"><img src="assets/notch-palette.png" alt="The command palette listing commands." loading="lazy"></div>
+        </article>
+      </div>
+      <p class="more"><span lang="en">Also: music with synced lyrics you can click, clipboard history, a file shelf, the daily recap, a system page and a quiet companion. Every one is optional.</span><span lang="id">Juga: musik dengan lirik yang bisa diklik, riwayat clipboard, rak file, rekap harian, halaman sistem, dan teman diam. Semuanya opsional.</span></p>
+    </section>
+
+    <section>
+      <div class="numbers">
+        <div class="number"><b>&lt; 0.5%</b><span lang="en">of one CPU core at rest. It redraws only when something changes.</span><span lang="id">dari satu inti CPU saat diam. Menggambar ulang hanya saat ada yang berubah.</span></div>
+        <div class="number"><b>~100 MB</b><span lang="en">of memory, and it hides itself during games and fullscreen video.</span><span lang="id">memori, dan bersembunyi saat game dan video layar penuh.</span></div>
+        <div class="number"><b>0</b><span lang="en">accounts, ads or analytics. Free, with no trial.</span><span lang="id">akun, iklan, atau analitik. Gratis, tanpa masa coba.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="two">
+        <div class="panel">
+          <h3><span lang="en">Privacy</span><span lang="id">Privasi</span></h3>
+          <ul>
+            <li><span lang="en">Your AI provider gets only what you ask, through the agent or key you choose.</span><span lang="id">Penyedia AI-mu hanya menerima yang kamu minta, lewat agent atau key pilihanmu.</span></li>
+            <li><span lang="en">GitHub, once a day, to check for a new version.</span><span lang="id">GitHub, sekali sehari, untuk cek versi baru.</span></li>
+            <li><span lang="en">Only if you turn them on: weather and prayer times (your city's name to Open-Meteo), synced lyrics (lrclib.net), your PR checks, an iCal link.</span><span lang="id">Hanya jika dinyalakan: cuaca dan jadwal sholat (nama kota ke Open-Meteo), lirik (lrclib.net), check PR, tautan iCal.</span></li>
+            <li><span lang="en">Everything else stays on your PC. Keys live in Windows Credential Manager.</span><span lang="id">Selebihnya tetap di PC-mu. Key disimpan di Windows Credential Manager.</span></li>
           </ul>
         </div>
-        <div class="shot"><img src="assets/notch-palette.png" width="560" height="385" alt="The TheAI launcher showing the command palette: /review, /explain, /fix, /test, /commit, /translate and /summarize with their descriptions."></div>
-      </div>
-
-      <div class="row flip">
-        <div class="copy">
-          <h3><span lang="en">Select anything, ask about it</span><span lang="id">Pilih teks apa saja, tanyakan</span></h3>
-          <p><span lang="en">Select text in any app and press the quick-capture hotkey. The notch offers to translate it, explain it, summarize it or fix the writing, and the answer comes back right there, without opening a chat.</span><span lang="id">Pilih teks di aplikasi mana pun lalu tekan hotkey quick-capture. Notch menawarkan menerjemahkan, menjelaskan, meringkas, atau memperbaiki tulisannya, dan jawabannya muncul di sana tanpa membuka chat.</span></p>
-        </div>
-        <div class="shot"><img src="assets/notch-selection.png" width="460" height="124" alt="Selected Indonesian text in the notch with Translate, Explain, Summarize, Fix writing and Ask buttons."></div>
-      </div>
-
-      <div class="row">
-        <div class="copy">
-          <h3><span lang="en">Focus first, answers at the break</span><span lang="id">Fokus dulu, jawabannya saat istirahat</span></h3>
-          <p><span lang="en">During a pomodoro or a meeting from your calendar, agents finishing or asking for permission don't pop up. The notch counts them, and shows them all together when the break starts.</span><span lang="id">Selama pomodoro atau rapat di kalendermu, agent yang selesai atau minta izin tidak muncul tiba-tiba. Notch menghitungnya, lalu menampilkan semuanya sekaligus saat istirahat.</span></p>
-        </div>
-        <div class="shot stack"><img src="assets/notch-timer-compact.png" width="196" height="36" alt="The compact notch during focus: a progress ring and 18:42 left."><img src="assets/notch-held-open.png" width="420" height="168" alt="The panel shown at the break: Claude finished a refactor, Codex asks to run npm install, Gemini finished docs."></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="activities">
-    <div class="wrap">
-      <h2><span lang="en">Builds, CI and scripts report themselves</span><span lang="id">Build, CI, dan skrip melapor sendiri</span></h2>
-      <p class="intro"><span lang="en">Anything slow becomes a live activity with a progress ring. When it fails, one click hands the failure to your agent.</span><span lang="id">Apa pun yang lama jadi aktivitas dengan cincin progres. Kalau gagal, satu klik menyerahkannya ke agent.</span></p>
-      <div class="row">
-        <div class="copy">
-          <h3><span lang="en">Three ways in</span><span lang="id">Tiga jalan masuk</span></h3>
-          <p><span lang="en">PowerShell commands that run 10 seconds or more appear on their own. Your pull request's checks are read through the GitHub CLI you're already signed in to. Scripts can report anything else:</span><span lang="id">Perintah PowerShell yang berjalan 10 detik atau lebih muncul sendiri. Check pull request dibaca lewat GitHub CLI yang sudah login. Skrip bisa melaporkan apa saja:</span></p>
-          <pre><span class="c"># any script, any language</span>
-TheAI.exe activity deploy --title "deploy staging" --progress 0.4
-TheAI.exe activity deploy --done</pre>
-        </div>
-        <div class="shot"><img src="assets/notch-jobs-open.png" width="420" height="219" alt="The activities page: eslint failed with 12 errors and an Ask Claude button, npm run build at 40%, model.gguf at 72%, deploy staging waiting for a health check."></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="more">
-    <div class="wrap">
-      <h2><span lang="en">The rest of your day, one scroll away</span><span lang="id">Sisa harimu, satu scroll saja</span></h2>
-      <p class="intro"><span lang="en">Every page is optional. On first start you pick what the notch does, and you can change it any time. Hover the notch and scroll to move between pages.</span><span lang="id">Setiap halaman opsional. Saat pertama dibuka kamu memilih apa yang dilakukan notch, dan bisa diubah kapan saja. Arahkan kursor ke notch lalu scroll untuk berpindah halaman.</span></p>
-      <div class="grid">
-        <div class="tile"><span class="k">/timer 10</span><h3><span lang="en">Timer &amp; pomodoro</span><span lang="id">Timer &amp; pomodoro</span></h3><p><span lang="en">Countdowns, a stopwatch and alarms, typed like "+5" or "@7:30".</span><span lang="id">Hitung mundur, stopwatch, dan alarm, cukup ketik "+5" atau "@7:30".</span></p><img src="assets/notch-timer-open.png" width="420" height="80" alt="The timer page with 24:11 left and pause and stop buttons." loading="lazy"></div>
-        <div class="tile"><span class="k">Outlook · iCal</span><h3><span lang="en">Calendar</span><span lang="id">Kalender</span></h3><p><span lang="en">A countdown to your next meeting and a button to join the call.</span><span lang="id">Hitung mundur ke rapat berikutnya dan tombol untuk bergabung.</span></p><img src="assets/notch-calendar-open.png" width="420" height="154" alt="Today's events: Daily standup with a join button, Review desain, Sesi fokus." loading="lazy"></div>
-        <div class="tile"><span class="k">/remind 15m</span><h3><span lang="en">Reminders &amp; to-do</span><span lang="id">Pengingat &amp; to-do</span></h3><p><span lang="en">Typed the way you say it: "15m stretch", "14:30 call", "tomorrow 9:00 standup". Plus an optional water reminder with a daily goal.</span><span lang="id">Ketik seperti biasa: "15m peregangan", "14:30 telepon", "besok 9.00 standup". Plus pengingat minum air opsional dengan target harian.</span></p><img src="assets/notch-reminders-due.png" width="420" height="311" alt="Reminders: stretch is due with Snooze 10m and Done, then drink water in 45m, call the client at 14:30, buy milk." loading="lazy"></div>
-        <div class="tile"><span class="k">/weather</span><h3><span lang="en">Weather &amp; world clock</span><span lang="id">Cuaca &amp; jam dunia</span></h3><p><span lang="en">Today's weather for your city and the time in up to four other zones.</span><span lang="id">Cuaca hari ini di kotamu dan jam di hingga empat zona lain.</span></p><img src="assets/notch-weather.png" width="420" height="118" alt="Partly cloudy, 31 degrees in Jakarta, high 33, low 25, 70% chance of rain." loading="lazy"></div>
-        <div class="tile"><span class="k">/clipboard</span><h3><span lang="en">Clipboard history</span><span lang="id">Riwayat clipboard</span></h3><p><span lang="en">Your last 30 copies. Password managers' copies are skipped. Off until you turn it on.</span><span lang="id">30 salinan terakhir. Salinan password manager dilewati. Mati sampai kamu nyalakan.</span></p><img src="assets/notch-clipboard.png" width="440" height="185" alt="Clipboard tiles with recent copies." loading="lazy"></div>
-        <div class="tile"><span class="k">/recap</span><h3><span lang="en">Today's recap</span><span lang="id">Rekap hari ini</span></h3><p><span lang="en">Focus time, what the agents finished, files changed. One click copies it for standup.</span><span lang="id">Waktu fokus, hasil agent, file yang berubah. Satu klik menyalinnya untuk standup.</span></p><img src="assets/notch-recap.png" width="460" height="283" alt="The recap: 3 focus sessions, 3 agent tasks, 23 files changed, 12 commands." loading="lazy"></div>
-        <div class="tile"><span class="k">Drag &amp; drop</span><h3><span lang="en">File shelf</span><span lang="id">Rak file</span></h3><p><span lang="en">Drop files on the notch to keep them handy. New downloads land here for two hours.</span><span lang="id">Taruh file di notch supaya mudah dijangkau. Unduhan baru masuk ke sini selama dua jam.</span></p><img src="assets/notch-shelf-open.png" width="440" height="118" alt="The file shelf with two items." loading="lazy"></div>
-        <div class="tile"><span class="k">/system</span><h3><span lang="en">System &amp; HUD</span><span lang="id">Sistem &amp; HUD</span></h3><p><span lang="en">CPU, GPU, memory and disk, plus volume, brightness and battery in place of Windows' pop-ups, Caps Lock, the keyboard language and the internet dropping.</span><span lang="id">CPU, GPU, memori, dan disk, plus volume, kecerahan, dan baterai menggantikan pop-up Windows, Caps Lock, bahasa keyboard, dan internet yang putus.</span></p><img src="assets/notch-system-open.png" width="420" height="152" alt="The system page with CPU, GPU, RAM and C: bars." loading="lazy"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="privacy">
-    <div class="wrap">
-      <h2><span lang="en">Your data stays on your PC</span><span lang="id">Datamu tetap di PC-mu</span></h2>
-      <p class="intro"><span lang="en">No account, no analytics, nothing sent in the background. Here is every time TheAI talks to the network, and why.</span><span lang="id">Tanpa akun, tanpa analitik, tidak ada yang dikirim diam-diam. Ini setiap kali TheAI memakai jaringan, dan alasannya.</span></p>
-      <div class="ledger">
-        <div class="col">
-          <h3><span lang="en">Talks to the network</span><span lang="id">Memakai jaringan</span></h3>
-          <dl>
-          <dt><span lang="en">Your AI provider</span><span lang="id">Penyedia AI-mu</span></dt>
-          <dd><span lang="en">Only what you ask, through Claude Code, Codex, Gemini CLI or the API key you choose.</span><span lang="id">Hanya yang kamu tanyakan, lewat Claude Code, Codex, Gemini CLI, atau API key pilihanmu.</span></dd>
-          <dt><span lang="en">GitHub, once a day</span><span lang="id">GitHub, sekali sehari</span></dt>
-          <dd><span lang="en">To see if a new version is out. Updates install only when you click "Update now", after the download's checksum matches.</span><span lang="id">Untuk melihat versi baru. Pembaruan dipasang hanya saat kamu klik "Perbarui sekarang", setelah checksum unduhannya cocok.</span></dd>
-          <dt><span lang="en">Optional extras</span><span lang="id">Tambahan opsional</span></dt>
-          <dd><span lang="en">Weather (Open-Meteo: only your city and its coordinates), pull request checks (through your own GitHub CLI), synced lyrics (LRCLIB) and an iCal calendar link, each off until you enable it.</span><span lang="id">Cuaca (Open-Meteo: hanya kota dan koordinatnya), check pull request (lewat GitHub CLI-mu), lirik (LRCLIB), dan tautan kalender iCal, masing-masing mati sampai kamu aktifkan.</span></dd>
-        </dl>
-        </div>
-        <div class="col">
-          <h3><span lang="en">Stays local</span><span lang="id">Tetap lokal</span></h3>
-          <dl>
-          <dt><span lang="en">Settings, conversations, recap</span><span lang="id">Pengaturan, percakapan, rekap</span></dt>
-          <dd>%LOCALAPPDATA%\TheAI</dd>
-          <dt><span lang="en">API keys and the calendar link</span><span lang="id">API key dan tautan kalender</span></dt>
-          <dd><span lang="en">Windows Credential Manager, never in a file.</span><span lang="id">Windows Credential Manager, tidak pernah di file.</span></dd>
-          <dt><span lang="en">Scripts and the clipboard</span><span lang="id">Skrip dan clipboard</span></dt>
-          <dd><span lang="en">A pipe only your own Windows user can reach; clipboard history lives in memory.</span><span lang="id">Pipe yang hanya bisa dijangkau user Windows-mu; riwayat clipboard hanya di memori.</span></dd>
-        </dl>
+        <div class="panel">
+          <h3><span lang="en">Questions</span><span lang="id">Pertanyaan</span></h3>
+          <details>
+            <summary><span lang="en">Windows says "Windows protected your PC".</span><span lang="id">Windows bilang "Windows protected your PC".</span></summary>
+            <p><span lang="en">The installer isn't code-signed yet. Click More info, then Run anyway. Each release lists its SHA-256 so you can check the file.</span><span lang="id">Installer belum bertanda tangan kode. Klik More info, lalu Run anyway. Setiap rilis mencantumkan SHA-256 untuk mengecek file.</span></p>
+          </details>
+          <details>
+            <summary><span lang="en">Which AI do I need?</span><span lang="id">AI apa yang dibutuhkan?</span></summary>
+            <p><span lang="en">Claude Code or Codex with your subscription, or an Anthropic, OpenAI or OpenRouter key. TheAI walks you through it.</span><span lang="id">Claude Code atau Codex dengan langgananmu, atau key Anthropic, OpenAI, atau OpenRouter. TheAI memandumu.</span></p>
+          </details>
+          <details>
+            <summary><span lang="en">Is it really free? Will that change?</span><span lang="id">Benar gratis? Akan berubah?</span></summary>
+            <p><span lang="en">It's free. If that ever changes, it will be announced here and in the release notes first, and copies already downloaded keep working.</span><span lang="id">Gratis. Kalau suatu saat berubah, akan diumumkan dulu di sini dan di catatan rilis, dan salinan yang sudah diunduh tetap berfungsi.</span></p>
+          </details>
+          <details>
+            <summary><span lang="en">Coming from CodexBar?</span><span lang="id">Sebelumnya pakai CodexBar?</span></summary>
+            <p><span lang="en">Install TheAI over it. Settings, conversations and keys move over on the first start.</span><span lang="id">Pasang TheAI di atasnya. Pengaturan, percakapan, dan key pindah saat pertama dibuka.</span></p>
+          </details>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="band" id="faq">
-    <div class="wrap">
-      <h2><span lang="en">Questions</span><span lang="id">Pertanyaan</span></h2>
-      <div class="faq">
-        <details>
-          <summary><span lang="en">Windows says "Windows protected your PC". Is that normal?</span><span lang="id">Windows bilang "Windows protected your PC". Normal?</span></summary>
-          <p><span lang="en">Yes, for now. The installer isn't code-signed yet, so SmartScreen doesn't recognise the publisher. Click "More info" and then "Run anyway". Each release lists the installer's SHA-256 so you can check the download.</span><span lang="id">Ya, untuk sementara. Installer-nya belum bertanda tangan kode, jadi SmartScreen belum mengenal penerbitnya. Klik "More info" lalu "Run anyway". Setiap rilis mencantumkan SHA-256 installer supaya unduhanmu bisa dicek.</span></p>
-        </details>
-        <details>
-          <summary><span lang="en">Which AI do I need?</span><span lang="id">AI apa yang dibutuhkan?</span></summary>
-          <p><span lang="en">Any one of: Claude Code or Codex (signed in with your subscription), or an API key for Anthropic, OpenAI or OpenRouter. Gemini CLI sessions can be shown in the notch too. TheAI walks you through it on first start.</span><span lang="id">Salah satu: Claude Code atau Codex (login dengan langgananmu), atau API key Anthropic, OpenAI, atau OpenRouter. Sesi Gemini CLI juga bisa tampil di notch. TheAI memandu saat pertama kali dibuka.</span></p>
-        </details>
-        <details>
-          <summary><span lang="en">Will it slow my PC down?</span><span lang="id">Apakah memperlambat PC?</span></summary>
-          <p><span lang="en">It's built to sit quietly: at rest it uses under 0.5% of one CPU core and roughly 125 MB of memory, redraws only when something changes, and hides while a game or video is fullscreen.</span><span lang="id">Dibuat untuk diam: saat diam di bawah 0,5% dari satu inti CPU dan kira-kira 125 MB memori, hanya menggambar ulang saat ada yang berubah, dan bersembunyi saat game atau video layar penuh.</span></p>
-        </details>
-        <details>
-          <summary><span lang="en">Can I turn things off?</span><span lang="id">Bisakah fiturnya dimatikan?</span></summary>
-          <p><span lang="en">Everything except the agent and the launcher is optional. TheAI asks on first start, and Settings → Notch → Choose features changes it later.</span><span lang="id">Semua kecuali agent dan launcher bersifat opsional. TheAI bertanya saat pertama dibuka, dan Pengaturan → Notch → Pilih fitur mengubahnya nanti.</span></p>
-        </details>
-        <details>
-          <summary><span lang="en">Is it really free? Will that change?</span><span lang="id">Benar gratis? Apakah akan berubah?</span></summary>
-          <p><span lang="en">TheAI is free, with no account, ads or trial. If that ever changes, it will be announced here and in the release notes first, and copies you have already downloaded keep working.</span><span lang="id">TheAI gratis, tanpa akun, iklan, atau masa coba. Kalau suatu saat berubah, akan diumumkan dulu di sini dan di catatan rilis, dan salinan yang sudah kamu unduh tetap berfungsi.</span></p>
-        </details>
-        <details>
-          <summary><span lang="en">I used CodexBar before.</span><span lang="id">Sebelumnya saya pakai CodexBar.</span></summary>
-          <p><span lang="en">TheAI is the new name. Install it over CodexBar: your settings, conversations and saved keys move over on the first start.</span><span lang="id">TheAI adalah nama barunya. Pasang di atas CodexBar: pengaturan, percakapan, dan key yang tersimpan pindah otomatis saat pertama dibuka.</span></p>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <section class="download" id="download">
-    <div class="wrap">
+    <section class="download" id="download">
       <h2><span lang="en">Get TheAI</span><span lang="id">Dapatkan TheAI</span></h2>
-      <div class="specs">
-        <span>Windows 10 (1809+) · Windows 11</span><span>x64</span><span><span lang="en">Installs per user, no admin</span><span lang="id">Terpasang per user, tanpa admin</span></span><span><span lang="en">Updates itself when you say so</span><span lang="id">Memperbarui diri saat kamu mau</span></span>
-      </div>
-      <div class="actions">
+      <p><span lang="en">Installs for your user only, no administrator rights. Or run the portable zip.</span><span lang="id">Terpasang untuk akunmu saja, tanpa hak administrator. Atau jalankan versi portable.</span></p>
+      <div class="cta">
         <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download the installer</span><span lang="id">Unduh installer</span></a>
-        <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Portable zip (no installer)</span><span lang="id">Versi portable (tanpa installer)</span></a>
-        <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/issues"><span lang="en">Report a problem</span><span lang="id">Laporkan masalah</span></a>
+        <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Portable zip</span><span lang="id">Versi portable</span></a>
       </div>
-    </div>
-  </section>
-</main>
+    </section>
+  </main>
 
-<footer>
-  <div class="wrap">
-    <span>© 2026 build-zaidana · TheAI</span>
-    <span><span lang="en">Not affiliated with Anthropic, OpenAI or Google.</span><span lang="id">Tidak berafiliasi dengan Anthropic, OpenAI, atau Google.</span></span>
-  </div>
-</footer>
+  <footer>
+    <span><span lang="en">TheAI is free to use. Not affiliated with Anthropic, OpenAI or Google.</span><span lang="id">TheAI gratis digunakan. Tidak berafiliasi dengan Anthropic, OpenAI, atau Google.</span></span>
+    <span><a href="https://github.com/build-zaidana/theai-app/issues"><span lang="en">Report a problem</span><span lang="id">Laporkan masalah</span></a> · <a href="https://github.com/build-zaidana/theai-app/releases"><span lang="en">Release notes</span><span lang="id">Catatan rilis</span></a></span>
+  </footer>
+</div>
 
 <script>
 (() => {
