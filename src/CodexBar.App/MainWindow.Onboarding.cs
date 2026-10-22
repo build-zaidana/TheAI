@@ -341,6 +341,12 @@ public partial class MainWindow
 
     private void ShowOnboardingWindow(OnboardingKind kind, string? detail)
     {
+        if (_welcome is not null)
+        {
+            _pendingOnboarding = (kind, detail);   // after the welcome, not on top of it
+            return;
+        }
+
         var claude = IsClaudeCodeProvider;
         var tool = claude ? "Claude Code" : "Codex CLI";
         var installed = claude

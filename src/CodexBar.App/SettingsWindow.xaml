@@ -360,6 +360,16 @@
                             <Border x:Name="NotchGroup" Style="{StaticResource MacGroupBox}" Margin="0,18,0,0">
                                 <StackPanel>
                                     <Grid Style="{StaticResource MacRow}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,6,120,6">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Fitur notch, En=Notch features}" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Pilih apa saja yang tampil di notch, En=Choose everything the notch shows}" />
+                                        </StackPanel>
+                                        <Button Style="{StaticResource MacButton}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Content="{local:Tr Pilih fitur…, En=Choose features…}" Click="Features_Click" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sembunyikan notch saat diam, En=Hide the notch when idle}" />
                                         <CheckBox x:Name="HideIdleSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>

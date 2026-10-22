@@ -1520,6 +1520,22 @@ static int RunSmartCommandTests()
         var templates = SmartCommands.FromTemplates([new PromptTemplate { Name = "Tulis Unit Test!", Content = "Tulis unit test:" }, new PromptTemplate { Name = "Review", Content = "x" }]).ToList();
         Assert(templates is [{ Name: "tulis-unit-test" }] && SmartCommands.Expand(templates[0], "Foo()", none) == "Tulis unit test:\n\nFoo()",
             "Template jadi /nama; nama yang bentrok dengan bawaan dilewati.");
+        // Features: a new user starts with only the core; the welcome window switches on what's chosen.
+        var fresh = new AppSettings();
+        Assert(fresh.MusicInNotch && fresh.TimerInNotch && fresh.WelcomeShown, "Bawaan kelas = pengguna lama (tidak berubah).");
+        fresh.ApplyNewUserDefaults();
+        Assert(NotchFeatures.All.All(feature => !feature.IsOn(fresh)) && !fresh.WelcomeShown, "Pengguna baru: semua fitur mati.");
+        NotchFeatures.Apply(fresh, ["music", "calendar", "reminders"]);
+        Assert(fresh is { MusicInNotch: true, CalendarSource: "outlook", RemindersEnabled: true, TimerInNotch: false, SystemHud: false },
+            "Hanya yang dipilih menyala.");
+        fresh.CalendarSource = "ics";
+        NotchFeatures.Find("calendar")!.Set(fresh, true);
+        Assert(fresh.CalendarSource == "ics", "Menyalakan kalender tidak menimpa sumber yang sudah dipilih.");
+        Assert(NotchFeatures.All.Select(f => f.Key).Distinct().Count() == NotchFeatures.All.Count &&
+               NotchFeatures.All.Where(f => f.Recommended).Select(f => f.Key).SequenceEqual(["music", "timer", "hud"]), "Kunci unik; saran: musik, timer, HUD.");
+        var imported = new AppSettings();
+        imported.ApplyFrom(fresh);
+        Assert(imported is { MusicInNotch: true, TimerInNotch: false, RemindersEnabled: true, CalendarSource: "ics" }, "Impor membawa pengaturan notch.");
         Console.WriteLine("PASS smart command tests");
         return 0;
     }

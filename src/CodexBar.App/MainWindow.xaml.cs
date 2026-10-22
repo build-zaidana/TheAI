@@ -210,6 +210,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             PromptBox.Focus();
             _notifier.Initialize();
             _notifier.Activated += (action, key) => Dispatcher.BeginInvoke(() => NotificationActivated(action, key));
+            // A new user sees the welcome first; setup steps (install, sign-in, folder) wait for it.
+            if (!_settings.WelcomeShown)
+            {
+                ShowWelcome(tour: true);
+            }
+
             await StartupAsync();
             ApplyDisplayMode();
             StartClaudeSync();
@@ -245,6 +251,49 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             $"managed heap {heap >> 20} MB → {GC.GetGCMemoryInfo().HeapSizeBytes >> 20} MB; " +
             $"private {process.PrivateMemorySize64 >> 20} MB, working set {process.WorkingSet64 >> 20} MB");
     }
+
+    private WelcomeWindow? _welcome;
+    private (OnboardingKind Kind, string? Detail)? _pendingOnboarding;
+
+    /// <summary>The tour and the feature picker (first start), or just the picker (from Settings).</summary>
+    internal void ShowWelcome(bool tour)
+    {
+        if (_welcome is { IsLoaded: true })
+        {
+            _welcome.Activate();
+            return;
+        }
+
+        var claudeInstalled = CodexBar.Providers.ClaudeCode.ClaudeCodeExecutableLocator.TryLocate() is not null;
+        _welcome = new WelcomeWindow(_settings, _settings.Hotkey, claudeInstalled, tour);
+        _welcome.Finished += (chosen, claudeSessions) =>
+        {
+            NotchFeatures.Apply(_settings, chosen);
+            if (claudeInstalled && claudeSessions != (_settings.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled()))
+            {
+                ((ISettingsHost)this).SetClaudeLiveSessions(claudeSessions);
+            }
+
+            DiagnosticsLog.Info("Welcome", "features: " + string.Join(", ", chosen));
+            _notch?.ShowIdle();
+        };
+        _welcome.Closed += (_, _) =>
+        {
+            // Closed either way: it doesn't come back by itself (Settings → Notch → Choose features reopens it).
+            _settings.WelcomeShown = true;
+            _ = SaveSettingsSafeAsync();
+            _welcome = null;
+            if (_pendingOnboarding is { } pending)
+            {
+                _pendingOnboarding = null;
+                ShowOnboardingWindow(pending.Kind, pending.Detail);
+            }
+        };
+        _welcome.Show();
+        _welcome.Activate();
+    }
+
+    void ISettingsHost.ShowFeatures() => ShowWelcome(tour: false);
 
     private async Task StartupAsync()
     {
@@ -2354,6 +2403,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.ClipboardHistory => _settings.ClipboardHistory;
     bool INotchHost.DownloadsToShelf => _settings.DownloadsToShelf;
     bool INotchHost.SystemMonitor => _settings.SystemMonitor;
+    bool INotchHost.TimerInNotch => _settings.TimerInNotch;
     bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge

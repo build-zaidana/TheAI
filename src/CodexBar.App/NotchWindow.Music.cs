@@ -324,7 +324,10 @@ public partial class NotchWindow
             pages.Add(NotchView.Jobs);
         }
 
-        pages.Add(NotchView.Timer);
+        if (_host.TimerInNotch || TimerShowing)
+        {
+            pages.Add(NotchView.Timer);
+        }
         if (CalendarPageAvailable)
         {
             pages.Add(NotchView.Calendar);

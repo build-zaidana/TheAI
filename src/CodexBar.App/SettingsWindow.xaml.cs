@@ -46,6 +46,9 @@ internal interface ISettingsHost
     Task<string> CheckForUpdateAsync();
     (bool Ok, string Message) SetClaudeLiveSessions(bool on);
     (bool Ok, string Message) SetGeminiLiveSessions(bool on);
+
+    /// <summary>Open the feature picker.</summary>
+    void ShowFeatures();
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
     void OpenLogin();
@@ -575,6 +578,12 @@ public partial class SettingsWindow : Window
             ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
             ShellStatus.Text = exception.Message;
         }
+    }
+
+    private void Features_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+        _host.ShowFeatures();
     }
 
     private void GeminiLive_Click(object sender, RoutedEventArgs e)

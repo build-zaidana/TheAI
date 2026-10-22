@@ -93,6 +93,7 @@ public partial class App : System.Windows.Application
             {
                 // A new user starts with the agent they already have, not an onboarding for another one.
                 settings.Provider = InstalledAgent() ?? settings.Provider;
+                settings.ApplyNewUserDefaults();
             }
             if (settings.UpdateRepository is "build-zaidana/CodexBar" or "build-zaidana/TheAI")
             {

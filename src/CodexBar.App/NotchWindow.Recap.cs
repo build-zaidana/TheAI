@@ -50,7 +50,7 @@ public partial class NotchWindow
         }
     }
 
-    private bool RecapAvailable => !Today.IsEmpty;
+    private bool RecapAvailable => _host.RecapEvening && !Today.IsEmpty;
 
     private void InitRecap()
     {

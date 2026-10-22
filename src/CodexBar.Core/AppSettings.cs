@@ -111,6 +111,46 @@ public sealed class AppSettings
     /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
     public bool HoldDuringFocus { get; set; } = true;
 
+    /// <summary>Timer, stopwatch, pomodoro dan alarm sebagai halaman notch.</summary>
+    public bool TimerInNotch { get; set; } = true;
+
+    /// <summary>Cuaca (Open-Meteo, tanpa API key) dan jam dunia sebagai halaman notch.</summary>
+    public bool WeatherEnabled { get; set; }
+
+    /// <summary>Kota untuk cuaca (dicari lewat geocoding Open-Meteo); kosong = belum diatur.</summary>
+    public string WeatherCity { get; set; } = string.Empty;
+
+    /// <summary>Zona waktu tambahan untuk jam dunia (ID Windows atau IANA), dipisah koma.</summary>
+    public string WorldClocks { get; set; } = string.Empty;
+
+    /// <summary>Pengingat dan to-do singkat di notch.</summary>
+    public bool RemindersEnabled { get; set; }
+
+    /// <summary>Jendela sambutan (tur + pilih fitur) sudah ditunjukkan.</summary>
+    public bool WelcomeShown { get; set; } = true;
+
+    /// <summary>
+    /// A new user starts with only the core (the agent and the launcher): every notch feature is off
+    /// until they pick it in the welcome window. Existing users keep what they had.
+    /// </summary>
+    public void ApplyNewUserDefaults()
+    {
+        MusicInNotch = false;
+        SystemHud = false;
+        TimerInNotch = false;
+        LiveActivities = false;
+        HoldDuringFocus = false;
+        RecapEvening = false;
+        DownloadsToShelf = false;
+        SystemMonitor = false;
+        ClipboardHistory = false;
+        GitHubChecks = false;
+        WeatherEnabled = false;
+        RemindersEnabled = false;
+        CalendarSource = "off";
+        WelcomeShown = false;
+    }
+
     /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
     public string NotchEdge { get; set; } = "top";
 
@@ -185,6 +225,24 @@ public sealed class AppSettings
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;
         GeminiLiveSessions = source.GeminiLiveSessions;
+        MusicInNotch = source.MusicInNotch;
+        MusicTrackToast = source.MusicTrackToast;
+        MusicLyrics = source.MusicLyrics;
+        SystemHud = source.SystemHud;
+        CalendarSource = source.CalendarSource;
+        HideInFullscreen = source.HideInFullscreen;
+        LiveActivities = source.LiveActivities;
+        GitHubChecks = source.GitHubChecks;
+        RecapEvening = source.RecapEvening;
+        ClipboardHistory = source.ClipboardHistory;
+        DownloadsToShelf = source.DownloadsToShelf;
+        SystemMonitor = source.SystemMonitor;
+        HoldDuringFocus = source.HoldDuringFocus;
+        TimerInNotch = source.TimerInNotch;
+        WeatherEnabled = source.WeatherEnabled;
+        WeatherCity = source.WeatherCity;
+        WorldClocks = source.WorldClocks;
+        RemindersEnabled = source.RemindersEnabled;
         ClaudeImportSessions = source.ClaudeImportSessions;
         PromptSuggestions = source.PromptSuggestions;
         AutoForkElsewhere = source.AutoForkElsewhere;

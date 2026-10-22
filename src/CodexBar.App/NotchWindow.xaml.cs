@@ -66,6 +66,9 @@ internal interface INotchHost
     /// <summary>The machine page (CPU, GPU, memory, drive) and warnings when memory or the drive runs short.</summary>
     bool SystemMonitor { get; }
 
+    /// <summary>The timer page (and its chip in the launcher).</summary>
+    bool TimerInNotch { get; }
+
     /// <summary>During a focus session or a meeting, agents' results and requests wait for the break.</summary>
     bool HoldDuringFocus { get; }
 
@@ -1262,7 +1265,12 @@ public partial class NotchWindow : Window
             ChipPanel.Children.Add(chip);
         }
 
-        // The notch's own timer, next to the prompt templates.
+        // The notch's own timer, next to the prompt templates (when the timer is one of the features).
+        if (!_host.TimerInNotch)
+        {
+            return;
+        }
+
         var timer = new Button
         {
             Content = _timer.IsActive ? $"⏱ {NotchTimer.Format(_timer.Display(DateTimeOffset.Now))}" : "⏱ Timer",
