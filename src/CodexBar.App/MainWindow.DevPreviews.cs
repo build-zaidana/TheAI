@@ -151,6 +151,12 @@ public partial class MainWindow
             _notch.PreviewSelection();
         }
 
+        // CODEXBAR_PREVIEW_PRIVACY=mic|camera: the microphone / camera dot and its HUD (a sample app).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PRIVACY") is { Length: > 0 } privacyPreview && _notch is not null)
+        {
+            _notch.PreviewPrivacy(privacyPreview);
+        }
+
         // CODEXBAR_PREVIEW_TODAY=1: the combined Today page with sample weather, water and reminders (never saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TODAY") is { Length: > 0 } && _notch is not null)
         {

@@ -129,6 +129,12 @@ public sealed class AppSettings
     /// <summary>Cuaca, rapat berikutnya, air, dan pengingat digabung jadi satu halaman "Hari ini" (false = satu halaman per fitur).</summary>
     public bool CombinedPages { get; set; }
 
+    /// <summary>Titik di notch saat mikrofon atau kamera dipakai, dari catatan privasi Windows sendiri.</summary>
+    public bool PrivacyDot { get; set; }
+
+    /// <summary>Jadwal sholat untuk kota cuaca, dihitung di PC (sudut Kemenag).</summary>
+    public bool PrayerTimes { get; set; }
+
     /// <summary>Sepasang mata kecil di notch saat tidak ada apa-apa: berkedip, tertidur saat komputer ditinggal.</summary>
     public bool CompanionEyes { get; set; }
 
@@ -258,6 +264,8 @@ public sealed class AppSettings
         WaterEnabled = source.WaterEnabled;
         CompanionEyes = source.CompanionEyes;
         CombinedPages = source.CombinedPages;
+        PrivacyDot = source.PrivacyDot;
+        PrayerTimes = source.PrayerTimes;
         WaterGoalMl = source.WaterGoalMl;
         WaterGlassMl = source.WaterGlassMl;
         WaterEveryMinutes = source.WaterEveryMinutes;

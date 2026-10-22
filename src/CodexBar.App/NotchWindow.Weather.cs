@@ -57,7 +57,7 @@ public partial class NotchWindow
     /// <summary>Settings may have turned it on or off, or changed the city.</summary>
     private void RestartWeather()
     {
-        if (!_host.WeatherEnabled)
+        if (!_host.WeatherEnabled && !_host.PrayerTimes)
         {
             _weatherRefresh.Stop();
             _clockTick.Stop();
@@ -76,7 +76,7 @@ public partial class NotchWindow
     private async Task RefreshWeatherAsync()
     {
         var city = _host.WeatherCity.Trim();
-        if (!_host.WeatherEnabled || city.Length == 0)
+        if ((!_host.WeatherEnabled && !_host.PrayerTimes) || city.Length == 0)
         {
             _weather = null;
             _weatherError = city.Length == 0 ? Tr.Text("Atur kotamu di Pengaturan → Notch.", "Set your city in Settings → Notch.") : string.Empty;
@@ -89,6 +89,7 @@ public partial class NotchWindow
             {
                 _place = await WeatherClient.FindPlaceAsync(city, Tr.IsEnglish ? "en" : "id");
                 _placeFor = city;
+                SchedulePrayer();   // prayer times follow the city
             }
 
             if (_place is null)
@@ -172,6 +173,11 @@ public partial class NotchWindow
             var meta = string.Join("  ", new[] { clock.Offset(now), shift.Length > 0 ? (shift.StartsWith('+') ? Tr.Text("besok", "tomorrow") : Tr.Text("kemarin", "yesterday")) : string.Empty }
                 .Where(part => part.Length > 0));
             WorldClockRows.Children.Add(ClockRow(clock.Label, clock.Time(now), meta, first: false));
+        }
+
+        if (PrayerAvailable && NextPrayer(now) is { } prayer)
+        {
+            WorldClockRows.Children.Add(ClockRow(prayer.Name(Tr.Text), prayer.At.ToString("H:mm", CultureInfo.InvariantCulture), Tr.Text("sholat berikutnya", "next prayer"), first: false));
         }
 
         RenderPageDots();

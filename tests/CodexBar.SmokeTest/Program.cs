@@ -1591,6 +1591,18 @@ static int RunSmartCommandTests()
         File.Delete(waterPath);
         Assert(WaterPlan.From(new AppSettings { WaterGoalMl = 50, WaterEveryMinutes = 5 }) is { GoalMl: 500, EveryMinutes: 15 }, "Air: angka dibatasi ke rentang wajar.");
 
+        // Prayer times: Jakarta on 22 Oct 2026, against Aladhan (Kemenag angles) plus ihtiyat, within 3 minutes.
+        var jakarta = PrayerTimes.For(new DateOnly(2026, 10, 22), -6.2, 106.8167, TimeSpan.FromHours(7));
+        var expected = new[] { (4, 12), (11, 39), (14, 51), (17, 48), (18, 58) };   // Aladhan method 20 + 2 min ihtiyat
+        for (var i = 0; i < 5; i++)
+        {
+            var want = new DateTimeOffset(2026, 10, 22, expected[i].Item1, expected[i].Item2, 0, TimeSpan.FromHours(7));
+            Assert(Math.Abs((jakarta[i].At - want).TotalMinutes) <= 3, $"Sholat: {jakarta[i].NameId} {jakarta[i].At:HH:mm}, tabel {want:HH:mm}.");
+        }
+
+        var lateNight = new DateTimeOffset(2026, 10, 22, 22, 0, 0, TimeSpan.FromHours(7));
+        Assert(PrayerTimes.Next(lateNight, -6.2, 106.8167) is { NameId: "Subuh" } fajr && fajr.At.Day == 23, "Sholat: setelah Isya, berikutnya Subuh besok.");
+
         // Weather: Open-Meteo's geocoding and forecast answers, WMO codes, and world clocks.
         var place = WeatherClient.ParsePlace("""{"results":[{"name":"Jakarta","country":"Indonesia","latitude":-6.21462,"longitude":106.84513,"timezone":"Asia/Jakarta"}]}""");
         Assert(place is { Name: "Jakarta", Country: "Indonesia", TimeZone: "Asia/Jakarta" } && Math.Abs(place.Latitude + 6.21462) < 1e-6, "Geocoding dibaca.");

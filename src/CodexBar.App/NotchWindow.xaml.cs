@@ -51,6 +51,10 @@ internal interface INotchHost
     /// <summary>Weather, the next meeting, water and reminders on one "Today" page.</summary>
     bool CombinedPages { get; }
 
+    /// <summary>The microphone / camera dot and prayer times.</summary>
+    bool PrivacyDot { get; }
+    bool PrayerTimes { get; }
+
     /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
     string CalendarSource { get; }
 
@@ -251,6 +255,7 @@ public partial class NotchWindow : Window
         InitReminders();
         InitWeather();
         InitWater();
+        InitPrivacy();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -274,6 +279,8 @@ public partial class NotchWindow : Window
         RestartGitHub();
         ApplyKeyboardWatcher();
         ApplyCompanion();
+        ApplyPrivacyWatcher();
+        SchedulePrayer();
         ScheduleFullscreenCheck();
         ScheduleRecap();
         UpdateQuietCheck();

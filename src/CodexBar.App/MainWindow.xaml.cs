@@ -2462,6 +2462,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.KeyboardHud => _settings.KeyboardHud;
     bool INotchHost.CompanionEyes => _settings.CompanionEyes;
     bool INotchHost.CombinedPages => _settings.CombinedPages;
+    bool INotchHost.PrivacyDot => _settings.PrivacyDot;
+    bool INotchHost.PrayerTimes => _settings.PrayerTimes;
 
     string INotchHost.CalendarSource => _settings.CalendarSource;
 

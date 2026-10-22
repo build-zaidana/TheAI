@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using CodexBar.App.Hud;
 using CodexBar.Core;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
@@ -28,7 +29,8 @@ public partial class NotchWindow
         view is NotchView.Weather or NotchView.Calendar or NotchView.Reminders or NotchView.Water;
 
     private bool TodayAvailable =>
-        _host.CombinedPages && (WeatherAvailable || CalendarPageAvailable || RemindersAvailable || WaterAvailable);
+        _host.CombinedPages && (WeatherAvailable || CalendarPageAvailable || RemindersAvailable || WaterAvailable || PrayerAvailable ||
+                                _privacyShown.Microphone.Count > 0);
 
     private void OpenToday()
     {
@@ -57,6 +59,30 @@ public partial class NotchWindow
                 : (SunGlyph, Tr.Text("Cuaca belum dimuat", "Weather not loaded yet"));
             AddTodayRow(glyph, text, WorldClock.ParseList(_host.WorldClocks).FirstOrDefault() is { } clock
                 ? $"{clock.Label} {TimeZoneInfo.ConvertTime(now, clock.Zone):HH:mm}" : string.Empty, OpenWeather);
+        }
+
+        if (_privacyShown.Microphone.Count > 0)
+        {
+            var muted = MicMute.IsMuted() == true;
+            var mute = new Button
+            {
+                Style = (Style)FindResource(muted ? "NotchPrimaryPill" : "NotchPill"),
+                Height = 24,
+                FontSize = 11.5,
+                Content = muted ? Tr.Text("Nyalakan", "Unmute") : Tr.Text("Bisukan", "Mute")
+            };
+            mute.Click += (_, _) => ToggleMicMute();
+            AddTodayRow(muted ? MicOffGlyph : MicGlyph,
+                (muted ? Tr.Text("Mikrofon dibisukan · ", "Microphone muted · ") : Tr.Text("Mikrofon dipakai · ", "Microphone in use · ")) +
+                string.Join(", ", _privacyShown.Microphone), mute, ToggleMicMute);
+        }
+
+        if (PrayerAvailable && NextPrayer(now) is { } prayer)
+        {
+            var left = prayer.At - now;
+            AddTodayRow(CrescentGlyph, string.Format(culture, Tr.Text("{0} pukul {1:HH:mm}", "{0} at {1:HH:mm}"), prayer.Name(Tr.Text), prayer.At),
+                left < TimeSpan.FromHours(1) ? string.Format(culture, Tr.Text("{0} mnt lagi", "in {0} min"), (int)Math.Ceiling(left.TotalMinutes)) : string.Empty,
+                OpenWeather);
         }
 
         if (CalendarPageAvailable && NextEvent is { } next)
@@ -183,6 +209,7 @@ public partial class NotchWindow
         _placeFor = "Jakarta";
         _weather = new WeatherReport(31.4, 2, true, 33.1, 25.0, 70);
         RenderWeather();
+        _privacyShown = new PrivacyState(["Zoom"], []);
         _water = new WaterLog();
         _water.Add(1250, now.AddMinutes(-40));
         _reminders = new ReminderList();

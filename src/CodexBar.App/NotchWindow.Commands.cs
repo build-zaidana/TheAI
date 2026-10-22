@@ -251,6 +251,9 @@ public partial class NotchWindow
             case "today":
                 OpenToday();
                 break;
+            case "mute":
+                ToggleMicMute();
+                break;
             case "activities":
                 if (_jobs.Visible(now).Count > 0)
                 {
