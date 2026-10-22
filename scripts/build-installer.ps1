@@ -63,7 +63,7 @@ function Invoke-Sign([string]$file) {
     else {
         if (-not (Test-Path -LiteralPath $pfx)) { throw "Certificate not found: $pfx" }
         if (-not $pfxPassword) { throw "THEAI_PFX_PASSWORD is required with THEAI_PFX." }
-        & $signtool sign /fd SHA256 /f $pfx /p $pfxPassword /tr https://timestamp.digicert.com /td SHA256 $file
+        & $signtool sign /fd SHA256 /f $pfx /p $pfxPassword /tr http://timestamp.digicert.com /td SHA256 $file
     }
     if ($LASTEXITCODE -ne 0) { throw "signtool failed for $file" }
     & $signtool verify /pa /v $file

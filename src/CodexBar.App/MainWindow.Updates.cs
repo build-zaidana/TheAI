@@ -109,7 +109,7 @@ public partial class MainWindow
             DiagnosticsLog.Info("Update", $"installing {update.Tag}");
             // Silent, closes this TheAI (the installer knows its mutex), and starts the new one when done.
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer,
-                "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS") { UseShellExecute = true });
+                "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /update=1") { UseShellExecute = true });
             await Task.Delay(800);
             System.Windows.Application.Current.Shutdown();
         }

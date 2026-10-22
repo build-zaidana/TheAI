@@ -45,7 +45,7 @@ CloseApplications=yes
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "id"; MessagesFile: "compiler:Languages\Indonesian.isl"
+Name: "id"; MessagesFile: "compiler:Default.isl,Indonesian.isl"
 
 [CustomMessages]
 en.DesktopIcon=Create a desktop icon
@@ -63,8 +63,7 @@ Name: "startup"; Description: "{cm:StartAtLogin}"; GroupDescription: "{cm:Extras
 
 [InstallDelete]
 ; What CodexBar 1.x left behind (its data in %LOCALAPPDATA%\CodexBar moves over on first start).
-Type: files; Name: "{localappdata}\Programs\CodexBar\CodexBar.App.exe"
-Type: dirifempty; Name: "{localappdata}\Programs\CodexBar"
+Type: filesandordirs; Name: "{localappdata}\Programs\CodexBar"
 Type: files; Name: "{userprograms}\CodexBar.lnk"
 Type: files; Name: "{userdesktop}\CodexBar.lnk"
 
@@ -85,5 +84,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchNow}"; \
     Flags: nowait postinstall skipifsilent
-; An update from inside TheAI runs silently: start the new version when it's done.
-Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent
+; An update from inside TheAI (silent, /update=1): start the new version when it's done.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifnotsilent; Check: IsInAppUpdate
+
+[Code]
+function IsInAppUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:update|0}') = '1';
+end;

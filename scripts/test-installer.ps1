@@ -37,7 +37,10 @@ try {
         throw "Uninstaller tidak dibuat."
     }
 
+    # A fresh, throwaway data folder: a first start, never the user's own settings.
+    $env:THEAI_DATA_DIR = Join-Path $testRoot "data"
     $app = Start-Process -FilePath $appPath -WindowStyle Hidden -PassThru
+    Remove-Item Env:THEAI_DATA_DIR
     $deadline = [DateTimeOffset]::UtcNow.AddSeconds(20)
     do {
         Start-Sleep -Milliseconds 200
