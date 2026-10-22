@@ -46,6 +46,7 @@ public partial class NotchWindow
 
     private double MusicPageWidth => _musicMini ? MusicMiniWidth : MusicWidth + (LyricsSplit ? MusicLyricsWidth : 0);
     private string _lyricsKey = string.Empty;
+    private bool _lyricsPreview;
     private float? _volume;
     private FrameworkElement? _barDrag;
     private DateTime _lastFlip;
@@ -500,6 +501,7 @@ public partial class NotchWindow
                 var at = playing.EstimatedPosition;
                 string[] sample = ["Seperti hujan di bulan Juni", "Kau datang tanpa suara", "Membawa cerita yang lama", "", "Dan aku masih di sini", "Menunggu pagi yang sama", "Di jalan yang kita kenal"];
                 _lyricsKey = playing.TrackKey;
+                _lyricsPreview = true;
                 _lyrics = sample.Select((text, i) => new LyricLine(at + TimeSpan.FromSeconds((i - 2) * 4 - 1), text)).ToList();
             }
 
@@ -672,6 +674,12 @@ public partial class NotchWindow
 
     private async void LoadLyrics(MediaSnapshot track)
     {
+        if (_lyricsPreview)
+        {
+            _lyricsKey = track.TrackKey;   // the sample lines stay, whatever the browser renames the tab to
+            return;
+        }
+
         if (!_host.MusicLyrics || _lyricsKey == track.TrackKey)
         {
             if (!_host.MusicLyrics)
