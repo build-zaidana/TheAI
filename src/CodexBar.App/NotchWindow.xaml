@@ -1123,7 +1123,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Path x:Name="WaterIcon" Width="26" Height="26" Stretch="Uniform" Stroke="#5AC8FA" StrokeThickness="1.6"
+                        <Path x:Name="WaterIcon" Width="26" Height="26" Stretch="Uniform" Stroke="#64D2FF" StrokeThickness="1.6"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"
                               Data="M 12,2.5 C 12,2.5 5,10.5 5,15 A 7,7 0 0 0 19,15 C 19,10.5 12,2.5 12,2.5 Z" />
                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
@@ -1139,7 +1139,7 @@
                         </StackPanel>
                     </Grid>
                     <Border Height="6" CornerRadius="3" Background="#1FFFFFFF" Margin="0,2,0,12">
-                        <Border x:Name="WaterBar" HorizontalAlignment="Left" CornerRadius="3" Background="#5AC8FA" Width="0" />
+                        <Border x:Name="WaterBar" HorizontalAlignment="Left" CornerRadius="3" Background="#64D2FF" Width="0" />
                     </Border>
                     <Grid x:Name="WaterWeek" Height="62" />
                 </StackPanel>

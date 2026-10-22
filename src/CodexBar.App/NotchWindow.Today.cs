@@ -24,20 +24,12 @@ public partial class NotchWindow
     private static readonly Geometry DropGlyph = Geometry.Parse("M 12,2.5 C 12,2.5 5,10.5 5,15 A 7,7 0 0 0 19,15 C 19,10.5 12,2.5 12,2.5 Z");
     private static readonly Geometry BellGlyph = Geometry.Parse("M 6,16 L 6,10.5 A 6,6 0 0 1 18,10.5 L 18,16 L 20,18 L 4,18 Z M 10,20.5 A 2,2 0 0 0 14,20.5");
 
-    // One accent per feature, on its icon only: the notch stays black and white.
-    private static readonly Brush WeatherAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0xD6, 0x0A));
-    private static readonly Brush CalendarAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0x45, 0x3A));
-    private static readonly Brush ReminderAccent = Frozen(System.Windows.Media.Color.FromRgb(0xBF, 0x5A, 0xF2));
-    private static readonly Brush PrayerAccent = Frozen(System.Windows.Media.Color.FromRgb(0x63, 0xE6, 0xBE));
+    // Colour means something, and only on icons: every "your day" feature shares one calm blue;
+    // orange is "needs you" (the microphone in use, a reminder that is due); the notch stays black
+    // and white otherwise. The same key is drawn on the design canvas ("Arti warna").
+    internal static readonly Brush DayAccent = Frozen(System.Windows.Media.Color.FromRgb(0x64, 0xD2, 0xFF));
+    internal static readonly Brush AttentionAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0x9F, 0x0A));
     private static readonly Brush RowHover = Frozen(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
-
-    private Brush AccentFor(Geometry glyph) =>
-        glyph == DropGlyph ? WaterBrush
-        : glyph == CalendarGlyph ? CalendarAccent
-        : glyph == BellGlyph ? ReminderAccent
-        : glyph == CrescentGlyph ? PrayerAccent
-        : glyph == MicGlyph || glyph == MicOffGlyph ? MicDotBrush
-        : WeatherAccent;
 
     /// <summary>Views the combined mode folds into Today.</summary>
     private static bool FoldedIntoToday(NotchView view) =>
@@ -89,7 +81,7 @@ public partial class NotchWindow
             mute.Click += (_, _) => ToggleMicMute();
             AddTodayRow(muted ? MicOffGlyph : MicGlyph,
                 (muted ? Tr.Text("Mikrofon dibisukan · ", "Microphone muted · ") : Tr.Text("Mikrofon dipakai · ", "Microphone in use · ")) +
-                string.Join(", ", _privacyShown.Microphone), mute, ToggleMicMute);
+                string.Join(", ", _privacyShown.Microphone), mute, ToggleMicMute, AttentionAccent);
         }
 
         if (PrayerAvailable && NextPrayer(now) is { } prayer)
@@ -136,12 +128,13 @@ public partial class NotchWindow
 
             foreach (var item in open)
             {
-                AddTodayRow(BellGlyph, item.Text, ReminderList.When(item, now, Tr.Text), () => OpenReminders());
+                AddTodayRow(BellGlyph, item.Text, ReminderList.When(item, now, Tr.Text), () => OpenReminders(),
+                    item.DueAt <= now ? AttentionAccent : null);
             }
         }
     }
 
-    private void AddTodayRow(Geometry glyph, string text, object right, Action open)
+    private void AddTodayRow(Geometry glyph, string text, object right, Action open, Brush? accent = null)
     {
         var grid = new Grid { MinHeight = 34, Background = Brushes.Transparent, Cursor = Cursors.Hand };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
@@ -153,7 +146,7 @@ public partial class NotchWindow
             Width = 16,
             Height = 16,
             Stretch = Stretch.Uniform,
-            Stroke = AccentFor(glyph),
+            Stroke = accent ?? DayAccent,
             StrokeThickness = 1.6,
             StrokeLineJoin = PenLineJoin.Round,
             StrokeStartLineCap = PenLineCap.Round,

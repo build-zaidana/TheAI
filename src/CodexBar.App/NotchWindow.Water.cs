@@ -18,8 +18,8 @@ public partial class NotchWindow
 {
     private const double WaterWidth = 420;
 
-    private static readonly Brush WaterBrush = Frozen(Color.FromRgb(0x5A, 0xC8, 0xFA));
-    private static readonly Brush WaterDimBrush = Frozen(Color.FromArgb(0x55, 0x5A, 0xC8, 0xFA));
+    private static readonly Brush WaterBrush = DayAccent;
+    private static readonly Brush WaterDimBrush = Frozen(Color.FromArgb(0x55, 0x64, 0xD2, 0xFF));
 
     private static string WaterPath => System.IO.Path.Combine(CodexBar.Providers.AppPaths.DataRoot, "water.json");
 

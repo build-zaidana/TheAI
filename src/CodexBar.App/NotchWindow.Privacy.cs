@@ -86,11 +86,11 @@ public partial class NotchWindow
         // Say it once, when an app starts using it.
         if (state.Camera.Except(before.Camera).FirstOrDefault() is { } cameraApp)
         {
-            ShowTextHud(CameraGlyph, Tr.Text("Kamera dipakai · ", "Camera in use · ") + cameraApp, red: false);
+            ShowTextHud(CameraGlyph, Tr.Text("Kamera dipakai · ", "Camera in use · ") + cameraApp, red: false, CameraDotBrush);
         }
         else if (state.Microphone.Except(before.Microphone).FirstOrDefault() is { } micApp)
         {
-            ShowTextHud(MicGlyph, Tr.Text("Mikrofon dipakai · ", "Microphone in use · ") + micApp, red: false);
+            ShowTextHud(MicGlyph, Tr.Text("Mikrofon dipakai · ", "Microphone in use · ") + micApp, red: false, MicDotBrush);
         }
     }
 
@@ -137,7 +137,7 @@ public partial class NotchWindow
                 .FirstOrDefault(prayer => Math.Abs((prayer.At - now).TotalSeconds) < 60) is { } current &&
             !Quiet && !_fullscreenHidden)
         {
-            ShowTextHud(CrescentGlyph, string.Format(Tr.Text("Waktunya {0} · {1:HH:mm}", "Time for {0} · {1:HH:mm}"), current.Name(Tr.Text), current.At), red: false);
+            ShowTextHud(CrescentGlyph, string.Format(Tr.Text("Waktunya {0} · {1:HH:mm}", "Time for {0} · {1:HH:mm}"), current.Name(Tr.Text), current.At), red: false, DayAccent);
         }
 
         SchedulePrayer();

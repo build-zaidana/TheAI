@@ -175,7 +175,7 @@ public partial class NotchWindow
         // Opening: a lively spring that overshoots a hair. Closing: quicker and calmer.
         var opening = expanded && _shownView == NotchView.Compact ||
                       width > _shapeWidth.Value + 0.5 || height > _shapeHeight.Value + 0.5;
-        var (response, damping) = opening ? (0.40, 0.74) : (0.30, 0.94);
+        var (response, damping) = opening ? (_island ? (0.44, 0.62) : (0.40, 0.78)) : (0.30, 0.94);
         Retarget(_shapeWidth, width, response, damping);
         Retarget(_shapeHeight, height, response, damping);
         Retarget(_shapeRadius, radius, response, damping);

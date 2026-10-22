@@ -152,12 +152,12 @@ public partial class NotchWindow
             ShowNetworkHud(e.IsAvailable);
         });
 
-    private void ShowTextHud(Geometry glyph, string text, bool red)
+    private void ShowTextHud(Geometry glyph, string text, bool red, Brush? accent = null)
     {
         HudIconFill.Data = Geometry.Empty;
         HudIconBattery.Visibility = Visibility.Collapsed;
         HudIconStroke.Data = glyph;
-        HudIconStroke.Stroke = red ? (Brush)FindResource("NotchRed") : TimerFocusBrush;
+        HudIconStroke.Stroke = red ? (Brush)FindResource("NotchRed") : accent ?? TimerFocusBrush;
         HudBar.Visibility = Visibility.Collapsed;
         HudValue.Visibility = Visibility.Collapsed;
         HudName.Text = text;
