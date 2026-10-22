@@ -21,6 +21,9 @@ public partial class NotchWindow
 {
     private const double MusicWidth = 436;
     private const double MusicMiniWidth = 340;
+    private const double MusicLyricsWidth = 254;   // the lyrics column and its gap
+    private const int LyricsBefore = 1;
+    private const int LyricsAfter = 4;
     private static readonly TimeSpan PausedLinger = TimeSpan.FromMinutes(5);
     private static readonly Brush PageDotOn = Frozen(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly Brush PageDotOff = Frozen(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
@@ -36,6 +39,12 @@ public partial class NotchWindow
     private bool _musicWasShowing;
     private NotchView _lastPage = NotchView.Music;
     private IReadOnlyList<LyricLine> _lyrics = [];
+    private int _lyricShown = int.MinValue;
+
+    /// <summary>The music page has synced lyrics for this track, shown in their own column.</summary>
+    private bool LyricsSplit => !_musicMini && _lyrics.Count > 0 && _lyricsKey == _media.Current?.TrackKey;
+
+    private double MusicPageWidth => _musicMini ? MusicMiniWidth : MusicWidth + (LyricsSplit ? MusicLyricsWidth : 0);
     private string _lyricsKey = string.Empty;
     private float? _volume;
     private FrameworkElement? _barDrag;
@@ -480,6 +489,20 @@ public partial class NotchWindow
 
         if (MusicShowing)
         {
+            if (mode == "lyrics")
+            {
+                await Task.Delay(2500);   // browsers fill in the title and artist a moment later
+            }
+
+            if (mode == "lyrics" && _media.Current is { } playing)
+            {
+                // Sample lines around where the song is now (nothing is fetched).
+                var at = playing.EstimatedPosition;
+                string[] sample = ["Seperti hujan di bulan Juni", "Kau datang tanpa suara", "Membawa cerita yang lama", "", "Dan aku masih di sini", "Menunggu pagi yang sama", "Di jalan yang kita kenal"];
+                _lyricsKey = playing.TrackKey;
+                _lyrics = sample.Select((text, i) => new LyricLine(at + TimeSpan.FromSeconds((i - 2) * 4 - 1), text)).ToList();
+            }
+
             if (mode != "compact")
             {
                 OpenMusic(mini: mode == "toast");
@@ -550,7 +573,15 @@ public partial class NotchWindow
         MusicProgress.Cursor = track.CanSeek ? Cursors.Hand : null;
 
         MusicFull.Visibility = _musicMini ? Visibility.Collapsed : Visibility.Visible;
-        MusicPanel.Width = (_musicMini ? MusicMiniWidth : MusicWidth) - MusicPanel.Margin.Left - MusicPanel.Margin.Right;
+        var width = MusicPageWidth - MusicPanel.Margin.Left - MusicPanel.Margin.Right;
+        if (Math.Abs(MusicPanel.Width - width) > 0.5)
+        {
+            MusicPanel.Width = width;
+            if (_view == NotchView.Music)
+            {
+                ApplyView(animate: true);   // a new track without lyrics: the column goes
+            }
+        }
         MusicVolumeRow.Visibility = _volume is null ? Visibility.Collapsed : Visibility.Visible;
         MusicVolumeLabel.Text = string.Format(Tr.Text("Volume {0}", "{0} volume"), track.AppName);
         RenderVolume();
@@ -579,14 +610,61 @@ public partial class NotchWindow
         RenderVolume();   // the bars only have a width once laid out
         MusicRemaining.Text = known ? "-" + FormatTime(track.Duration - position) : string.Empty;
 
-        var showLyrics = _lyrics.Count > 0 && _lyricsKey == track.TrackKey;
-        MusicLyrics.Visibility = showLyrics ? Visibility.Visible : Visibility.Collapsed;
-        if (showLyrics)
+        RenderLyrics(track, position);
+    }
+
+    private void RenderLyrics(MediaSnapshot track, TimeSpan position)
+    {
+        var split = LyricsSplit;
+        MusicLyricsSide.Visibility = split ? Visibility.Visible : Visibility.Collapsed;
+        if (!split)
         {
-            var index = SyncedLyrics.IndexAt(_lyrics, position);
-            MusicLyricNow.Text = index >= 0 && _lyrics[index].Text.Length > 0 ? _lyrics[index].Text : "♪";
-            MusicLyricNext.Text = index + 1 < _lyrics.Count ? _lyrics[index + 1].Text : string.Empty;
+            _lyricShown = int.MinValue;
+            return;
         }
+
+        var index = SyncedLyrics.IndexAt(_lyrics, position);
+        if (index == _lyricShown)
+        {
+            return;   // redrawn only when the sung line moves on
+        }
+
+        _lyricShown = index;
+        MusicLyricLines.Children.Clear();
+        for (var i = index - LyricsBefore; i <= index + LyricsAfter; i++)
+        {
+            MusicLyricLines.Children.Add(BuildLyricLine(i, i == index, track.CanSeek));
+        }
+    }
+
+    private TextBlock BuildLyricLine(int i, bool current, bool canSeek)
+    {
+        var line = i >= 0 && i < _lyrics.Count ? _lyrics[i] : null;
+        var block = new TextBlock
+        {
+            Text = line is null ? " " : line.Text.Length > 0 ? line.Text : "♪",
+            FontSize = current ? 15 : 13,
+            FontWeight = current ? FontWeights.SemiBold : FontWeights.Normal,
+            Foreground = (Brush)FindResource(current ? "NotchText" : "NotchText3"),
+            Opacity = line is null ? 0 : i < _lyricShown ? 0.55 : 1,
+            TextWrapping = current ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxHeight = current ? 44 : double.PositiveInfinity,
+            Margin = new Thickness(0, 3, 0, 3)
+        };
+        if (line is not null && canSeek)
+        {
+            block.Cursor = Cursors.Hand;
+            block.ToolTip = FormatTime(line.Start);
+            block.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;   // not the start of dragging the notch around
+                _media.Seek(line.Start);
+                _lyricShown = int.MinValue;
+            };
+        }
+
+        return block;
     }
 
     private static string FormatTime(TimeSpan time) =>
@@ -609,7 +687,12 @@ public partial class NotchWindow
         if (_lyricsKey == track.TrackKey)
         {
             _lyrics = lines;
-            RenderMusicProgress();
+            _lyricShown = int.MinValue;
+            if (_view == NotchView.Music && LyricsSplit)
+            {
+                RenderMusic();
+                ApplyView(animate: true);   // the page widens for the lyrics column
+            }
         }
     }
 

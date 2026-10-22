@@ -217,7 +217,7 @@ public partial class MainWindow
             _notch.PreviewTimer(timerPreview);
         }
 
-        // CODEXBAR_PREVIEW_MUSIC=1|toast|compact: the music page, the track-change toast or the compact notch for what plays now.
+        // CODEXBAR_PREVIEW_MUSIC=1|toast|compact|lyrics: the music page, the track-change toast or the compact notch for what plays now.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_MUSIC") is { Length: > 0 } musicPreview && _notch is not null)
         {
             _notch.PreviewMusic(musicPreview);

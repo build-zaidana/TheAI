@@ -90,7 +90,7 @@ public partial class NotchWindow
         NotchView.Launcher => LauncherWidth,
         NotchView.Activity or NotchView.Request => ActivityWidth,
         NotchView.Quick => QuickWidth,
-        NotchView.Music => _musicMini ? MusicMiniWidth : MusicWidth,
+        NotchView.Music => MusicPageWidth,
         NotchView.Timer => TimerWidth,
         NotchView.TimerDone => TimerDoneWidth,
         NotchView.Hud => HudWidth,
