@@ -370,6 +370,16 @@
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,6,60,6">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Gabungkan halaman harian, En=Combine the day pages}" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Cuaca dan rapat dan air dan pengingat dalam satu halaman Hari ini, En=Weather and meetings and water and reminders on one Today page}" />
+                                        </StackPanel>
+                                        <CheckBox x:Name="CombinedPagesSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed"
+                                                  AutomationProperties.Name="Gabungkan halaman harian" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Sembunyikan notch saat diam, En=Hide the notch when idle}" />
                                         <CheckBox x:Name="HideIdleSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>
@@ -475,10 +485,33 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center" Margin="0,6,12,6">
                                             <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Minum air, En=Drinking water}" />
-                                            <TextBlock x:Name="WaterHint" FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Isi 0 menit untuk tanpa pengingat, En=Use 0 minutes for no reminders}" />
                                         </StackPanel>
-                                        <TextBox x:Name="WaterField" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed"
-                                                 AutomationProperties.Name="Minum air" />
+                                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{local:Tr Target ml, En=Goal ml}" FontSize="11" Foreground="{StaticResource MacText2}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBox x:Name="WaterGoalField" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed" Margin="0,0,10,4"
+                                                     AutomationProperties.Name="Target minum air (ml)" />
+                                            <TextBlock Grid.Column="2" Text="{local:Tr Gelas ml, En=Glass ml}" FontSize="11" Foreground="{StaticResource MacText2}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBox x:Name="WaterGlassField" Grid.Column="3" Style="{StaticResource MacField}" LostFocus="Setting_Changed" Margin="0,0,0,4"
+                                                     AutomationProperties.Name="Ukuran gelas (ml)" />
+                                            <TextBlock Grid.Row="1" Text="{local:Tr Tiap menit, En=Every min}" FontSize="11" Foreground="{StaticResource MacText2}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBox x:Name="WaterEveryField" Grid.Row="1" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed" Margin="0,0,10,0"
+                                                     AutomationProperties.Name="Ingatkan tiap (menit)" />
+                                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{local:Tr Jam aktif, En=Hours}" FontSize="11" Foreground="{StaticResource MacText2}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBox x:Name="WaterHoursField" Grid.Row="1" Grid.Column="3" Style="{StaticResource MacField}" LostFocus="Setting_Changed"
+                                                     AutomationProperties.Name="Jam aktif" />
+                                        </Grid>
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">

@@ -158,9 +158,11 @@ public partial class SettingsWindow : Window
         WeatherCityField.Text = s.WeatherCity;
         WorldClocksField.Text = s.WorldClocks;
         WorldClocksHint.Text = Tr.Text("Mis. Tokyo=Asia/Tokyo, America/New_York (maks. 4)", "e.g. Tokyo=Asia/Tokyo, America/New_York (up to 4)");
-        WaterField.Text = string.Format(CultureInfo.InvariantCulture, "{0}, {1}, {2}, {3}-{4}", s.WaterGoalMl, s.WaterGlassMl, s.WaterEveryMinutes, s.WaterFromHour, s.WaterUntilHour);
-        WaterHint.Text = Tr.Text("Target ml, gelas ml, ingatkan tiap menit (0 = tidak), jam aktif. Mis. 2000, 250, 60, 8-21",
-            "Goal ml, glass ml, remind every minutes (0 = never), active hours. e.g. 2000, 250, 60, 8-21");
+        WaterGoalField.Text = s.WaterGoalMl.ToString(CultureInfo.InvariantCulture);
+        WaterGlassField.Text = s.WaterGlassMl.ToString(CultureInfo.InvariantCulture);
+        WaterEveryField.Text = s.WaterEveryMinutes.ToString(CultureInfo.InvariantCulture);
+        WaterHoursField.Text = string.Format(CultureInfo.InvariantCulture, "{0}-{1}", s.WaterFromHour, s.WaterUntilHour);
+        CombinedPagesSwitch.IsChecked = s.CombinedPages;
         ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
         ShellStatus.Text = ShellSwitch.IsChecked == true
             ? Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal")
@@ -353,14 +355,16 @@ public partial class SettingsWindow : Window
         s.SystemMonitor = SystemMonitorSwitch.IsChecked == true;
         s.WeatherCity = WeatherCityField.Text.Trim();
         s.WorldClocks = WorldClocksField.Text.Trim();
-        var water = WaterField.Text.Split([',', '-', ' '], StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? number : (int?)null)
-            .ToList();
-        if (water.Count == 5 && water.All(number => number is not null))
+        s.WaterGoalMl = NumberIn(WaterGoalField, s.WaterGoalMl);
+        s.WaterGlassMl = NumberIn(WaterGlassField, s.WaterGlassMl);
+        s.WaterEveryMinutes = NumberIn(WaterEveryField, s.WaterEveryMinutes);
+        var hours = WaterHoursField.Text.Split(['-', '–', ' ', '.', ':'], StringSplitOptions.RemoveEmptyEntries);
+        if (hours.Length == 2 && int.TryParse(hours[0], out var from) && int.TryParse(hours[1], out var until) && from < until)
         {
-            (s.WaterGoalMl, s.WaterGlassMl, s.WaterEveryMinutes, s.WaterFromHour, s.WaterUntilHour) =
-                (water[0]!.Value, water[1]!.Value, water[2]!.Value, water[3]!.Value, water[4]!.Value);
+            (s.WaterFromHour, s.WaterUntilHour) = (from, until);
         }
+
+        s.CombinedPages = CombinedPagesSwitch.IsChecked == true;
         s.CalendarSource = TagOf(CalendarSourcePopup) ?? s.CalendarSource;
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         s.OutputDocked = DockedSwitch.IsChecked == true;
@@ -785,6 +789,9 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Helpers -----------------------------------------------------------------------------
+
+    private static int NumberIn(TextBox field, int fallback) =>
+        int.TryParse(field.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var number) && number >= 0 ? number : fallback;
 
     private static string? TagOf(ComboBox combo) => (combo.SelectedItem as ComboBoxItem)?.Tag as string;
 
