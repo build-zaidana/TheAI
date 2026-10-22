@@ -255,6 +255,11 @@ public partial class NotchWindow : Window
         ApplyClipboardListener();
         ApplyDownloadWatcher();
         RestartWeather();
+        RestartSystem();
+        RestartGitHub();
+        ScheduleFullscreenCheck();
+        ScheduleRecap();
+        UpdateQuietCheck();
 
         ApplyView(animate: false);
         UpdateVisibility();

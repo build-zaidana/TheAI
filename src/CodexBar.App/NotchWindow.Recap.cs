@@ -63,7 +63,7 @@ public partial class NotchWindow
             SaveDay();
         };
         _recapClock.Tick += (_, _) => RecapClock();
-        _recapClock.Start();
+        ScheduleRecap();
         _recapCollapse.Tick += (_, _) =>
         {
             _recapCollapse.Stop();
@@ -104,9 +104,26 @@ public partial class NotchWindow
         }
     }
 
+    /// <summary>Wake at 5 pm (or a minute from now, if it's past and the notch was busy then).</summary>
+    private void ScheduleRecap()
+    {
+        _recapClock.Stop();
+        if (!_host.RecapEvening || !RecordingDay)
+        {
+            return;
+        }
+
+        var now = DateTime.Now;
+        var at = now.Date + RecapEvening;
+        var wait = Today.Invited ? at.AddDays(1) - now : at > now ? at - now : TimeSpan.FromMinutes(1);
+        _recapClock.Interval = wait < TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : wait;
+        _recapClock.Start();
+    }
+
     // Late afternoon, once: the compact notch opens on the recap for a moment.
     private void RecapClock()
     {
+        ScheduleRecap();
         var day = Today;
         if (!_host.RecapEvening || day.Invited || day.IsEmpty || DateTime.Now.TimeOfDay < RecapEvening ||
             _view != NotchView.Compact || Quiet || _fullscreenHidden || _suspendedForChat || HasPendingRequest)

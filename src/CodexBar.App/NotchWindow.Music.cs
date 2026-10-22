@@ -168,25 +168,46 @@ public partial class NotchWindow
         RenderPageDots();
     }
 
+    // The equalizer moves only on the open music page. In the compact notch it stands still (tall
+    // bars = playing, low = paused): a notch redrawing 9 times a second all day costs CPU for nothing.
     private void UpdateEqTimer()
     {
         var playing = MusicShowing && _media.Current?.IsPlaying == true && IsVisible && !_suspendedForChat;
-        var shown = (_view == NotchView.Compact && CompactEq.Visibility == Visibility.Visible) || _view == NotchView.Music;
-        if (playing && shown)
+        if (playing && _view == NotchView.Music)
         {
             _eqTick.Start();
         }
         else
         {
             _eqTick.Stop();
-            SetEq(CompactEq, playing ? null : 0.3);
-            SetEq(MusicEq, playing ? null : 0.3);
+            SetEqStill(MusicEq, playing);
+        }
+
+        SetEqStill(CompactEq, playing);
+    }
+
+    private static void SetEqStill(Panel bars, bool playing)
+    {
+        double[] levels = playing ? [0.55, 0.9, 0.7] : [0.3, 0.3, 0.3];
+        var i = 0;
+        foreach (var bar in bars.Children.OfType<Rectangle>())
+        {
+            if (bar.RenderTransform is ScaleTransform scale)
+            {
+                scale.ScaleY = levels[i++ % levels.Length];
+            }
         }
     }
 
     private void AnimateEq()
     {
-        SetEq(_view == NotchView.Compact ? CompactEq : MusicEq, null);
+        if (_view != NotchView.Music)
+        {
+            UpdateEqTimer();
+            return;
+        }
+
+        SetEq(MusicEq, null);
     }
 
     private void SetEq(Panel bars, double? level)

@@ -157,6 +157,7 @@ public partial class NotchWindow
 
         UpdateVisibility();
         UpdateTimerTick();
+        UpdateQuietCheck();
     }
 
     private void UpdateTimerTick()

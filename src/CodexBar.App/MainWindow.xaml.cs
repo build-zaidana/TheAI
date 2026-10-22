@@ -139,6 +139,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             if (!_renderPending)
             {
+                _renderTimer.Stop();   // idle: no wake-ups until the next streamed text
                 return;
             }
 
@@ -152,11 +153,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 }
             }
         };
-        _renderTimer.Start();
-
         _scheduleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
         _scheduleTimer.Tick += ScheduleTick;
-        _scheduleTimer.Start();
+        if (_settings.ScheduledPrompts.Count > 0)
+        {
+            _scheduleTimer.Start();
+        }
 
         _trayIcon = new Forms.NotifyIcon
         {
@@ -229,6 +231,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             OpenDevPreviews();
             DiagnosticsLog.Info("App", $"ready in {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms");
             _ = SettleMemoryAsync();
+            WatchDispatcher();
             OfferCrashReport();
         }
         catch (Exception exception)
@@ -240,6 +243,31 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     // Starting up reads a lot once (threads, session lists, habits) and then the app barely
     // allocates, so that garbage would sit in the heap for hours: a minute in, collect it once and
     // give the memory back. The numbers go to the diagnostics log.
+    // CODEXBAR_TEST_TICKS=1: which UI-thread work runs while idle (counts per delegate, logged every 30 s).
+    private void WatchDispatcher()
+    {
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_TICKS") is not { Length: > 0 })
+        {
+            return;
+        }
+
+        var counts = new Dictionary<string, int>();
+        Dispatcher.Hooks.OperationCompleted += (_, e) =>
+        {
+            var name = e.Operation.Priority + " " + (e.Operation.GetType().GetField("_method", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(e.Operation) is Delegate d
+                ? d.Method.DeclaringType?.Name + "." + d.Method.Name
+                : "?");
+            counts[name] = counts.GetValueOrDefault(name) + 1;
+        };
+        var report = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        report.Tick += (_, _) =>
+        {
+            DiagnosticsLog.Info("Ticks", string.Join(" | ", counts.OrderByDescending(pair => pair.Value).Take(8).Select(pair => $"{pair.Value}x {pair.Key}")));
+            counts.Clear();
+        };
+        report.Start();
+    }
+
     private static async Task SettleMemoryAsync()
     {
         await Task.Delay(TimeSpan.FromMinutes(1));
@@ -1193,6 +1221,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             if (dialog.ShowDialog() == true)
             {
                 _settings.ScheduledPrompts = new List<CodexBar.Core.ScheduledPrompt>(dialog.Schedules);
+                if (_settings.ScheduledPrompts.Count > 0)
+                {
+                    _scheduleTimer.Start();
+                }
                 await SaveSettingsSafeAsync();
                 SetStatus(LF("schedule.saved", _settings.ScheduledPrompts.Count), StatusReadyBrush);
             }
@@ -1205,7 +1237,13 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private void ScheduleTick(object? sender, EventArgs e)
     {
-        if (_controller.IsBusy || _controller.ThreadId is null || _settings.ScheduledPrompts.Count == 0)
+        if (_settings.ScheduledPrompts.Count == 0)
+        {
+            _scheduleTimer.Stop();   // nothing scheduled: no need to look every 20 s
+            return;
+        }
+
+        if (_controller.IsBusy || _controller.ThreadId is null)
         {
             return;
         }
@@ -1479,6 +1517,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     {
                         _streamingAgent.Markdown += textDelta.Delta;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     if (!_autoFollow)
                     {
@@ -1504,6 +1543,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                         _streamingAgent.Steps = activity.Steps;
                         _streamingAgent.Markdown = activity.Answer;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     break;
 
@@ -1521,6 +1561,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     {
                         _streamingAgent.Reasoning += reasoningDelta.Delta;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     if (!_autoFollow)
                     {

@@ -8,19 +8,92 @@ namespace CodexBar.App;
 
 // Out of the way in fullscreen: a game, a video, a presentation covering the notch's monitor hides
 // the whole notch until it ends — the most common complaint about notch apps is that they don't.
-// Checked once a second (a handful of cheap Win32 calls); sounds such as an alarm still play.
+// No polling: Windows tells us when the foreground window changes and when that window moves or
+// resizes (F11, a game going fullscreen), and when displays change. Sounds such as an alarm still play.
 public partial class NotchWindow
 {
-    private readonly DispatcherTimer _fullscreenCheck = new() { Interval = TimeSpan.FromSeconds(1) };
+    private const uint EventSystemForeground = 0x0003;
+    private const uint EventObjectLocationChange = 0x800B;
+    private const uint WinEventOutOfContext = 0x0000;
+
+    private readonly DispatcherTimer _fullscreenCheck = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private bool _fullscreenHidden;
     private readonly int _ownProcess = Environment.ProcessId;
+    private WinEventProc? _onWinEvent;   // kept alive: Windows calls it
+    private IntPtr _foregroundHook;
+    private IntPtr _locationHook;
+    private IntPtr _watchedWindow;
+
+    private delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr window, int objectId, int childId, uint thread, uint time);
 
     private void InitFullscreen()
     {
-        _fullscreenCheck.Tick += (_, _) => CheckFullscreen();
-        _fullscreenCheck.Start();
-        Closed += (_, _) => _fullscreenCheck.Stop();
+        // A burst of move/resize events becomes one check, a moment later.
+        _fullscreenCheck.Tick += (_, _) =>
+        {
+            _fullscreenCheck.Stop();
+            CheckFullscreen();
+        };
+        _onWinEvent = OnWinEvent;
+        _foregroundHook = SetWinEventHook(EventSystemForeground, EventSystemForeground, IntPtr.Zero, _onWinEvent, 0, 0, WinEventOutOfContext);
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplaySettingsChanged;
+        WatchForeground(GetForegroundWindow());
+        Closed += (_, _) =>
+        {
+            _fullscreenCheck.Stop();
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaySettingsChanged;
+            UnhookWinEvent(_foregroundHook);
+            UnhookWinEvent(_locationHook);
+        };
     }
+
+    private void DisplaySettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(ScheduleFullscreenCheck);
+
+    private void ScheduleFullscreenCheck()
+    {
+        _fullscreenCheck.Stop();
+        _fullscreenCheck.Start();
+    }
+
+    // Follow the foreground window's own moves and resizes (only that process: cheap).
+    private void WatchForeground(IntPtr window)
+    {
+        _watchedWindow = window;
+        if (_locationHook != IntPtr.Zero)
+        {
+            UnhookWinEvent(_locationHook);
+            _locationHook = IntPtr.Zero;
+        }
+
+        if (window != IntPtr.Zero && _onWinEvent is not null)
+        {
+            GetWindowThreadProcessId(window, out var processId);
+            if (processId != _ownProcess)
+            {
+                _locationHook = SetWinEventHook(EventObjectLocationChange, EventObjectLocationChange, IntPtr.Zero, _onWinEvent, (uint)processId, 0, WinEventOutOfContext);
+            }
+        }
+
+        ScheduleFullscreenCheck();
+    }
+
+    private void OnWinEvent(IntPtr hook, uint eventType, IntPtr window, int objectId, int childId, uint thread, uint time)
+    {
+        if (eventType == EventSystemForeground)
+        {
+            WatchForeground(window);
+        }
+        else if (eventType == EventObjectLocationChange && objectId == 0 && window == _watchedWindow)
+        {
+            ScheduleFullscreenCheck();
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module, WinEventProc callback, uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnhookWinEvent(IntPtr hook);
 
     private void CheckFullscreen()
     {
@@ -31,6 +104,11 @@ public partial class NotchWindow
         }
 
         _fullscreenHidden = hide;
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_FULLSCREEN") is { Length: > 0 })
+        {
+            CodexBar.Core.DiagnosticsLog.Info("Fullscreen", hide ? "hidden" : "shown");
+        }
+
         if (hide)
         {
             Hide();

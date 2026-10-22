@@ -41,7 +41,7 @@ public partial class NotchWindow
             }
         };
         _systemWatch.Tick += (_, _) => WatchSystem();
-        _systemWatch.Start();
+        RestartSystem();
         Closed += (_, _) =>
         {
             _systemTick.Stop();
@@ -51,6 +51,21 @@ public partial class NotchWindow
     }
 
     private SystemMonitor Monitor => _monitor ??= new SystemMonitor();
+
+    /// <summary>Settings may have turned it on or off.</summary>
+    private void RestartSystem()
+    {
+        if (_host.SystemMonitor)
+        {
+            _systemWatch.Start();
+        }
+        else
+        {
+            _systemWatch.Stop();
+            _monitor?.Dispose();
+            _monitor = null;
+        }
+    }
 
     private void WatchSystem()
     {

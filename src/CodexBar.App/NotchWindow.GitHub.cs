@@ -34,6 +34,16 @@ public partial class NotchWindow
         Closed += (_, _) => _prTimer.Stop();
     }
 
+    /// <summary>Settings may have turned the PR checks on.</summary>
+    private void RestartGitHub()
+    {
+        if (_ghPath is not null && _host.LiveActivities && _host.GitHubChecks && !_prTimer.IsEnabled && !_prChecking)
+        {
+            _prTimer.Interval = TimeSpan.FromSeconds(5);
+            _prTimer.Start();
+        }
+    }
+
     /// <summary>A push (or a new PR) was just made: look again shortly.</summary>
     private void PullRequestSoon()
     {
@@ -51,7 +61,7 @@ public partial class NotchWindow
     {
         if (_prChecking || !_host.LiveActivities || !_host.GitHubChecks)
         {
-            _prTimer.Interval = PrIdle;
+            _prTimer.Stop();   // off: no checks at all until it's switched on again
             return;
         }
 

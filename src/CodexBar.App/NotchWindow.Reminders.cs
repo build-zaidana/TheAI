@@ -38,7 +38,7 @@ public partial class NotchWindow
         _reminders = ReminderList.Load(RemindersPath);
         _reminders.Prune(DateTimeOffset.Now);
         _reminderClock.Tick += (_, _) => CheckReminders();
-        _reminderClock.Start();
+        ScheduleReminderCheck();
         _reminderCollapse.Tick += (_, _) =>
         {
             _reminderCollapse.Stop();
@@ -52,8 +52,29 @@ public partial class NotchWindow
 
     private bool _remindersPreview;
 
+    /// <summary>Wake up when the next reminder is due (and every 30 s while the page shows "in 12m").</summary>
+    private void ScheduleReminderCheck()
+    {
+        _reminderClock.Stop();
+        var now = DateTimeOffset.Now;
+        var next = _reminders.Items.Where(item => !item.Done && !item.Announced && item.DueAt is not null).Min(item => item.DueAt);
+        TimeSpan? wait = next is { } due ? due - now : null;
+        if (_view == NotchView.Reminders)
+        {
+            wait = wait is { } w && w < TimeSpan.FromSeconds(30) ? w : TimeSpan.FromSeconds(30);
+        }
+
+        if (wait is { } interval)
+        {
+            _reminderClock.Interval = interval < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1)
+                : interval > TimeSpan.FromHours(1) ? TimeSpan.FromHours(1) : interval;
+            _reminderClock.Start();
+        }
+    }
+
     private void SaveReminders()
     {
+        ScheduleReminderCheck();
         if (!_remindersPreview)
         {
             _reminders.Save(RemindersPath);
@@ -127,6 +148,7 @@ public partial class NotchWindow
                 RenderReminders();   // the "in 12m" labels move on
             }
 
+            ScheduleReminderCheck();
             return;
         }
 
@@ -189,6 +211,7 @@ public partial class NotchWindow
         _lastPage = NotchView.Reminders;
         RenderReminders();
         _view = NotchView.Reminders;
+        ScheduleReminderCheck();
         ApplyView(animate: true);
         ApplyMusicCompact();
         UpdateVisibility();

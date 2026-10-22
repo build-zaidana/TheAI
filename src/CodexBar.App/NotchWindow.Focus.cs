@@ -39,7 +39,7 @@ public partial class NotchWindow
     private void InitFocus()
     {
         _quietCheck.Tick += (_, _) => CheckQuiet();
-        _quietCheck.Start();
+        UpdateQuietCheck();
         _heldCollapse.Tick += (_, _) =>
         {
             _heldCollapse.Stop();
@@ -55,8 +55,31 @@ public partial class NotchWindow
         };
     }
 
+    /// <summary>Is anything for the focus hold to watch? (Otherwise its check sleeps.)</summary>
+    private bool QuietMatters =>
+        _held.Count > 0 || _quietReason.Length > 0 ||
+        _host.HoldDuringFocus && (FocusRunning || _events.Any(item => !item.AllDay && item.End > DateTimeOffset.Now && item.Start - DateTimeOffset.Now < TimeSpan.FromMinutes(1)));
+
+    private void UpdateQuietCheck()
+    {
+        if (QuietMatters)
+        {
+            _quietCheck.Start();
+        }
+        else
+        {
+            _quietCheck.Stop();
+        }
+    }
+
     private void CheckQuiet()
     {
+        if (!QuietMatters)
+        {
+            _quietCheck.Stop();
+            return;
+        }
+
         var quiet = Quiet;
         if (quiet)
         {
@@ -93,6 +116,7 @@ public partial class NotchWindow
         text ??= activity.Prompt.ReplaceLineEndings(" ");
         _held.RemoveAll(item => item.Key == key && item.Ask == ask);
         _held.Add(new HeldItem(key, agent, text, ask));
+        UpdateQuietCheck();
         _quietReason = FocusRunning ? "focus" : "meeting";
         ApplyState();
         if (_view == NotchView.Compact)
