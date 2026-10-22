@@ -4,22 +4,24 @@
 
 [Download for Windows](https://github.com/build-zaidana/theai-app/releases/latest) · [Website](https://build-zaidana.github.io/theai-app/) · [Report a problem](https://github.com/build-zaidana/theai-app/issues/new/choose)
 
-![The TheAI command palette](docs/assets/notch-palette.png)
+![The notch at the top of the screen, page by page](docs/assets/demo.gif)
 
 Free · Windows 10 (1809+) and 11 · x64 · no account needed
 
 ## What it does
 
 - **Agents in the notch.** Claude Code, Codex and Gemini CLI report what they're doing and ask for permission in the notch — including the sessions you run in the terminal, VS Code or the desktop apps.
-- **Command palette.** Type `/` in the launcher: `/review`, `/explain`, `/fix`, `/test`, `/commit`, `/translate ja`, `/summarize`, `/focus 25`, `/timer 10`, `/recap`… and your own templates.
+- **Command palette.** Type `/` in the launcher: `/review`, `/explain`, `/fix`, `/test`, `/commit`, `/translate ja`, `/summarize`, `/proofread`, `/remind 15m stretch`, `/focus 25`, `/weather`… and your own templates.
+- **Select anything, ask about it.** Select text in any app, press the quick-capture hotkey, and the notch offers to translate, explain, summarize or fix it — the answer comes back in the notch.
 - **Builds, CI and scripts report themselves.** Long PowerShell commands, your pull request's checks (through your GitHub CLI) and anything a script sends with `TheAI.exe activity` show up as live activities. A failure goes to your agent in one click.
 - **Focus first.** During a pomodoro or a meeting, agent results and permission requests wait and appear together at the break.
-- **The rest of your day.** Timer and pomodoro, calendar countdown with a join button, music with controls, clipboard history (opt-in), a file shelf, today's recap for standup, and a system page — each optional.
+- **The rest of your day.** Reminders and to-dos, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls, clipboard history, a file shelf, today's recap for standup, and a system page.
+- **Only what you want.** Everything except the agent and the launcher is optional: TheAI asks on first start, and Settings → Notch → Choose features changes it any time.
 - **Out of the way.** Hides while a game or video is fullscreen; about 1% of one CPU core and ~125 MB of memory at rest.
 
 ## Install
 
-1. Download `TheAI-Setup-<version>.exe` from [Releases](https://github.com/build-zaidana/theai-app/releases/latest).
+1. Download `TheAI-Setup-<version>.exe` from [Releases](https://github.com/build-zaidana/theai-app/releases/latest) (or `TheAI-<version>-portable.zip` to run it without installing).
 2. Run it. It installs for your user only — no administrator rights.
 3. If Windows shows "Windows protected your PC", choose **More info → Run anyway**. The installer isn't code-signed yet; each release lists its SHA-256 so you can check the download:
 
@@ -41,7 +43,7 @@ No account, no analytics, nothing sent in the background.
 |---|---|
 | Your AI provider | Only what you ask, through the agent or API key you choose |
 | GitHub (api.github.com), once a day | To see whether a new version is out |
-| Optional, off until enabled | PR checks via your own GitHub CLI · synced lyrics (lrclib.net) · an iCal calendar link |
+| Optional, off until enabled | Weather (open-meteo.com: your city and its coordinates) · PR checks via your own GitHub CLI · synced lyrics (lrclib.net) · an iCal calendar link |
 
 Everything else stays on your PC: settings, conversations and the daily recap in `%LOCALAPPDATA%\TheAI`; API keys and the calendar link in Windows Credential Manager; clipboard history in memory only.
 
@@ -51,7 +53,7 @@ Use [Issues](https://github.com/build-zaidana/theai-app/issues/new/choose). If T
 
 ## Bahasa Indonesia
 
-TheAI adalah notch untuk Windows: agent AI (Claude Code, Codex, Gemini CLI), build & CI, musik, timer, kalender, dan clipboard di puncak layar. Gratis untuk Windows 10 (1809+) dan 11. Antarmukanya mengikuti bahasa Windows (Indonesia atau Inggris). Unduh di [Releases](https://github.com/build-zaidana/theai-app/releases/latest); kalau muncul "Windows protected your PC", pilih **More info → Run anyway** (installer belum bertanda tangan kode).
+TheAI adalah notch untuk Windows: agent AI (Claude Code, Codex, Gemini CLI), build & CI, pengingat, cuaca, musik, timer, kalender, dan clipboard di puncak layar — kamu pilih sendiri fitur mana yang menyala. Gratis untuk Windows 10 (1809+) dan 11. Antarmukanya mengikuti bahasa Windows (Indonesia atau Inggris). Unduh di [Releases](https://github.com/build-zaidana/theai-app/releases/latest); kalau muncul "Windows protected your PC", pilih **More info → Run anyway** (installer belum bertanda tangan kode).
 
 ---
 

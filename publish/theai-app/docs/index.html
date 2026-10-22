@@ -9,6 +9,7 @@
 <meta property="og:title" content="TheAI — a notch for Windows">
 <meta property="og:description" content="Your AI agents, builds, music and day in one notch at the top of the screen.">
 <meta property="og:image" content="assets/notch-palette.png">
+<link rel="icon" type="image/png" href="assets/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -143,6 +144,22 @@ a { color: inherit; }
 .badge { background: var(--glass-ink); color: #000; border-radius: 999px; font: 700 10px var(--body); padding: 1px 6px; }
 
 .hero { display: grid; gap: 28px; max-width: 760px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; }
+.brand img { width: 22px; height: 22px; }
+.demo {
+  margin: 56px 0 0;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.demo img {
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 0 0 .5px rgba(255, 255, 255, .18), 0 30px 70px rgba(0, 0, 0, .5);
+}
+.demo figcaption { font-size: 13px; color: var(--glass-quiet); }
 .eyebrow { font: 600 12px var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--glass-quiet); }
 h1 {
   font: 700 clamp(40px, 7vw, 76px)/1.02 var(--display);
@@ -218,7 +235,7 @@ pre {
 pre .c { color: #7f8696; }
 
 /* The rest, smaller: a grid of what else lives in the notch. */
-.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .tile { background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 8px; align-content: start; }
 .tile p { color: var(--ink-2); font-size: 15px; }
 .tile .k { font: 600 12px var(--mono); color: var(--ink-2); }
@@ -263,7 +280,7 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 8px 24p
 
 <header class="screen">
   <div class="topbar">
-    <span>TheAI</span>
+    <span class="brand"><img src="assets/icon-64.png" width="22" height="22" alt="">TheAI</span>
     <div class="lang" role="group" aria-label="Language">
       <button type="button" id="lang-en" aria-pressed="true">EN</button>
       <button type="button" id="lang-id" aria-pressed="false">ID</button>
@@ -314,6 +331,10 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 8px 24p
       </div>
       <span class="fine"><span lang="en">Free · Windows 10 (1809+) and 11 · x64 · no account needed</span><span lang="id">Gratis · Windows 10 (1809+) dan 11 · x64 · tanpa akun</span></span>
     </div>
+    <figure class="demo">
+      <img src="assets/demo.gif" width="760" height="420" alt="The notch at the top of a screen showing, one after another: a build at 40%, the activities page, translate options for selected text, the command palette, a reminder ringing, the weather, a focus timer, results held during focus, and the volume HUD.">
+      <figcaption><span lang="en">The real notch, page by page.</span><span lang="id">Notch aslinya, halaman demi halaman.</span></figcaption>
+    </figure>
   </div>
 </header>
 
@@ -338,6 +359,14 @@ footer .wrap { padding-block: 28px; display: flex; flex-wrap: wrap; gap: 8px 24p
       </div>
 
       <div class="row flip">
+        <div class="copy">
+          <h3><span lang="en">Select anything, ask about it</span><span lang="id">Pilih teks apa saja, tanyakan</span></h3>
+          <p><span lang="en">Select text in any app and press the quick-capture hotkey. The notch offers to translate it, explain it, summarize it or fix the writing, and the answer comes back right there, without opening a chat.</span><span lang="id">Pilih teks di aplikasi mana pun lalu tekan hotkey quick-capture. Notch menawarkan menerjemahkan, menjelaskan, meringkas, atau memperbaiki tulisannya, dan jawabannya muncul di sana tanpa membuka chat.</span></p>
+        </div>
+        <div class="shot"><img src="assets/notch-selection.png" width="460" height="124" alt="Selected Indonesian text in the notch with Translate, Explain, Summarize, Fix writing and Ask buttons."></div>
+      </div>
+
+      <div class="row">
         <div class="copy">
           <h3><span lang="en">Focus first, answers at the break</span><span lang="id">Fokus dulu, jawabannya saat istirahat</span></h3>
           <p><span lang="en">During a pomodoro or a meeting from your calendar, agents finishing or asking for permission don't pop up. The notch counts them, and shows them all together when the break starts.</span><span lang="id">Selama pomodoro atau rapat di kalendermu, agent yang selesai atau minta izin tidak muncul tiba-tiba. Notch menghitungnya, lalu menampilkan semuanya sekaligus saat istirahat.</span></p>
@@ -367,10 +396,12 @@ TheAI.exe activity deploy --done</pre>
   <section class="band" id="more">
     <div class="wrap">
       <h2><span lang="en">The rest of your day, one scroll away</span><span lang="id">Sisa harimu, satu scroll saja</span></h2>
-      <p class="intro"><span lang="en">Hover the notch and scroll through its pages. Each one is optional in Settings.</span><span lang="id">Arahkan kursor ke notch dan scroll halamannya. Semuanya bisa dimatikan di Pengaturan.</span></p>
+      <p class="intro"><span lang="en">Every page is optional. On first start you pick what the notch does, and you can change it any time. Hover the notch and scroll to move between pages.</span><span lang="id">Setiap halaman opsional. Saat pertama dibuka kamu memilih apa yang dilakukan notch, dan bisa diubah kapan saja. Arahkan kursor ke notch lalu scroll untuk berpindah halaman.</span></p>
       <div class="grid">
         <div class="tile"><span class="k">/timer 10</span><h3><span lang="en">Timer &amp; pomodoro</span><span lang="id">Timer &amp; pomodoro</span></h3><p><span lang="en">Countdowns, a stopwatch and alarms, typed like "+5" or "@7:30".</span><span lang="id">Hitung mundur, stopwatch, dan alarm, cukup ketik "+5" atau "@7:30".</span></p><img src="assets/notch-timer-open.png" width="420" height="80" alt="The timer page with 24:11 left and pause and stop buttons." loading="lazy"></div>
         <div class="tile"><span class="k">Outlook · iCal</span><h3><span lang="en">Calendar</span><span lang="id">Kalender</span></h3><p><span lang="en">A countdown to your next meeting and a button to join the call.</span><span lang="id">Hitung mundur ke rapat berikutnya dan tombol untuk bergabung.</span></p><img src="assets/notch-calendar-open.png" width="420" height="154" alt="Today's events: Daily standup with a join button, Review desain, Sesi fokus." loading="lazy"></div>
+        <div class="tile"><span class="k">/remind 15m</span><h3><span lang="en">Reminders &amp; to-do</span><span lang="id">Pengingat &amp; to-do</span></h3><p><span lang="en">Typed the way you say it: "15m stretch", "14:30 call", "tomorrow 9:00 standup".</span><span lang="id">Ketik seperti biasa: "15m peregangan", "14:30 telepon", "besok 9.00 standup".</span></p><img src="assets/notch-reminders-due.png" width="420" height="311" alt="Reminders: stretch is due with Snooze 10m and Done, then drink water in 45m, call the client at 14:30, buy milk." loading="lazy"></div>
+        <div class="tile"><span class="k">/weather</span><h3><span lang="en">Weather &amp; world clock</span><span lang="id">Cuaca &amp; jam dunia</span></h3><p><span lang="en">Today's weather for your city and the time in up to four other zones.</span><span lang="id">Cuaca hari ini di kotamu dan jam di hingga empat zona lain.</span></p><img src="assets/notch-weather.png" width="420" height="118" alt="Partly cloudy, 31 degrees in Jakarta, high 33, low 25, 70% chance of rain." loading="lazy"></div>
         <div class="tile"><span class="k">/clipboard</span><h3><span lang="en">Clipboard history</span><span lang="id">Riwayat clipboard</span></h3><p><span lang="en">Your last 30 copies. Password managers' copies are skipped. Off until you turn it on.</span><span lang="id">30 salinan terakhir. Salinan password manager dilewati. Mati sampai kamu nyalakan.</span></p><img src="assets/notch-clipboard.png" width="440" height="185" alt="Clipboard tiles with recent copies." loading="lazy"></div>
         <div class="tile"><span class="k">/recap</span><h3><span lang="en">Today's recap</span><span lang="id">Rekap hari ini</span></h3><p><span lang="en">Focus time, what the agents finished, files changed. One click copies it for standup.</span><span lang="id">Waktu fokus, hasil agent, file yang berubah. Satu klik menyalinnya untuk standup.</span></p><img src="assets/notch-recap.png" width="460" height="283" alt="The recap: 3 focus sessions, 3 agent tasks, 23 files changed, 12 commands." loading="lazy"></div>
         <div class="tile"><span class="k">Drag &amp; drop</span><h3><span lang="en">File shelf</span><span lang="id">Rak file</span></h3><p><span lang="en">Drop files on the notch to keep them handy. New downloads land here for two hours.</span><span lang="id">Taruh file di notch supaya mudah dijangkau. Unduhan baru masuk ke sini selama dua jam.</span></p><img src="assets/notch-shelf-open.png" width="440" height="118" alt="The file shelf with two items." loading="lazy"></div>
@@ -392,7 +423,7 @@ TheAI.exe activity deploy --done</pre>
           <dt><span lang="en">GitHub, once a day</span><span lang="id">GitHub, sekali sehari</span></dt>
           <dd><span lang="en">To see if a new version is out. Updates install only when you click "Update now", after the download's checksum matches.</span><span lang="id">Untuk melihat versi baru. Pembaruan dipasang hanya saat kamu klik "Perbarui sekarang", setelah checksum unduhannya cocok.</span></dd>
           <dt><span lang="en">Optional extras</span><span lang="id">Tambahan opsional</span></dt>
-          <dd><span lang="en">Pull request checks (through your own GitHub CLI), synced lyrics (LRCLIB) and an iCal calendar link, each off until you enable it.</span><span lang="id">Check pull request (lewat GitHub CLI-mu), lirik (LRCLIB), dan tautan kalender iCal, masing-masing mati sampai kamu aktifkan.</span></dd>
+          <dd><span lang="en">Weather (Open-Meteo: only your city and its coordinates), pull request checks (through your own GitHub CLI), synced lyrics (LRCLIB) and an iCal calendar link, each off until you enable it.</span><span lang="id">Cuaca (Open-Meteo: hanya kota dan koordinatnya), check pull request (lewat GitHub CLI-mu), lirik (LRCLIB), dan tautan kalender iCal, masing-masing mati sampai kamu aktifkan.</span></dd>
         </dl>
         </div>
         <div class="col">
@@ -427,6 +458,10 @@ TheAI.exe activity deploy --done</pre>
           <p><span lang="en">It's built to sit quietly: about 1% of one CPU core and roughly 125 MB of memory at rest, and it hides while a game or video is fullscreen.</span><span lang="id">Dibuat untuk diam: sekitar 1% dari satu inti CPU dan kira-kira 125 MB memori saat diam, dan bersembunyi saat game atau video layar penuh.</span></p>
         </details>
         <details>
+          <summary><span lang="en">Can I turn things off?</span><span lang="id">Bisakah fiturnya dimatikan?</span></summary>
+          <p><span lang="en">Everything except the agent and the launcher is optional. TheAI asks on first start, and Settings → Notch → Choose features changes it later.</span><span lang="id">Semua kecuali agent dan launcher bersifat opsional. TheAI bertanya saat pertama dibuka, dan Pengaturan → Notch → Pilih fitur mengubahnya nanti.</span></p>
+        </details>
+        <details>
           <summary><span lang="en">I used CodexBar before.</span><span lang="id">Sebelumnya saya pakai CodexBar.</span></summary>
           <p><span lang="en">TheAI is the new name. Install it over CodexBar: your settings, conversations and saved keys move over on the first start.</span><span lang="id">TheAI adalah nama barunya. Pasang di atas CodexBar: pengaturan, percakapan, dan key yang tersimpan pindah otomatis saat pertama dibuka.</span></p>
         </details>
@@ -442,6 +477,7 @@ TheAI.exe activity deploy --done</pre>
       </div>
       <div class="actions">
         <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download the installer</span><span lang="id">Unduh installer</span></a>
+        <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Portable zip (no installer)</span><span lang="id">Versi portable (tanpa installer)</span></a>
         <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/issues"><span lang="en">Report a problem</span><span lang="id">Laporkan masalah</span></a>
       </div>
     </div>

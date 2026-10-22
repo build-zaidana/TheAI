@@ -8,6 +8,18 @@
 - The interface follows Windows' language by default (Indonesian or English); either can still be chosen in Settings.
 - Windows 10 (1809 and later) is supported again.
 
+### Changed — only what you want
+
+- **Every notch feature is optional.** A new user starts with the agent and the launcher; the first start shows a short tour and a feature picker (music, timer and the HUD suggested). Settings → Notch → Choose features changes it any time. Existing users keep what they had.
+- A new **TheAI icon**: the notch at the top of a screen.
+- The release also has a **portable zip** for running TheAI without installing it.
+
+### Added — reminders, weather, selection
+
+- **Reminders & to-do:** `/remind 15m stretch`, `/remind 14:30 call`, `/remind besok 9.00 standup`, `/todo buy milk`, or the page's own field. When one is due the notch opens on it (Snooze 10m / Done) and Windows shows a notification.
+- **Weather & world clock:** today's weather for your city (Open-Meteo, no key) and up to four other time zones.
+- **Select anything, ask about it:** the quick-capture hotkey now offers Translate / Explain / Summarize / Fix writing / Ask… for the selected text, with the answer in the notch. The older modes stay in Settings. New `/proofread` command.
+
 ### Added — command palette & smart commands
 
 - **Type `/` in the launcher** to see what TheAI can do and run it from the keyboard: `/review` the uncommitted changes, `/explain`, `/summarize` or `/translate [language]` text or the clipboard, `/fix` the last failed command, `/test`, `/commit`, `/docs` — plus `/focus 25`, `/timer 10`, `/clipboard`, `/recap`, `/standup`, `/system`, `/new`, `/settings`, and your own templates as `/their-name`. ↑/↓ choose, Tab completes, Enter runs.
