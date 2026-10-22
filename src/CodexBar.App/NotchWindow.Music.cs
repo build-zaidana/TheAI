@@ -247,6 +247,7 @@ public partial class NotchWindow
             NotchView.Clipboard => false,
             NotchView.System => false,
             NotchView.Reminders => false,
+            NotchView.Weather => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -297,6 +298,9 @@ public partial class NotchWindow
             case NotchView.Reminders:
                 OpenReminders();
                 break;
+            case NotchView.Weather:
+                OpenWeather();
+                break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
                 _musicTick.Stop();
@@ -340,6 +344,11 @@ public partial class NotchWindow
         if (ShelfShowing)
         {
             pages.Add(NotchView.Shelf);
+        }
+
+        if (WeatherAvailable)
+        {
+            pages.Add(NotchView.Weather);
         }
 
         if (RemindersAvailable)

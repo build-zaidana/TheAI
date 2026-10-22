@@ -1566,6 +1566,21 @@ static int RunSmartCommandTests()
         list.Prune(at.AddDays(9));
         Assert(list.Items.All(item => !item.Done), "Yang selesai lebih dari seminggu dihapus.");
         Assert(ReminderList.When(stretch, at.AddMinutes(21), (id, en) => en) == "9m", "Sisa waktu.");
+        // Weather: Open-Meteo's geocoding and forecast answers, WMO codes, and world clocks.
+        var place = WeatherClient.ParsePlace("""{"results":[{"name":"Jakarta","country":"Indonesia","latitude":-6.21462,"longitude":106.84513,"timezone":"Asia/Jakarta"}]}""");
+        Assert(place is { Name: "Jakarta", Country: "Indonesia", TimeZone: "Asia/Jakarta" } && Math.Abs(place.Latitude + 6.21462) < 1e-6, "Geocoding dibaca.");
+        Assert(WeatherClient.ParsePlace("""{"generationtime_ms":0.5}""") is null, "Kota tidak ditemukan: null.");
+        var report = WeatherClient.ParseForecast("""
+            {"current":{"time":"2026-10-22T10:00","temperature_2m":31.4,"weather_code":2,"is_day":1},
+             "daily":{"time":["2026-10-22"],"temperature_2m_max":[33.1],"temperature_2m_min":[25.0],"precipitation_probability_max":[70]}}
+            """);
+        Assert(report is { Temperature: 31.4, Code: 2, IsDay: true, High: 33.1, Low: 25.0, RainChance: 70 }, $"Prakiraan dibaca: {report}");
+        Assert(WeatherClient.Kind(0) == WeatherKind.Clear && WeatherClient.Kind(63) == WeatherKind.Rain && WeatherClient.Kind(81) == WeatherKind.Rain &&
+               WeatherClient.Kind(95) == WeatherKind.Storm && WeatherClient.Kind(45) == WeatherKind.Fog, "Kode WMO.");
+        var clocks = WorldClock.ParseList("Tokyo=Asia/Tokyo, America/New_York, Nowhere/Atlantis, UTC");
+        Assert(clocks.Count == 3 && clocks[0].Label == "Tokyo" && clocks[1].Label == "New York", "Jam dunia: label & zona; yang salah dilewati.");
+        var noon = new DateTimeOffset(2026, 10, 22, 23, 30, 0, TimeSpan.Zero);
+        Assert(clocks[0].Time(noon) == "8:30" && clocks[0].DayShift(noon.ToLocalTime()) is "+1" or "", "Waktu Tokyo.");
         Console.WriteLine("PASS smart command tests");
         return 0;
     }

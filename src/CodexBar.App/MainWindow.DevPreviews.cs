@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_WEATHER=1: the weather page with a sample report (nothing is fetched).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WEATHER") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewWeather();
+        }
+
         // CODEXBAR_PREVIEW_REMINDERS=open|due: sample reminders (never saved), or one ringing.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REMINDERS") is { Length: > 0 } remindersPreview && _notch is not null)
         {

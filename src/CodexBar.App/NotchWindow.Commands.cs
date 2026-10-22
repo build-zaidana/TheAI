@@ -242,6 +242,9 @@ public partial class NotchWindow
             case "system":
                 OpenSystem();
                 break;
+            case "weather":
+                OpenWeather();
+                break;
             case "activities":
                 if (_jobs.Visible(now).Count > 0)
                 {

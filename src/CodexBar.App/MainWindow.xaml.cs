@@ -2405,6 +2405,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.SystemMonitor => _settings.SystemMonitor;
     bool INotchHost.TimerInNotch => _settings.TimerInNotch;
     bool INotchHost.RemindersEnabled => _settings.RemindersEnabled;
+    bool INotchHost.WeatherEnabled => _settings.WeatherEnabled;
+    string INotchHost.WeatherCity => _settings.WeatherCity;
+    string INotchHost.WorldClocks => _settings.WorldClocks;
 
     void INotchHost.ShowReminder(string text, int more) =>
         _notifier.Show(

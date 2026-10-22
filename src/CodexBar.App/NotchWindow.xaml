@@ -1060,6 +1060,32 @@
                     </Border>
                 </StackPanel>
 
+                <!-- Weather where the user is, and other time zones. -->
+                <StackPanel x:Name="WeatherPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Cuaca dan jam dunia">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid x:Name="WeatherNow" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Path x:Name="WeatherIcon" Width="34" Height="34" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center" />
+                        <TextBlock x:Name="WeatherTemp" Grid.Column="1" FontFamily="{StaticResource SoraFont}" FontSize="36" Foreground="#F5F5F7"
+                                   Margin="12,0,14,0" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock x:Name="WeatherSummary" FontSize="14" FontWeight="SemiBold" Foreground="#F5F5F7" />
+                            <TextBlock x:Name="WeatherPlace" FontSize="12" Foreground="#99FFFFFF" />
+                            <TextBlock x:Name="WeatherRange" FontSize="12" Foreground="#99FFFFFF" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock x:Name="WeatherMessage" FontSize="12.5" Foreground="#99FFFFFF" Margin="0,0,0,10" TextWrapping="Wrap" Visibility="Collapsed" />
+                    <StackPanel x:Name="WorldClockRows" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">

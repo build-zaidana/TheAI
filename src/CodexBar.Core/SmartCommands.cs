@@ -59,6 +59,7 @@ public static class SmartCommands
         new("recap", SmartCommandKind.Action, "Rekap hari ini", "Today's recap"),
         new("standup", SmartCommandKind.Action, "Salin rekap untuk standup", "Copy the recap for standup"),
         new("system", SmartCommandKind.Action, "CPU, GPU, RAM, disk", "CPU, GPU, memory, disk"),
+        new("weather", SmartCommandKind.Action, "Cuaca & jam dunia", "Weather & world clock"),
         new("activities", SmartCommandKind.Action, "Aktivitas berjalan (build, CI…)", "Running activities (builds, CI…)"),
         new("remind", SmartCommandKind.Action, "Pengingat (15m, 14:30, besok 9:00…)", "Reminder (15m, 14:30, tomorrow 9:00…)", ArgumentHintId: "kapan apa", ArgumentHintEn: "when what"),
         new("todo", SmartCommandKind.Action, "Tambah to-do", "Add a to-do", ArgumentHintId: "teks", ArgumentHintEn: "text"),

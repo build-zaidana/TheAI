@@ -442,6 +442,33 @@
                                     </Grid>
                                     <Border Style="{StaticResource MacSeparator}" />
                                     <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="240" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,6,12,6">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Kota untuk cuaca, En=City for the weather}" />
+                                            <TextBlock FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap"
+                                                       Text="{local:Tr Lewat Open-Meteo: hanya nama kota yang dikirim, En=Through Open-Meteo: only the city name is sent}" />
+                                        </StackPanel>
+                                        <TextBox x:Name="WeatherCityField" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed"
+                                                 AutomationProperties.Name="Kota untuk cuaca" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="240" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,6,12,6">
+                                            <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Jam dunia, En=World clock}" />
+                                            <TextBlock x:Name="WorldClocksHint" FontSize="11" Foreground="{StaticResource MacText2}" Margin="0,1,0,0" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <TextBox x:Name="WorldClocksField" Grid.Column="1" Style="{StaticResource MacField}" LostFocus="Setting_Changed"
+                                                 AutomationProperties.Name="Jam dunia" />
+                                    </Grid>
+                                    <Border Style="{StaticResource MacSeparator}" />
+                                    <Grid Style="{StaticResource MacRow}">
                                         <TextBlock Style="{StaticResource MacRowLabel}" Text="{local:Tr Volume / kecerahan / baterai di notch, En=Volume / brightness / battery in the notch}" />
                                         <CheckBox x:Name="SystemHudSwitch" Style="{StaticResource MacSwitch}" HorizontalAlignment="Right" Click="Setting_Changed" />
                                     </Grid>
