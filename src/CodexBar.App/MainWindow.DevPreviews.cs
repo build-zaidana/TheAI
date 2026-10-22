@@ -145,6 +145,12 @@ public partial class MainWindow
             _notch.PreviewJobs(jobsPreview);
         }
 
+        // CODEXBAR_PREVIEW_SELECTION=1: what the quick-capture hotkey offers for a selection.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SELECTION") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewSelection();
+        }
+
         // CODEXBAR_PREVIEW_WEATHER=1: the weather page with a sample report (nothing is fetched).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WEATHER") is { Length: > 0 } && _notch is not null)
         {

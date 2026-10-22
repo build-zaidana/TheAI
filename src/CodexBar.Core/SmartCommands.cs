@@ -46,7 +46,9 @@ public static class SmartCommands
         new("commit", SmartCommandKind.Prompt, "Tulis pesan commit & commit perubahan", "Write a commit message and commit",
             "Look at git status and the diff in this folder, write a concise, conventional commit message that explains why, and commit the changes. Don't push.{focus}"),
         new("translate", SmartCommandKind.Prompt, "Terjemahkan teks (atau isi clipboard)", "Translate text (or the clipboard)",
-            "Translate the following into {language}. Keep the meaning, tone and formatting; reply with the translation only.\n\n{input}", "ke-bahasa teks", "to-language text"),
+            "Translate the following into {language} (if it's already in {language}, into {other} instead). Keep the meaning, tone and formatting; reply with the translation only.\n\n{input}", "ke-bahasa teks", "to-language text"),
+        new("proofread", SmartCommandKind.Prompt, "Perbaiki ejaan & tata bahasa", "Fix spelling and grammar",
+            "Fix the spelling and grammar of this and make it read naturally. Keep its language, meaning and tone; reply with the corrected text only.\n\n{input}", "teks", "text"),
         new("summarize", SmartCommandKind.Prompt, "Ringkas teks (atau isi clipboard)", "Summarize text (or the clipboard)",
             "Summarize this in a few bullet points, most important first:\n\n{input}", "teks", "text"),
         new("docs", SmartCommandKind.Prompt, "Tulis dokumentasi untuk kode ini", "Write documentation for this code",
@@ -149,6 +151,7 @@ public static class SmartCommands
         return template
             .Replace("{input}", input, StringComparison.Ordinal)
             .Replace("{language}", language, StringComparison.Ordinal)
+            .Replace("{other}", language == "English" ? "Indonesian" : "English", StringComparison.Ordinal)
             .Replace("{failure}", failure, StringComparison.Ordinal)
             .Replace("{focus}", focus, StringComparison.Ordinal)
             .Trim();

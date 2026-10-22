@@ -135,8 +135,9 @@ public sealed class JsonSettingsStore
         settings.QuickCaptureReveal = settings.QuickCaptureReveal?.ToLowerInvariant() switch
         {
             "capture" => "capture",
+            "done" => "done",
             "clipboard" => "clipboard",
-            _ => "done"
+            _ => "notch"
         };
         if (string.IsNullOrWhiteSpace(settings.QuickCaptureHotkey))
         {

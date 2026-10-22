@@ -424,6 +424,7 @@
                                 <ComboBoxItem Content="Buka saat kirim" Tag="capture" />
                                 <ComboBoxItem Content="Buka saat selesai" Tag="done" />
                                 <ComboBoxItem Content="Ke clipboard" Tag="clipboard" />
+                                <ComboBoxItem Content="Pilihan di notch" Tag="notch" />
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,3,12,3" VerticalAlignment="Center">

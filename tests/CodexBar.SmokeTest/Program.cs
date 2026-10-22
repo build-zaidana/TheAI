@@ -348,8 +348,8 @@ static async Task<int> RunDeterministicTestsAsync()
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
         Assert(recovered.SchemaVersion == 12, "Settings rusak harus dipulihkan ke schema terbaru.");
-        Assert(recovered.QuickCaptureReveal == "done" && recovered.QuickCaptureHotkey.Length > 0,
-            "Default quick-capture harus reveal=done + hotkey terisi.");
+        Assert(recovered.QuickCaptureReveal == "notch" && recovered.QuickCaptureHotkey.Length > 0,
+            "Default quick-capture harus reveal=notch + hotkey terisi.");
 
         await File.WriteAllTextAsync(store.SettingsPath,
             """{ "quickCaptureReveal": "CLIPBOARD", "quickCaptureHotkey": "" }""");

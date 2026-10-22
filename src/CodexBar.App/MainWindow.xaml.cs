@@ -536,6 +536,29 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             return;
         }
 
+        if (_settings.QuickCaptureReveal == "notch")
+        {
+            // The notch asks what to do; the answer runs beside whatever is going on.
+            _quickCaptureActive = true;
+            try
+            {
+                if (await SelectionCapture.TryCaptureTextAsync() is { } picked && !string.IsNullOrWhiteSpace(picked))
+                {
+                    _notch?.ShowSelectionActions(picked);
+                }
+            }
+            catch (Exception exception)
+            {
+                DiagnosticsLog.Error("QuickCapture", exception.Message);
+            }
+            finally
+            {
+                _quickCaptureActive = false;
+            }
+
+            return;
+        }
+
         if (_controller.IsBusy || _controller.ThreadId is null)
         {
             return;
@@ -1908,8 +1931,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         QuickCaptureRevealCombo.SelectedIndex = _settings.QuickCaptureReveal switch
         {
             "capture" => 0,
+            "done" => 1,
             "clipboard" => 2,
-            _ => 1
+            _ => 3
         };
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
         LanguageCombo.SelectedIndex = _settings.Language switch { "id" => 1, "en" => 2, _ => 0 };
@@ -2080,8 +2104,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _settings.QuickCaptureReveal = (QuickCaptureRevealCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
         {
             "capture" => "capture",
+            "done" => "done",
             "clipboard" => "clipboard",
-            _ => "done"
+            _ => "notch"
         };
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);

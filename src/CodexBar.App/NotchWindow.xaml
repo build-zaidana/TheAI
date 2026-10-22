@@ -1086,6 +1086,20 @@
                     <StackPanel x:Name="WorldClockRows" />
                 </StackPanel>
 
+                <!-- A selection caught by the quick-capture hotkey, and what to do with it. -->
+                <StackPanel x:Name="SelectionPanel" Margin="20,14,20,10" Width="420" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" Focusable="True" FocusVisualStyle="{x:Null}"
+                            KeyDown="SelectionPanel_KeyDown" AutomationProperties.Name="Teks terpilih">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Border BorderBrush="#33FFFFFF" BorderThickness="2,0,0,0" Padding="10,2,0,2" Margin="0,0,0,12">
+                        <TextBlock x:Name="SelectionPreview" FontSize="12.5" Foreground="#CCFFFFFF" TextWrapping="Wrap" MaxHeight="54"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Border>
+                    <WrapPanel x:Name="SelectionButtons" />
+                </StackPanel>
+
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->
                 <StackPanel x:Name="LauncherPanel" Margin="10" Width="540" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">

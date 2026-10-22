@@ -62,8 +62,8 @@ public sealed class AppSettings
     /// <summary>Sisi chat yang tumbuh dari notch: "auto" (terdekat dengan notch), "right", atau "left".</summary>
     public string ChatSide { get; set; } = "auto";
 
-    /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
-    public string QuickCaptureReveal { get; set; } = "done";
+    /// <summary>Quick-capture: "notch" (notch menawarkan terjemahkan/jelaskan/ringkas/perbaiki/tanya), "capture" (kirim ke chat, tampil saat kirim), "done" (tampil saat selesai), atau "clipboard" (jawaban ke clipboard).</summary>
+    public string QuickCaptureReveal { get; set; } = "notch";
     public bool LaunchAtLogin { get; set; }
 
     /// <summary>Tampilan utama: "notch" (menempel tepi atas), "island" (Dynamic Island melayang) atau "bar" (di atas taskbar).</summary>
