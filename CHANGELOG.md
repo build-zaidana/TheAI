@@ -14,6 +14,22 @@
 - A new **TheAI icon**: the notch at the top of a screen.
 - The release also has a **portable zip** for running TheAI without installing it.
 
+### Added — small things in the notch
+
+- **Caps Lock and keyboard language** in the HUD (optional): the notch says when Caps Lock goes on or off and which language you switched to.
+- **Internet lost / back online** joins the volume, brightness and battery HUD, from Windows' own network event.
+- **Water reminder** (optional): a daily goal, +1 glass in one click, the last seven days, and a gentle nudge during your active hours until the goal is met. `/water` opens it.
+- **Synced lyrics beside the player**: the line being sung is highlighted; click any line to jump there.
+- **Idle companion** (optional): two small eyes in the compact notch that blink, and doze off after five minutes away.
+
+### Changed — lighter at rest
+
+- At rest TheAI now uses about 0.3% of one CPU core (from about 0.8%): the compact equalizer stands still, fullscreen apps are noticed through Windows events instead of a poll, and timers run only while their feature needs them.
+
+### Fixed
+
+- The lyric placeholder note and the "…" for cut-off text showed as garbled characters.
+
 ### Added — reminders, weather, selection
 
 - **Reminders & to-do:** `/remind 15m stretch`, `/remind 14:30 call`, `/remind besok 9.00 standup`, `/todo buy milk`, or the page's own field. When one is due the notch opens on it (Snooze 10m / Done) and Windows shows a notification.

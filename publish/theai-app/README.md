@@ -15,9 +15,10 @@ Free · Windows 10 (1809+) and 11 · x64 · no account needed
 - **Select anything, ask about it.** Select text in any app, press the quick-capture hotkey, and the notch offers to translate, explain, summarize or fix it — the answer comes back in the notch.
 - **Builds, CI and scripts report themselves.** Long PowerShell commands, your pull request's checks (through your GitHub CLI) and anything a script sends with `TheAI.exe activity` show up as live activities. A failure goes to your agent in one click.
 - **Focus first.** During a pomodoro or a meeting, agent results and permission requests wait and appear together at the break.
-- **The rest of your day.** Reminders and to-dos, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls, clipboard history, a file shelf, today's recap for standup, and a system page.
+- **The rest of your day.** Reminders and to-dos, a water reminder, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
+- **Small things, in the notch.** Volume, brightness, battery, Caps Lock, keyboard language and the internet dropping, in place of Windows' pop-ups; and, if you like, a pair of eyes that blink while nothing is going on and doze off while you're away.
 - **Only what you want.** Everything except the agent and the launcher is optional: TheAI asks on first start, and Settings → Notch → Choose features changes it any time.
-- **Out of the way.** Hides while a game or video is fullscreen; about 1% of one CPU core and ~125 MB of memory at rest.
+- **Out of the way.** Hides while a game or video is fullscreen; at rest about 0.3% of one CPU core and ~125 MB of memory, redrawing only when something changes.
 
 ## Install
 
@@ -57,4 +58,4 @@ TheAI adalah notch untuk Windows: agent AI (Claude Code, Codex, Gemini CLI), bui
 
 ---
 
-TheAI is free to use; the source is not public. See [LICENSE](LICENSE.md). Not affiliated with Anthropic, OpenAI or Google.
+TheAI is free to use, with no account, ads or trial. If that ever changes it will be announced in the README and the release notes first, and copies already downloaded keep working. The source is not public. See [LICENSE](LICENSE.md). Not affiliated with Anthropic, OpenAI or Google.
