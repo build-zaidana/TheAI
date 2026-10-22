@@ -20,7 +20,10 @@ internal sealed record PrivacyState(IReadOnlyList<string> Microphone, IReadOnlyL
 /// </summary>
 internal sealed class PrivacyWatcher : IDisposable
 {
-    private const string Store = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\";
+    // CODEXBAR_TEST_PRIVACY_STORE points the watcher at a throwaway HKCU key with the same layout.
+    private static readonly string Store =
+        Environment.GetEnvironmentVariable("CODEXBAR_TEST_PRIVACY_STORE") is { Length: > 0 } test ? test.TrimEnd('\\') + "\\"
+            : @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\";
     private const int NotifyName = 0x1;
     private const int NotifyLastSet = 0x4;
 

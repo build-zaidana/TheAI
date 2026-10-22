@@ -63,6 +63,11 @@ public partial class NotchWindow
     {
         var before = _privacyShown;
         _privacyShown = state;
+        if (announce)
+        {
+            DiagnosticsLog.Info("Privacy", $"microphone: {state.Microphone.Count} app(s), camera: {state.Camera.Count} app(s)");
+        }
+
         var mic = state.Microphone.Count > 0;
         var camera = state.Camera.Count > 0;
         PrivacyDot.Visibility = mic || camera ? Visibility.Visible : Visibility.Collapsed;
@@ -142,6 +147,18 @@ public partial class NotchWindow
         NextPrayer(now) is { } next
             ? string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0} {1:HH:mm}", next.Name(Tr.Text), next.At)
             : string.Empty;
+
+    /// <summary>CODEXBAR_TEST_MUTE: flip the microphone mute twice (back to how it was) and log each state.</summary>
+    internal async void TestMute()
+    {
+        await Task.Delay(1500);
+        var before = MicMute.IsMuted();
+        ToggleMicMute();
+        var during = MicMute.IsMuted();
+        await Task.Delay(800);
+        ToggleMicMute();
+        DiagnosticsLog.Info("MuteTest", $"before={before} during={during} after={MicMute.IsMuted()}");
+    }
 
     internal async void PreviewPrivacy(string mode)
     {

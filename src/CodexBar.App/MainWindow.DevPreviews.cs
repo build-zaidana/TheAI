@@ -151,6 +151,12 @@ public partial class MainWindow
             _notch.PreviewSelection();
         }
 
+        // CODEXBAR_TEST_MUTE=1: mute and unmute the microphone once, logging each state.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_MUTE") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.TestMute();
+        }
+
         // CODEXBAR_PREVIEW_PRIVACY=mic|camera: the microphone / camera dot and its HUD (a sample app).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PRIVACY") is { Length: > 0 } privacyPreview && _notch is not null)
         {
