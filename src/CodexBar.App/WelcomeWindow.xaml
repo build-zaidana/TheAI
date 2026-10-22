@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CodexBar.App"
         Title="{local:Tr Selamat datang di TheAI, En=Welcome to TheAI}"
-        Width="600" Height="640"
+        Width="620" Height="720"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
@@ -62,8 +62,24 @@
             <DockPanel x:Name="FeatureStep" Visibility="Collapsed">
                 <StackPanel DockPanel.Dock="Top">
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="{local:Tr Pilih yang kamu mau di notch, En=Choose what the notch shows}" />
-                    <TextBlock Margin="0,6,0,14" Foreground="#6E6E73" TextWrapping="Wrap" FontSize="13.5" LineHeight="20"
+                    <TextBlock Margin="0,6,0,12" Foreground="#6E6E73" TextWrapping="Wrap" FontSize="13.5" LineHeight="20"
                                Text="{local:Tr Semuanya opsional dan bisa diubah kapan saja di Pengaturan → Notch → Pilih fitur., En=Everything is optional and can be changed any time in Settings → Notch → Choose features.}" />
+                    <!-- What the feature under the pointer (or the keyboard) looks like in the notch. -->
+                    <Border x:Name="PreviewPane" Height="150" CornerRadius="10" Margin="0,0,0,14" ClipToBounds="True">
+                        <Border.Background>
+                            <RadialGradientBrush Center="0.2,0" GradientOrigin="0.2,0" RadiusX="1.2" RadiusY="1.4">
+                                <GradientStop Color="#4A4F5E" Offset="0" />
+                                <GradientStop Color="#2A2D37" Offset="0.55" />
+                                <GradientStop Color="#15161B" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                        <Grid>
+                            <Image x:Name="PreviewImage" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="0,0,0,26"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <TextBlock x:Name="PreviewCaption" Foreground="#E6FFFFFF" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                       Margin="12,0,12,7" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
                     <StackPanel x:Name="FeatureGroups" Margin="0,0,4,0" />

@@ -92,7 +92,11 @@ public partial class WelcomeWindow : Window
             {
                 // A new user (nothing on yet) sees the suggestions ticked; later, what's on now.
                 var on = anyOn ? feature.IsOn(current) : feature.Recommended;
-                _switches[feature.Key] = AddRow(box, feature.Name(Tr.Text), feature.Description(Tr.Text), on);
+                var toggle = _switches[feature.Key] = AddRow(box, feature.Name(Tr.Text), feature.Description(Tr.Text), on);
+                var key = feature.Key;
+                var name = feature.Name(Tr.Text);
+                ((FrameworkElement)toggle.Parent).MouseEnter += (_, _) => ShowPreview(key, name);
+                toggle.GotKeyboardFocus += (_, _) => ShowPreview(key, name);
             }
 
             FeatureGroups.Children.Add(new Border { Style = (Style)FindResource("MacGroupBox"), Margin = new Thickness(0, 0, 0, 14), Child = box });
@@ -132,6 +136,32 @@ public partial class WelcomeWindow : Window
         return toggle;
     }
 
+    /// <summary>The notch picture for a feature (packed with the app), or just its name when there is none.</summary>
+    private void ShowPreview(string key, string name)
+    {
+        PreviewImage.Source = PreviewFor(key);
+        PreviewCaption.Text = name;
+    }
+
+    private static System.Windows.Media.Imaging.BitmapImage? PreviewFor(string key)
+    {
+        var file = key == "github" ? "activities" : key;
+        try
+        {
+            var image = new System.Windows.Media.Imaging.BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri($"pack://application:,,,/Previews/{file}.png");
+            image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception exception) when (exception is System.IO.IOException or UriFormatException or NotSupportedException)
+        {
+            return null;   // music and the companion have no picture
+        }
+    }
+
     private void ShowFeatures()
     {
         TourStep.Visibility = Visibility.Collapsed;
@@ -140,6 +170,7 @@ public partial class WelcomeWindow : Window
         NextButton.Content = Tr.Text("Mulai", "Start");
         Dot1.Fill = Frozen(Color.FromArgb(0x33, 0, 0, 0));
         Dot2.Fill = Frozen(Color.FromRgb(0x1D, 0x1D, 0x1F));
+        ShowPreview("today", Tr.Text("Arahkan ke fitur untuk melihat contohnya", "Point at a feature to see what it looks like"));
         _switches.Values.FirstOrDefault()?.Focus();
     }
 
