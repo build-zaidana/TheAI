@@ -173,7 +173,7 @@ public partial class NotchWindow
         // Opening: a lively spring that overshoots a hair. Closing: quicker and calmer.
         var opening = expanded && _shownView == NotchView.Compact ||
                       width > _shapeWidth.Value + 0.5 || height > _shapeHeight.Value + 0.5;
-        var (response, damping) = opening ? (0.52, 0.72) : (0.36, 0.94);
+        var (response, damping) = opening ? (0.40, 0.74) : (0.30, 0.94);
         Retarget(_shapeWidth, width, response, damping);
         Retarget(_shapeHeight, height, response, damping);
         Retarget(_shapeRadius, radius, response, damping);
@@ -188,7 +188,7 @@ public partial class NotchWindow
         if (outgoing != incoming)
         {
             FadeOut(outgoing);
-            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 110 : 50), blur: expanded);
+            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 60 : 30), blur: expanded);
         }
 
         _shownView = _view;
@@ -353,7 +353,7 @@ public partial class NotchWindow
     private void FadeIn(FrameworkElement panel, TimeSpan delay, bool blur)
     {
         panel.Opacity = 0;
-        panel.BeginAnimation(OpacityProperty, Frame(new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260))
+        panel.BeginAnimation(OpacityProperty, Frame(new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
         {
             BeginTime = delay,
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -361,18 +361,18 @@ public partial class NotchWindow
 
         var (scale, slide) = ContentTransform(panel);
         var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
-        var grow = Frame(new DoubleAnimation(0.94, 1, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease });
+        var grow = Frame(new DoubleAnimation(0.94, 1, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease });
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
         var away = EdgeAwayDirection() * 10;
-        slide.BeginAnimation(TranslateTransform.XProperty, Frame(new DoubleAnimation(-away.X, 0, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease }));
-        slide.BeginAnimation(TranslateTransform.YProperty, Frame(new DoubleAnimation(-away.Y, 0, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease }));
+        slide.BeginAnimation(TranslateTransform.XProperty, Frame(new DoubleAnimation(-away.X, 0, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease }));
+        slide.BeginAnimation(TranslateTransform.YProperty, Frame(new DoubleAnimation(-away.Y, 0, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease }));
 
         if (blur)
         {
             var effect = new BlurEffect { Radius = 10, RenderingBias = RenderingBias.Performance };
             panel.Effect = effect;
-            var sharpen = Frame(new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(300)) { BeginTime = delay, EasingFunction = ease });
+            var sharpen = Frame(new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(220)) { BeginTime = delay, EasingFunction = ease });
             sharpen.Completed += (_, _) =>
             {
                 if (panel.Effect == effect)

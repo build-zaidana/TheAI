@@ -174,7 +174,7 @@ public partial class NotchWindow : Window
 
     private readonly INotchHost _host;
     private readonly DispatcherTimer _collapseTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
-    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
+    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private readonly DispatcherTimer _doneTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly Storyboard _spinner;
 
