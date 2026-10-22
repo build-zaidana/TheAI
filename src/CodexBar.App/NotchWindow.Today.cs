@@ -24,6 +24,21 @@ public partial class NotchWindow
     private static readonly Geometry DropGlyph = Geometry.Parse("M 12,2.5 C 12,2.5 5,10.5 5,15 A 7,7 0 0 0 19,15 C 19,10.5 12,2.5 12,2.5 Z");
     private static readonly Geometry BellGlyph = Geometry.Parse("M 6,16 L 6,10.5 A 6,6 0 0 1 18,10.5 L 18,16 L 20,18 L 4,18 Z M 10,20.5 A 2,2 0 0 0 14,20.5");
 
+    // One accent per feature, on its icon only: the notch stays black and white.
+    private static readonly Brush WeatherAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0xD6, 0x0A));
+    private static readonly Brush CalendarAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0x45, 0x3A));
+    private static readonly Brush ReminderAccent = Frozen(System.Windows.Media.Color.FromRgb(0xBF, 0x5A, 0xF2));
+    private static readonly Brush PrayerAccent = Frozen(System.Windows.Media.Color.FromRgb(0x63, 0xE6, 0xBE));
+    private static readonly Brush RowHover = Frozen(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+
+    private Brush AccentFor(Geometry glyph) =>
+        glyph == DropGlyph ? WaterBrush
+        : glyph == CalendarGlyph ? CalendarAccent
+        : glyph == BellGlyph ? ReminderAccent
+        : glyph == CrescentGlyph ? PrayerAccent
+        : glyph == MicGlyph || glyph == MicOffGlyph ? MicDotBrush
+        : WeatherAccent;
+
     /// <summary>Views the combined mode folds into Today.</summary>
     private static bool FoldedIntoToday(NotchView view) =>
         view is NotchView.Weather or NotchView.Calendar or NotchView.Reminders or NotchView.Water;
@@ -138,8 +153,8 @@ public partial class NotchWindow
             Width = 16,
             Height = 16,
             Stretch = Stretch.Uniform,
-            Stroke = TimerQuietBrush,
-            StrokeThickness = 1.5,
+            Stroke = AccentFor(glyph),
+            StrokeThickness = 1.6,
             StrokeLineJoin = PenLineJoin.Round,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round,
@@ -177,13 +192,17 @@ public partial class NotchWindow
             }
         };
         System.Windows.Automation.AutomationProperties.SetName(grid, text);
-        TodayRows.Children.Add(new Border
+        var row = new Border
         {
-            BorderBrush = Frozen(System.Windows.Media.Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-            BorderThickness = new Thickness(0, TodayRows.Children.Count == 0 ? 0 : 1, 0, 0),
-            Padding = new Thickness(0, 2, 0, 2),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(8, 2, 8, 2),
+            Margin = new Thickness(-8, 0, -8, 1),
+            Background = Brushes.Transparent,
             Child = grid
-        });
+        };
+        row.MouseEnter += (_, _) => row.Background = RowHover;
+        row.MouseLeave += (_, _) => row.Background = Brushes.Transparent;
+        TodayRows.Children.Add(row);
     }
 
     private static T? FindAncestor<T>(DependencyObject element) where T : DependencyObject
