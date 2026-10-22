@@ -2473,6 +2473,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.TimerInNotch => _settings.TimerInNotch;
     bool INotchHost.RemindersEnabled => _settings.RemindersEnabled;
     bool INotchHost.WeatherEnabled => _settings.WeatherEnabled;
+    bool INotchHost.WaterEnabled => _settings.WaterEnabled;
+    WaterPlan INotchHost.Water => WaterPlan.From(_settings);
     string INotchHost.WeatherCity => _settings.WeatherCity;
     string INotchHost.WorldClocks => _settings.WorldClocks;
 

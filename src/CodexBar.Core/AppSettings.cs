@@ -126,6 +126,20 @@ public sealed class AppSettings
     /// <summary>HUD Caps Lock dan pergantian bahasa keyboard (hanya tombol Caps Lock yang dibaca; tidak ada yang disimpan).</summary>
     public bool KeyboardHud { get; set; }
 
+    /// <summary>Pengingat minum air yang lembut, dengan catatan harian di notch.</summary>
+    public bool WaterEnabled { get; set; }
+
+    public int WaterGoalMl { get; set; } = 2000;
+
+    public int WaterGlassMl { get; set; } = 250;
+
+    /// <summary>Menit antar pengingat setelah gelas terakhir; 0 = tanpa pengingat (catatan saja).</summary>
+    public int WaterEveryMinutes { get; set; } = 60;
+
+    public int WaterFromHour { get; set; } = 8;
+
+    public int WaterUntilHour { get; set; } = 21;
+
     /// <summary>Pengingat dan to-do singkat di notch.</summary>
     public bool RemindersEnabled { get; set; }
 
@@ -234,6 +248,12 @@ public sealed class AppSettings
         MusicLyrics = source.MusicLyrics;
         SystemHud = source.SystemHud;
         KeyboardHud = source.KeyboardHud;
+        WaterEnabled = source.WaterEnabled;
+        WaterGoalMl = source.WaterGoalMl;
+        WaterGlassMl = source.WaterGlassMl;
+        WaterEveryMinutes = source.WaterEveryMinutes;
+        WaterFromHour = source.WaterFromHour;
+        WaterUntilHour = source.WaterUntilHour;
         CalendarSource = source.CalendarSource;
         HideInFullscreen = source.HideInFullscreen;
         LiveActivities = source.LiveActivities;

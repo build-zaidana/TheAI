@@ -1566,6 +1566,31 @@ static int RunSmartCommandTests()
         list.Prune(at.AddDays(9));
         Assert(list.Items.All(item => !item.Done), "Yang selesai lebih dari seminggu dihapus.");
         Assert(ReminderList.When(stretch, at.AddMinutes(21), (id, en) => en) == "9m", "Sisa waktu.");
+        // Water: glasses per day, the week, and when the gentle reminder is due.
+        var plan = new WaterPlan(2000, 250, 60, 8, 21);
+        var morning = new DateTimeOffset(2026, 10, 22, 7, 0, 0, TimeSpan.FromHours(7));
+        var water = new WaterLog();
+        Assert(WaterLog.NextNudge(water, plan, morning) == morning.Date.AddHours(9).ToDateTimeOffsetAt(morning), "Air: pengingat pertama satu interval setelah jam mulai.");
+        water.Add(250, morning.AddHours(3));
+        Assert(water.Today(morning) == 250 && water.LastDrink == morning.AddHours(3), "Air: segelas tercatat.");
+        Assert(WaterLog.NextNudge(water, plan, morning.AddHours(3)) == morning.AddHours(4), "Air: interval dihitung dari gelas terakhir.");
+        water.Add(-500, morning.AddHours(3));
+        Assert(water.Today(morning) == 0, "Air: tidak pernah negatif.");
+        water.Add(2000, morning.AddHours(4));
+        Assert(WaterLog.NextNudge(water, plan, morning.AddHours(4)) is null, "Air: target tercapai = tanpa pengingat.");
+        Assert(WaterLog.NextNudge(new WaterLog(), plan, morning.AddHours(14.5)) is null, "Air: tidak ada pengingat setelah jam aktif.");
+        Assert(WaterLog.NextNudge(new WaterLog(), plan with { EveryMinutes = 0 }, morning.AddHours(3)) is null, "Air: interval 0 = catatan saja.");
+        var week = water.Week(morning);
+        Assert(week.Count == 7 && week[^1].Millilitres == 2000 && week[0].Millilitres == 0, "Air: tujuh hari, hari ini terakhir.");
+        water.Days["2026-08-01"] = 900;
+        water.Prune(morning);
+        Assert(!water.Days.ContainsKey("2026-08-01"), "Air: catatan lebih dari 30 hari dibuang.");
+        var waterPath = Path.Combine(Path.GetTempPath(), "theai-water-" + Guid.NewGuid().ToString("N") + ".json");
+        water.Save(waterPath);
+        Assert(WaterLog.Load(waterPath).Today(morning) == 2000, "Air: tersimpan dan terbaca lagi.");
+        File.Delete(waterPath);
+        Assert(WaterPlan.From(new AppSettings { WaterGoalMl = 50, WaterEveryMinutes = 5 }) is { GoalMl: 500, EveryMinutes: 15 }, "Air: angka dibatasi ke rentang wajar.");
+
         // Weather: Open-Meteo's geocoding and forecast answers, WMO codes, and world clocks.
         var place = WeatherClient.ParsePlace("""{"results":[{"name":"Jakarta","country":"Indonesia","latitude":-6.21462,"longitude":106.84513,"timezone":"Asia/Jakarta"}]}""");
         Assert(place is { Name: "Jakarta", Country: "Indonesia", TimeZone: "Asia/Jakarta" } && Math.Abs(place.Latitude + 6.21462) < 1e-6, "Geocoding dibaca.");

@@ -151,6 +151,12 @@ public partial class MainWindow
             _notch.PreviewSelection();
         }
 
+        // CODEXBAR_PREVIEW_WATER=1|nudge: the water page with a sample week (never saved), or the reminder.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WATER") is { Length: > 0 } waterPreview && _notch is not null)
+        {
+            _notch.PreviewWater(waterPreview);
+        }
+
         // CODEXBAR_PREVIEW_WEATHER=1: the weather page with a sample report (nothing is fetched).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WEATHER") is { Length: > 0 } && _notch is not null)
         {

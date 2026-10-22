@@ -1086,6 +1086,39 @@
                     <StackPanel x:Name="WorldClockRows" />
                 </StackPanel>
 
+                <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
+                <StackPanel x:Name="WaterPanel" Margin="20,14,20,12" Width="380" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Path x:Name="WaterIcon" Width="26" Height="26" Stretch="Uniform" Stroke="#5AC8FA" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"
+                              Data="M 12,2.5 C 12,2.5 5,10.5 5,15 A 7,7 0 0 0 19,15 C 19,10.5 12,2.5 12,2.5 Z" />
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="14" Foreground="#F5F5F7">
+                                <Run x:Name="WaterToday" FontFamily="{StaticResource SoraFont}" FontSize="24" />
+                                <Run x:Name="WaterGoal" Foreground="#99FFFFFF" />
+                            </TextBlock>
+                            <TextBlock x:Name="WaterNext" FontSize="12" Foreground="#99FFFFFF" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="WaterUndo" Style="{StaticResource NotchPill}" Height="28" FontSize="12" Click="WaterUndo_Click" />
+                            <Button x:Name="WaterAdd" Style="{StaticResource NotchPrimaryPill}" Height="28" FontSize="12" Click="WaterAdd_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <Border Height="6" CornerRadius="3" Background="#1FFFFFFF" Margin="0,2,0,12">
+                        <Border x:Name="WaterBar" HorizontalAlignment="Left" CornerRadius="3" Background="#5AC8FA" Width="0" />
+                    </Border>
+                    <Grid x:Name="WaterWeek" Height="62" />
+                </StackPanel>
+
                 <!-- A selection caught by the quick-capture hotkey, and what to do with it. -->
                 <StackPanel x:Name="SelectionPanel" Margin="20,14,20,10" Width="420" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" Focusable="True" FocusVisualStyle="{x:Null}"

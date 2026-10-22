@@ -80,6 +80,7 @@ public partial class NotchWindow
         NotchView.System => SystemPanel,
         NotchView.Reminders => ReminderPanel,
         NotchView.Weather => WeatherPanel,
+        NotchView.Water => WaterPanel,
         NotchView.Selection => SelectionPanel,
         _ => CompactPanel
     };
@@ -101,6 +102,7 @@ public partial class NotchWindow
         NotchView.System => SystemWidth,
         NotchView.Reminders => RemindersWidth,
         NotchView.Weather => WeatherWidth,
+        NotchView.Water => WaterWidth,
         NotchView.Selection => SelectionWidth,
         _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
     };
@@ -140,7 +142,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, SelectionPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, SelectionPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

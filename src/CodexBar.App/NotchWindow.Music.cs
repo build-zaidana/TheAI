@@ -269,6 +269,7 @@ public partial class NotchWindow
             NotchView.System => false,
             NotchView.Reminders => false,
             NotchView.Weather => false,
+            NotchView.Water => false,
             _ => _state != NotchState.Idle
         };
         if (_held.Count > 0 && !Quiet)
@@ -321,6 +322,9 @@ public partial class NotchWindow
                 break;
             case NotchView.Weather:
                 OpenWeather();
+                break;
+            case NotchView.Water:
+                OpenWater();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -375,6 +379,11 @@ public partial class NotchWindow
         if (RemindersAvailable)
         {
             pages.Add(NotchView.Reminders);
+        }
+
+        if (WaterAvailable)
+        {
+            pages.Add(NotchView.Water);
         }
 
         if (ClipboardAvailable)
