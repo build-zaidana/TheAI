@@ -603,6 +603,15 @@
                             <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
                             <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.4" /></Rectangle.RenderTransform></Rectangle>
                         </StackPanel>
+                        <!-- The idle companion: two eyes that blink, and close while the computer is left alone. -->
+                        <StackPanel x:Name="CompanionEyes" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="Collapsed" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                            <StackPanel.RenderTransform>
+                                <ScaleTransform x:Name="CompanionLids" />
+                            </StackPanel.RenderTransform>
+                            <Ellipse Width="4" Height="6" Fill="#F5F5F7" Margin="1,0" />
+                            <Ellipse Width="4" Height="6" Fill="#F5F5F7" Margin="1,0" />
+                        </StackPanel>
                         <Ellipse x:Name="ErrorIndicator" Width="8" Height="8" Fill="{StaticResource NotchRed}" Visibility="Collapsed" />
                     </Grid>
                 </Grid>

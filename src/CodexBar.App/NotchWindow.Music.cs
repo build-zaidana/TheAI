@@ -175,6 +175,7 @@ public partial class NotchWindow
 
         ApplyTimerCompact();
         UpdateEqTimer();
+        ApplyCompanion();
         RenderPageDots();
     }
 

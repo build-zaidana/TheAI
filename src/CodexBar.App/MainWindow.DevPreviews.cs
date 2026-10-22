@@ -151,6 +151,12 @@ public partial class MainWindow
             _notch.PreviewSelection();
         }
 
+        // CODEXBAR_PREVIEW_EYES=awake|asleep: the idle companion in the compact notch.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_EYES") is { Length: > 0 } eyesPreview && _notch is not null)
+        {
+            _notch.PreviewCompanion(eyesPreview);
+        }
+
         // CODEXBAR_PREVIEW_WATER=1|nudge: the water page with a sample week (never saved), or the reminder.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WATER") is { Length: > 0 } waterPreview && _notch is not null)
         {

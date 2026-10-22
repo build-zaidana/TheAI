@@ -45,6 +45,9 @@ internal interface INotchHost
     /// <summary>Caps Lock and keyboard-language changes in the HUD.</summary>
     bool KeyboardHud { get; }
 
+    /// <summary>The idle companion's eyes in the compact notch.</summary>
+    bool CompanionEyes { get; }
+
     /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
     string CalendarSource { get; }
 
@@ -267,6 +270,7 @@ public partial class NotchWindow : Window
         RestartSystem();
         RestartGitHub();
         ApplyKeyboardWatcher();
+        ApplyCompanion();
         ScheduleFullscreenCheck();
         ScheduleRecap();
         UpdateQuietCheck();

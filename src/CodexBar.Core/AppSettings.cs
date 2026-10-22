@@ -126,6 +126,9 @@ public sealed class AppSettings
     /// <summary>HUD Caps Lock dan pergantian bahasa keyboard (hanya tombol Caps Lock yang dibaca; tidak ada yang disimpan).</summary>
     public bool KeyboardHud { get; set; }
 
+    /// <summary>Sepasang mata kecil di notch saat tidak ada apa-apa: berkedip, tertidur saat komputer ditinggal.</summary>
+    public bool CompanionEyes { get; set; }
+
     /// <summary>Pengingat minum air yang lembut, dengan catatan harian di notch.</summary>
     public bool WaterEnabled { get; set; }
 
@@ -249,6 +252,7 @@ public sealed class AppSettings
         SystemHud = source.SystemHud;
         KeyboardHud = source.KeyboardHud;
         WaterEnabled = source.WaterEnabled;
+        CompanionEyes = source.CompanionEyes;
         WaterGoalMl = source.WaterGoalMl;
         WaterGlassMl = source.WaterGlassMl;
         WaterEveryMinutes = source.WaterEveryMinutes;
