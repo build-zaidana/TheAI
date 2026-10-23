@@ -81,6 +81,16 @@
                         </Grid>
                     </Border>
                 </StackPanel>
+                <!-- One click to a sensible set; each switch below still changes it. -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="{local:Tr Mulai dari:, En=Start from:}" Foreground="#6E6E73" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <Button x:Name="PresetMinimal" Style="{StaticResource MacButton}" Margin="0,0,8,0" Click="Preset_Click" Tag="minimal"
+                            Content="{local:Tr Minimal, En=Minimal}" />
+                    <Button x:Name="PresetSuggested" Style="{StaticResource MacButton}" Margin="0,0,8,0" Click="Preset_Click" Tag="suggested"
+                            Content="{local:Tr Disarankan, En=Recommended}" />
+                    <Button x:Name="PresetAll" Style="{StaticResource MacButton}" Click="Preset_Click" Tag="all"
+                            Content="{local:Tr Semua, En=Everything}" />
+                </StackPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
                     <StackPanel x:Name="FeatureGroups" Margin="0,0,4,0" />
                 </ScrollViewer>

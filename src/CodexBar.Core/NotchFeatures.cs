@@ -72,7 +72,7 @@ public static class NotchFeatures
             s => s.KeyboardHud, (s, on) => s.KeyboardHud = on),
         new("privacy", Computer, "Penanda mikrofon & kamera", "Microphone & camera indicator",
             "Titik di notch saat ada aplikasi memakai mikrofon atau kamera, dan namanya. /mute membisukan mikrofon.", "A dot in the notch while an app uses the microphone or camera, and its name. /mute mutes the microphone.",
-            s => s.PrivacyDot, (s, on) => s.PrivacyDot = on),
+            s => s.PrivacyDot, (s, on) => s.PrivacyDot = on, Recommended: true),
         new("eyes", Computer, "Teman diam", "Idle companion",
             "Sepasang mata kecil di notch saat tidak ada apa-apa. Berkedip, dan tertidur saat komputer ditinggal.", "A small pair of eyes in the notch when nothing is going on. They blink, and doze off while you are away.",
             s => s.CompanionEyes, (s, on) => s.CompanionEyes = on),
@@ -88,6 +88,14 @@ public static class NotchFeatures
     ];
 
     public static NotchFeature? Find(string key) => All.FirstOrDefault(feature => feature.Key == key);
+
+    /// <summary>What nearly everyone uses: system overlays, the microphone/camera indicator and music.</summary>
+    public static readonly IReadOnlyList<string> Minimal = ["hud", "privacy", "music"];
+
+    /// <summary>The suggested start (the features marked Recommended).</summary>
+    public static IReadOnlyList<string> Suggested => All.Where(feature => feature.Recommended).Select(feature => feature.Key).ToList();
+
+    public static IReadOnlyList<string> Everything => All.Select(feature => feature.Key).ToList();
 
     /// <summary>Switch on exactly the chosen features (by key); everything else off.</summary>
     public static void Apply(AppSettings settings, IEnumerable<string> chosen)

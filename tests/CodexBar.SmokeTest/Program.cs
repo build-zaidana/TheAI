@@ -1532,7 +1532,7 @@ static int RunSmartCommandTests()
         NotchFeatures.Find("calendar")!.Set(fresh, true);
         Assert(fresh.CalendarSource == "ics", "Menyalakan kalender tidak menimpa sumber yang sudah dipilih.");
         Assert(NotchFeatures.All.Select(f => f.Key).Distinct().Count() == NotchFeatures.All.Count &&
-               NotchFeatures.All.Where(f => f.Recommended).Select(f => f.Key).SequenceEqual(["music", "timer", "hud"]), "Kunci unik; saran: musik, timer, HUD.");
+               NotchFeatures.All.Where(f => f.Recommended).Select(f => f.Key).SequenceEqual(["music", "timer", "hud", "privacy"]), "Kunci unik; saran: musik, timer, HUD, mic & kamera.");
         var imported = new AppSettings();
         imported.ApplyFrom(fresh);
         Assert(imported is { MusicInNotch: true, TimerInNotch: false, RemindersEnabled: true, CalendarSource: "ics" }, "Impor membawa pengaturan notch.");
@@ -1566,6 +1566,11 @@ static int RunSmartCommandTests()
         list.Prune(at.AddDays(9));
         Assert(list.Items.All(item => !item.Done), "Yang selesai lebih dari seminggu dihapus.");
         Assert(ReminderList.When(stretch, at.AddMinutes(21), (id, en) => en) == "9m", "Sisa waktu.");
+        // Feature presets on the first start only name real features; Minimal sits inside Recommended.
+        Assert(NotchFeatures.Minimal.All(key => NotchFeatures.Find(key) is not null), "Preset Minimal: fitur yang ada.");
+        Assert(NotchFeatures.Minimal.All(NotchFeatures.Suggested.Contains), "Preset Minimal termasuk dalam Disarankan.");
+        Assert(NotchFeatures.Everything.Count == NotchFeatures.All.Count, "Preset Semua: semua fitur.");
+
         // Water: glasses per day, the week, and when the gentle reminder is due.
         var plan = new WaterPlan(2000, 250, 60, 8, 21);
         var morning = new DateTimeOffset(2026, 10, 22, 7, 0, 0, TimeSpan.FromHours(7));

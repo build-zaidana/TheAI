@@ -162,6 +162,24 @@ public partial class WelcomeWindow : Window
         }
     }
 
+    // Minimal: what nearly everyone uses. Recommended: that plus the timer. Everything: all on.
+    private void Preset_Click(object sender, RoutedEventArgs e)
+    {
+        var keys = ((FrameworkElement)sender).Tag switch
+        {
+            "minimal" => NotchFeatures.Minimal,
+            "all" => NotchFeatures.Everything,
+            _ => NotchFeatures.Suggested
+        };
+        foreach (var (key, toggle) in _switches)
+        {
+            toggle.IsChecked = keys.Contains(key);
+        }
+
+        var names = string.Join(", ", NotchFeatures.All.Where(feature => keys.Contains(feature.Key)).Select(feature => feature.Name(Tr.Text)).Take(4));
+        ShowPreview("today", keys.Count == NotchFeatures.All.Count ? Tr.Text("Semua fitur menyala", "Every feature on") : names);
+    }
+
     private void ShowFeatures()
     {
         TourStep.Visibility = Visibility.Collapsed;
