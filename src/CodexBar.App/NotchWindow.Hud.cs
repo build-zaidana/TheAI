@@ -4,6 +4,7 @@ using System.Windows.Threading;
 using CodexBar.App.Hud;
 using Microsoft.Win32;
 using Brush = System.Windows.Media.Brush;
+using Color = System.Windows.Media.Color;
 using Forms = System.Windows.Forms;
 
 namespace CodexBar.App;
@@ -175,9 +176,20 @@ public partial class NotchWindow
         ShowTextHud(KeyboardGlyph, $"{culture.TwoLetterISOLanguageName.ToUpperInvariant()} · {name}", red: false);
     }
 
-    private void ShowNetworkHud(bool online) =>
-        ShowTextHud(online ? WifiGlyph : WifiOffGlyph,
-            online ? Tr.Text("Kembali online", "Back online") : Tr.Text("Internet terputus", "Internet connection lost"), red: !online);
+    // Offline: two white Wi-Fi arcs with a red exclamation mark standing in for the inner ones.
+    private static readonly Geometry WifiAlertArcs = Geometry.Parse("M 2,8.82 A 15,15 0 0 1 22,8.82 M 5.5,12.6 A 10,10 0 0 1 8.7,10.7 M 15.3,10.7 A 10,10 0 0 1 18.5,12.6");
+    private static readonly Geometry WifiAlertMark = Geometry.Parse("M 10.6,10.4 A 1.4,1.4 0 0 1 13.4,10.4 L 13.1,16 A 1.1,1.1 0 0 1 10.9,16 Z M 10.4,19.8 A 1.6,1.6 0 1 1 13.6,19.8 A 1.6,1.6 0 1 1 10.4,19.8 Z");
+
+    private void ShowNetworkHud(bool online)
+    {
+        ShowTextHud(online ? WifiGlyph : WifiAlertArcs,
+            online ? Tr.Text("Kembali online", "Back online") : Tr.Text("Internet terputus", "Internet connection lost"), red: false);
+        if (!online)
+        {
+            HudIconFill.Data = WifiAlertMark;
+            HudIconFill.Fill = (Brush)FindResource("NotchRed");
+        }
+    }
 
     // ---- The HUD's faces ---------------------------------------------------------------------
 
@@ -198,7 +210,7 @@ public partial class NotchWindow
         HudIconFill.Fill = TimerFocusBrush;
         HudIconStroke.Data = SunRays;
         HudIconStroke.Stroke = TimerFocusBrush;
-        ShowBar(level / 100.0);
+        ShowBar(level / 100.0, BrightnessFill);
         ShowHud(HudShort);
     }
 
@@ -248,15 +260,39 @@ public partial class NotchWindow
         ShowHud(HudLong);
     }
 
-    private void ShowBar(double fraction)
+    private static readonly Brush VolumeFill = CapsuleFill(0xFF, 0xFF, 0xFF, 0xD8, 0xD8, 0xDE);
+    private static readonly Brush BrightnessFill = CapsuleFill(0xFF, 0xE2, 0x7A, 0xFF, 0xBF, 0x1F);
+    private static readonly Brush OnFillBrush = Frozen(Color.FromRgb(0x14, 0x14, 0x16));
+    private bool _capsuleWanted;
+
+    private static Brush CapsuleFill(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
     {
+        var brush = new LinearGradientBrush(Color.FromRgb(r1, g1, b1), Color.FromRgb(r2, g2, b2), 90);
+        brush.Freeze();
+        return brush;
+    }
+
+    // Volume and brightness: the fill grows across the whole capsule; the icon turns dark once the
+    // fill reaches under it, and the number stays on the right.
+    private void ShowBar(double fraction, Brush? fill = null)
+    {
+        fraction = Math.Clamp(fraction, 0, 1);
         HudIconBattery.Visibility = Visibility.Collapsed;
         HudName.Visibility = Visibility.Collapsed;
-        HudValue.Visibility = Visibility.Collapsed;
-        HudBar.Visibility = Visibility.Visible;
-        // The bar's width is known once laid out; before that the panel's own width stands in.
-        var track = HudBar.ActualWidth > 0 ? HudBar.ActualWidth : HudPanel.Width - 36;
-        HudBarFill.Width = Math.Clamp(fraction, 0, 1) * track;
+        HudBar.Visibility = Visibility.Collapsed;
+        HudBattery.Visibility = Visibility.Collapsed;
+        HudValue.Visibility = Visibility.Visible;
+        HudText.Text = Math.Round(fraction * 100).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _capsuleWanted = true;
+        HudCapsule.Visibility = Visibility.Visible;
+        HudCapsuleFill.Background = fill ?? VolumeFill;
+        var width = HudCapsule.ActualWidth > 0 ? HudCapsule.ActualWidth : HudPanel.Width;
+        HudCapsuleFill.Width = fraction * width;
+        if (fraction * width > 34)
+        {
+            HudIconFill.Fill = OnFillBrush;
+            HudIconStroke.Stroke = OnFillBrush;
+        }
     }
 
     private void ShowValue(int percent, bool red)
@@ -274,6 +310,9 @@ public partial class NotchWindow
     /// <summary>Show the HUD over the compact notch for a moment (never over an open panel or the chat).</summary>
     private void ShowHud(TimeSpan length)
     {
+        // Only the volume and brightness faces use the capsule; every other face hides it.
+        HudCapsule.Visibility = _capsuleWanted ? Visibility.Visible : Visibility.Collapsed;
+        _capsuleWanted = false;
         if (!_host.SystemHud || _suspendedForChat || _view is not (NotchView.Compact or NotchView.Hud) || _dragging)
         {
             return;
@@ -336,7 +375,12 @@ public partial class NotchWindow
             {
                 // The bar is laid out by now: draw it at its real width.
                 var fraction = kind == "brightness" ? 0.42 : kind == "mute" ? 0 : 0.64;
-                HudBarFill.Width = fraction * HudBar.ActualWidth;
+                HudCapsuleFill.Width = fraction * HudCapsule.ActualWidth;
+                if (fraction * HudCapsule.ActualWidth > 34)
+                {
+                    HudIconFill.Fill = OnFillBrush;
+                    HudIconStroke.Stroke = OnFillBrush;
+                }
                 await Task.Delay(100);
             }
 

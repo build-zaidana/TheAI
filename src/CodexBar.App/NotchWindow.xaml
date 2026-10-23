@@ -919,7 +919,7 @@
                 </Grid>
 
                 <!-- System HUD: volume, brightness, battery, headphones — a slightly wider compact notch for a moment. -->
-                <Grid x:Name="HudPanel" Height="30" Width="216" Margin="12,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <Grid x:Name="HudPanel" Height="40" Width="228" Margin="6,0" HorizontalAlignment="Center" VerticalAlignment="Top"
                       Visibility="Collapsed" SizeChanged="Panel_SizeChanged" IsHitTestVisible="False">
                     <Grid.RenderTransform>
                         <TranslateTransform />
@@ -929,7 +929,11 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Width="26" VerticalAlignment="Center">
+                    <!-- Volume and brightness: the whole capsule is the slider (fill behind icon and number). -->
+                    <Border x:Name="HudCapsule" Grid.ColumnSpan="3" Margin="0,4,0,4" CornerRadius="16" Background="#1C1C1E" Visibility="Collapsed">
+                        <Border x:Name="HudCapsuleFill" HorizontalAlignment="Left" CornerRadius="16" Width="0" />
+                    </Border>
+                    <Grid Width="26" VerticalAlignment="Center" Margin="12,0,0,0">
                         <Path x:Name="HudIconFill" Fill="#F5F5F7" HorizontalAlignment="Left" VerticalAlignment="Center" />
                         <Path x:Name="HudIconStroke" Stroke="#F5F5F7" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                               HorizontalAlignment="Left" VerticalAlignment="Center" />
@@ -945,7 +949,7 @@
                     </Grid>
                     <TextBlock x:Name="HudName" Grid.Column="1" Margin="10,0,10,0" VerticalAlignment="Center" FontSize="12" Foreground="#99FFFFFF"
                                TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
-                    <StackPanel x:Name="HudValue" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                    <StackPanel x:Name="HudValue" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0" Visibility="Collapsed">
                         <TextBlock x:Name="HudText" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" VerticalAlignment="Center"
                                    Typography.NumeralAlignment="Tabular" />
                         <Grid x:Name="HudBattery" Width="26" Height="13" Margin="8,0,0,0" VerticalAlignment="Center">
