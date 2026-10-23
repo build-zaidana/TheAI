@@ -17,10 +17,10 @@ namespace CodexBar.App;
 //    show the next one, and a quiet HUD says when it begins. One timer, set for the next prayer.
 public partial class NotchWindow
 {
-    private static readonly Geometry MicGlyph = Geometry.Parse("M 9,2 A 3,3 0 0 1 12,5 L 12,9 A 3,3 0 0 1 6,9 L 6,5 A 3,3 0 0 1 9,2 Z M 3.5,8.5 A 5.5,5.5 0 0 0 14.5,8.5 M 9,14 L 9,16.5");
-    private static readonly Geometry MicOffGlyph = Geometry.Parse("M 9,2 A 3,3 0 0 1 12,5 L 12,9 A 3,3 0 0 1 6,9 L 6,5 A 3,3 0 0 1 9,2 Z M 3.5,8.5 A 5.5,5.5 0 0 0 14.5,8.5 M 9,14 L 9,16.5 M 2,2 L 16,16");
-    private static readonly Geometry CameraGlyph = Geometry.Parse("M 2,5 L 12,5 L 12,13 L 2,13 Z M 12,8 L 16,5.5 L 16,12.5 L 12,10");
-    private static readonly Geometry CrescentGlyph = Geometry.Parse("M 12,2.5 A 7,7 0 1 0 15.5,14 A 5.5,5.5 0 0 1 12,2.5 Z");
+    private static readonly Geometry MicGlyph = Icons.Mic;
+    private static readonly Geometry MicOffGlyph = Icons.MicOff;
+    private static readonly Geometry CameraGlyph = Icons.Video;
+    private static readonly Geometry CrescentGlyph = Icons.MoonStar;
     private static readonly Brush MicDotBrush = Frozen(Color.FromRgb(0xFF, 0x9F, 0x0A));
     private static readonly Brush CameraDotBrush = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
 

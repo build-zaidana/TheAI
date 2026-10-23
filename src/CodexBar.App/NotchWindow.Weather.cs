@@ -18,14 +18,14 @@ public partial class NotchWindow
 {
     private const double WeatherWidth = 420;
 
-    private static readonly Geometry SunGlyph = Geometry.Parse("M 12,8 A 4,4 0 1 1 11.99,8 Z M 12,1.5 L 12,4 M 12,20 L 12,22.5 M 1.5,12 L 4,12 M 20,12 L 22.5,12 M 4.6,4.6 L 6.3,6.3 M 17.7,17.7 L 19.4,19.4 M 4.6,19.4 L 6.3,17.7 M 17.7,6.3 L 19.4,4.6");
-    private static readonly Geometry MoonGlyph = Geometry.Parse("M 15,3 A 9,9 0 1 0 21,15 A 7,7 0 0 1 15,3 Z");
-    private static readonly Geometry CloudGlyph = Geometry.Parse("M 7,18 L 17.5,18 A 4,4 0 0 0 17,10 A 5.5,5.5 0 0 0 6.5,11.5 A 3.3,3.3 0 0 0 7,18 Z");
-    private static readonly Geometry PartlyGlyph = Geometry.Parse("M 8,5 L 8,3 M 3.5,9 L 1.5,9 M 4.5,5.5 L 3,4 M 11.5,5.5 L 13,4 M 5.2,11.5 A 3.6,3.6 0 1 1 11.6,7.4 M 9,20 L 18.5,20 A 3.6,3.6 0 0 0 18,12.8 A 5,5 0 0 0 8.5,14 A 3,3 0 0 0 9,20 Z");
-    private static readonly Geometry RainGlyph = Geometry.Parse("M 7,15 L 17.5,15 A 4,4 0 0 0 17,7 A 5.5,5.5 0 0 0 6.5,8.5 A 3.3,3.3 0 0 0 7,15 Z M 8,18 L 7,21 M 12,18 L 11,21 M 16,18 L 15,21");
-    private static readonly Geometry SnowGlyph = Geometry.Parse("M 7,15 L 17.5,15 A 4,4 0 0 0 17,7 A 5.5,5.5 0 0 0 6.5,8.5 A 3.3,3.3 0 0 0 7,15 Z M 8,19 L 8,19.1 M 12,20 L 12,20.1 M 16,19 L 16,19.1");
-    private static readonly Geometry StormGlyph = Geometry.Parse("M 7,14 L 17.5,14 A 4,4 0 0 0 17,6 A 5.5,5.5 0 0 0 6.5,7.5 A 3.3,3.3 0 0 0 7,14 Z M 12.5,15 L 10,19 L 13,19 L 11,23");
-    private static readonly Geometry FogGlyph = Geometry.Parse("M 4,9 L 20,9 M 2,13 L 18,13 M 6,17 L 22,17");
+    private static readonly Geometry SunGlyph = Icons.Sun;
+    private static readonly Geometry MoonGlyph = Icons.Moon;
+    private static readonly Geometry CloudGlyph = Icons.Cloud;
+    private static readonly Geometry PartlyGlyph = Icons.CloudSun;
+    private static readonly Geometry RainGlyph = Icons.CloudRain;
+    private static readonly Geometry SnowGlyph = Icons.CloudSnow;
+    private static readonly Geometry StormGlyph = Icons.CloudLightning;
+    private static readonly Geometry FogGlyph = Icons.CloudFog;
 
     private readonly DispatcherTimer _weatherRefresh = new() { Interval = TimeSpan.FromMinutes(30) };
     private readonly DispatcherTimer _clockTick = new() { Interval = TimeSpan.FromSeconds(20) };
@@ -142,10 +142,11 @@ public partial class NotchWindow
             WeatherIcon.Data = kind switch
             {
                 WeatherKind.Clear => weather.IsDay ? SunGlyph : MoonGlyph,
-                WeatherKind.PartlyCloudy => weather.IsDay ? PartlyGlyph : CloudGlyph,
+                WeatherKind.PartlyCloudy => weather.IsDay ? PartlyGlyph : Icons.CloudMoon,
                 WeatherKind.Cloudy => CloudGlyph,
                 WeatherKind.Fog => FogGlyph,
-                WeatherKind.Drizzle or WeatherKind.Rain => RainGlyph,
+                WeatherKind.Drizzle => Icons.CloudDrizzle,
+                WeatherKind.Rain => RainGlyph,
                 WeatherKind.Snow => SnowGlyph,
                 _ => StormGlyph
             };

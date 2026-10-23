@@ -72,6 +72,7 @@ Type: files; Name: "{userdesktop}\CodexBar.lnk"
 [Files]
 Source: "..\artifacts\win-x64\TheAI.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\artifacts\win-x64\Fonts\OFL.txt"; DestDir: "{app}\Fonts"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\artifacts\win-x64\Licenses\Lucide-LICENSE.txt"; DestDir: "{app}\Licenses"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

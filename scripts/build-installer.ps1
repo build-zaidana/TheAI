@@ -13,7 +13,7 @@
 #     $env:THEAI_PFX = "C:\path\certificate.pfx"; $env:THEAI_PFX_PASSWORD = "..."
 #     (CODEXBAR_PFX / CODEXBAR_PFX_PASSWORD are still accepted)
 #
-#   .\scriptsuild-installer.ps1
+#   .\scripts\build-installer.ps1
 
 param(
     [ValidateSet("win-x64")]
@@ -86,6 +86,11 @@ New-Item -ItemType Directory -Force (Join-Path $portableDir "Fonts") | Out-Null
 Copy-Item $exe $portableDir
 $ofl = Join-Path $repoRoot "artifacts\$Runtime\Fonts\OFL.txt"
 if (Test-Path $ofl) { Copy-Item $ofl (Join-Path $portableDir "Fonts") }
+$lucide = Join-Path $repoRoot "artifacts\$Runtime\Licenses\Lucide-LICENSE.txt"
+if (Test-Path $lucide) {
+    New-Item -ItemType Directory -Force (Join-Path $portableDir "Licenses") | Out-Null
+    Copy-Item $lucide (Join-Path $portableDir "Licenses")
+}
 @"
 TheAI $portableVersion - portable
 

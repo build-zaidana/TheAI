@@ -20,15 +20,37 @@ public partial class NotchWindow
 {
     private const double TodayWidth = 420;
 
-    private static readonly Geometry CalendarGlyph = Geometry.Parse("M 4,6 L 20,6 L 20,20 L 4,20 Z M 4,10 L 20,10 M 8,3.5 L 8,7.5 M 16,3.5 L 16,7.5");
-    private static readonly Geometry DropGlyph = Geometry.Parse("M 12,2.5 C 12,2.5 5,10.5 5,15 A 7,7 0 0 0 19,15 C 19,10.5 12,2.5 12,2.5 Z");
-    private static readonly Geometry BellGlyph = Geometry.Parse("M 6,16 L 6,10.5 A 6,6 0 0 1 18,10.5 L 18,16 L 20,18 L 4,18 Z M 10,20.5 A 2,2 0 0 0 14,20.5");
+    private static readonly Geometry CalendarGlyph = Icons.Calendar;
+    private static readonly Geometry DropGlyph = Icons.Droplet;
+    private static readonly Geometry BellGlyph = Icons.Bell;
 
-    // Colour means something, and only on icons: every "your day" feature shares one calm blue;
-    // orange is "needs you" (the microphone in use, a reminder that is due); the notch stays black
-    // and white otherwise. The same key is drawn on the design canvas ("Arti warna").
+    // Each feature's icon sits on a small app-style tile whose colour is the one people already
+    // link to it: weather-app blue, green for prayer, calendar red, water teal, sticky-note yellow for
+    // reminders, and the orange Windows uses for a microphone in use. Text stays white on black.
     internal static readonly Brush DayAccent = Frozen(System.Windows.Media.Color.FromRgb(0x64, 0xD2, 0xFF));
     internal static readonly Brush AttentionAccent = Frozen(System.Windows.Media.Color.FromRgb(0xFF, 0x9F, 0x0A));
+    private static readonly Brush WeatherTile = Tile(0x6A, 0xC1, 0xFF, 0x2F, 0x6F, 0xE0);
+    private static readonly Brush PrayerTile = Tile(0x4A, 0xDE, 0x80, 0x15, 0x9A, 0x55);
+    private static readonly Brush CalendarTile = Tile(0xFF, 0x7A, 0x6E, 0xE0, 0x32, 0x2B);
+    private static readonly Brush WaterTile = Tile(0x4F, 0xE3, 0xE8, 0x0B, 0x9C, 0xB0);
+    private static readonly Brush ReminderTile = Tile(0xFF, 0xD4, 0x4D, 0xE8, 0xA3, 0x00);
+    private static readonly Brush MicTile = Tile(0xFF, 0xA9, 0x40, 0xF0, 0x6A, 0x00);
+
+    private static Brush Tile(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
+    {
+        var brush = new LinearGradientBrush(System.Windows.Media.Color.FromRgb(r1, g1, b1), System.Windows.Media.Color.FromRgb(r2, g2, b2),
+            new System.Windows.Point(0, 0), new System.Windows.Point(0.6, 1));
+        brush.Freeze();
+        return brush;
+    }
+
+    private static Brush TileFor(Geometry glyph) =>
+        glyph == DropGlyph ? WaterTile
+        : glyph == CalendarGlyph ? CalendarTile
+        : glyph == BellGlyph ? ReminderTile
+        : glyph == CrescentGlyph ? PrayerTile
+        : glyph == MicGlyph || glyph == MicOffGlyph ? MicTile
+        : WeatherTile;
     private static readonly Brush RowHover = Frozen(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
 
     /// <summary>Views the combined mode folds into Today.</summary>
@@ -81,7 +103,7 @@ public partial class NotchWindow
             mute.Click += (_, _) => ToggleMicMute();
             AddTodayRow(muted ? MicOffGlyph : MicGlyph,
                 (muted ? Tr.Text("Mikrofon dibisukan · ", "Microphone muted · ") : Tr.Text("Mikrofon dipakai · ", "Microphone in use · ")) +
-                string.Join(", ", _privacyShown.Microphone), mute, ToggleMicMute, AttentionAccent);
+                string.Join(", ", _privacyShown.Microphone), mute, ToggleMicMute);
         }
 
         if (PrayerAvailable && NextPrayer(now) is { } prayer)
@@ -129,30 +151,39 @@ public partial class NotchWindow
             foreach (var item in open)
             {
                 AddTodayRow(BellGlyph, item.Text, ReminderList.When(item, now, Tr.Text), () => OpenReminders(),
-                    item.DueAt <= now ? AttentionAccent : null);
+                    item.DueAt <= now ? AttentionAccent : null);   // a due one says so in orange
             }
         }
     }
 
-    private void AddTodayRow(Geometry glyph, string text, object right, Action open, Brush? accent = null)
+    private void AddTodayRow(Geometry glyph, string text, object right, Action open, Brush? sideAccent = null)
     {
         var grid = new Grid { MinHeight = 34, Background = Brushes.Transparent, Cursor = Cursors.Hand };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.Children.Add(new Path
+        grid.Children.Add(new Border
         {
-            Data = glyph,
-            Width = 16,
-            Height = 16,
-            Stretch = Stretch.Uniform,
-            Stroke = accent ?? DayAccent,
-            StrokeThickness = 1.6,
-            StrokeLineJoin = PenLineJoin.Round,
-            StrokeStartLineCap = PenLineCap.Round,
-            StrokeEndLineCap = PenLineCap.Round,
+            Width = 22,
+            Height = 22,
+            CornerRadius = new CornerRadius(6.5),
+            Background = TileFor(glyph),
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Left
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            Child = new Path
+            {
+                Data = glyph,
+                Width = 13,
+                Height = 13,
+                Stretch = Stretch.Uniform,
+                Stroke = Brushes.White,
+                StrokeThickness = 1.7,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
         });
         var label = new TextBlock
         {
@@ -169,7 +200,7 @@ public partial class NotchWindow
             Text = right as string ?? string.Empty,
             Style = (Style)FindResource("NotchDigits"),
             FontSize = 12,
-            Foreground = TimerQuietBrush,
+            Foreground = sideAccent ?? TimerQuietBrush,
             VerticalAlignment = VerticalAlignment.Center
         };
         side.Margin = new Thickness(10, 0, 0, 0);

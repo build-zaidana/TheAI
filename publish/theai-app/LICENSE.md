@@ -17,7 +17,7 @@ TheAI is free software in the sense of free of charge ("freeware"); its source c
 
 ## Third-party components
 
-TheAI includes the Sora typeface (SIL Open Font License 1.1, included as `Fonts\OFL.txt` next to the program) and the .NET runtime (MIT License). The AI services you connect to (Anthropic, OpenAI, OpenRouter, Google) and the tools TheAI works with (Claude Code, Codex CLI, Gemini CLI, GitHub CLI) are governed by their own terms.
+TheAI includes the Sora typeface (SIL Open Font License 1.1, included as `Fonts\OFL.txt` next to the program), icons from Lucide (ISC License, included as `Licenses\Lucide-LICENSE.txt`) and the .NET runtime (MIT License). The AI services you connect to (Anthropic, OpenAI, OpenRouter, Google) and the tools TheAI works with (Claude Code, Codex CLI, Gemini CLI, GitHub CLI) are governed by their own terms.
 
 ## No warranty
 
