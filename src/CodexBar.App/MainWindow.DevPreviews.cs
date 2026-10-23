@@ -169,6 +169,12 @@ public partial class MainWindow
             _notch.PreviewToday();
         }
 
+        // CODEXBAR_PREVIEW_IDLE=1: the closed notch at rest (time and a sample temperature).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_IDLE") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewIdleFace();
+        }
+
         // CODEXBAR_PREVIEW_EYES=awake|asleep: the idle companion in the compact notch.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_EYES") is { Length: > 0 } eyesPreview && _notch is not null)
         {

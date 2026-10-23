@@ -176,6 +176,7 @@ public partial class NotchWindow
         ApplyTimerCompact();
         UpdateEqTimer();
         ApplyCompanion();
+        ApplyIdleFace();
         RenderPageDots();
     }
 

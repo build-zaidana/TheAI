@@ -480,8 +480,8 @@ public partial class NotchWindow : Window
 
     // Notch: hangs from the screen edge, only the bottom corners round. Dynamic Island: a pill
     // floating just below the edge, every corner round (half the height when compact).
-    private double CompactRadius => _island ? 15 : 14;
-    private double ExpandedRadius => _island ? 30 : 26;
+    private double CompactRadius => _island ? 16 : 15;
+    private double ExpandedRadius => _island ? 32 : 28;
 
     // Notch: only the corners facing away from its edge are round. Island: all four.
     private void ApplyRadius(double radius)
@@ -570,7 +570,7 @@ public partial class NotchWindow : Window
 
     private const double SnapDistance = 28;
     private const double DragThreshold = 4;
-    private const double CompactThickness = 30;
+    private const double CompactThickness = 32;
     private bool _pressed;
     private bool _dragging;
     private System.Windows.Point _pressCursor;
@@ -604,7 +604,7 @@ public partial class NotchWindow : Window
             return _state == NotchState.Idle && !CompactLive ? (132, 96) : (172, 112);
         }
 
-        var length = _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth;
+        var length = _state == NotchState.Idle && !CompactLive ? (IdleFaceShowingFor(_view) ? IdleFaceWidth : IdleWidth) : CompactWidth;
         return Vertical ? (CompactThickness, length) : (length, CompactThickness);
     }
 

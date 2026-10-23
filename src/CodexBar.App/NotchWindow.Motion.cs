@@ -54,11 +54,11 @@ public partial class NotchWindow
 
     private readonly DropShadowEffect _shadow = new()
     {
-        BlurRadius = 40,
-        ShadowDepth = 10,
+        BlurRadius = 48,
+        ShadowDepth = 6,
         Direction = 270,
         Opacity = 0,
-        Color = Colors.Black
+        Color = System.Windows.Media.Color.FromRgb(0x4B, 0x3C, 0xC8)   // a violet glow, like the site
     };
 
     private FrameworkElement PanelFor(NotchView view) => view switch
@@ -106,7 +106,7 @@ public partial class NotchWindow
         NotchView.Water => WaterWidth,
         NotchView.Today => TodayWidth,
         NotchView.Selection => SelectionWidth,
-        _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
+        _ => _state == NotchState.Idle && !CompactLive ? IdleFaceWidth : CompactWidth
     };
 
     private static double MeasureHeight(FrameworkElement panel, double width)

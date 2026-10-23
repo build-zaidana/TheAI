@@ -79,6 +79,7 @@ public partial class NotchWindow
         var now = DateTimeOffset.Now;
         var culture = CultureInfo.CurrentCulture;
         TodayRows.Children.Clear();
+        TodayDate.Text = now.ToString("dddd, d MMM", culture);
 
         if (WeatherAvailable)
         {
@@ -158,7 +159,7 @@ public partial class NotchWindow
 
     private void AddTodayRow(Geometry glyph, string text, object right, Action open, Brush? sideAccent = null)
     {
-        var grid = new Grid { MinHeight = 34, Background = Brushes.Transparent, Cursor = Cursors.Hand };
+        var grid = new Grid { MinHeight = 38, Background = Brushes.Transparent, Cursor = Cursors.Hand };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -188,7 +189,7 @@ public partial class NotchWindow
         var label = new TextBlock
         {
             Text = text,
-            FontSize = 13,
+            FontSize = 13.5,
             Foreground = TimerFocusBrush,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center

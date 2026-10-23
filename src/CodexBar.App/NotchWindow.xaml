@@ -505,7 +505,7 @@
             <local:NotchShape x:Name="CornerShape" Visibility="Collapsed" />
             <local:UnclampedGrid>
                 <!-- Compact: icon only, like a hardware notch with a live activity. -->
-                <Grid x:Name="CompactPanel" Height="30" Margin="11,0" Cursor="Hand" VerticalAlignment="Top"
+                <Grid x:Name="CompactPanel" Height="32" Margin="11,0" Cursor="Hand" VerticalAlignment="Top"
                       Background="Transparent"
                       AutomationProperties.Name="Buka TheAI">
                     <Border x:Name="CompactGlyph" Width="13" Height="13" CornerRadius="3.5" Background="White"
@@ -576,6 +576,12 @@
                     <!-- How many agents run at once (shown from two). -->
                     <TextBlock x:Name="CompactCount" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,21,0"
                                FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText2}" Visibility="Collapsed" />
+                    <!-- At rest: the time, and one glance on the right (temperature or the next prayer). -->
+                    <TextBlock x:Name="CompactClock" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0,0,0" Visibility="Collapsed"
+                               Typography.NumeralAlignment="Tabular" IsHitTestVisible="False" />
+                    <TextBlock x:Name="CompactGlance" FontSize="12.5" Foreground="#A1A1A6" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Margin="0,0,2,0" Visibility="Collapsed" IsHitTestVisible="False" />
                     <Ellipse x:Name="PrivacyDot" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,-8,0"
                              Visibility="Collapsed" AutomationProperties.Name="Mikrofon atau kamera dipakai" />
                     <Grid x:Name="CompactIndicator" HorizontalAlignment="Right" VerticalAlignment="Center" Width="14" Height="14">
@@ -1108,6 +1114,10 @@
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
+                    <Grid Margin="0,2,0,8">
+                        <TextBlock FontFamily="{StaticResource SoraFont}" FontSize="16" Foreground="#F5F5F7" Text="{local:Tr Hari ini, En=Today}" />
+                        <TextBlock x:Name="TodayDate" FontSize="12" Foreground="#8E8E93" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
                     <StackPanel x:Name="TodayRows" />
                 </StackPanel>
 
