@@ -166,8 +166,19 @@ public partial class NotchWindow
         ShowHud(HudShort);
     }
 
-    private void ShowCapsHud(bool on) =>
-        ShowTextHud(CapsGlyph, on ? Tr.Text("Caps Lock nyala", "Caps Lock on") : Tr.Text("Caps Lock mati", "Caps Lock off"), red: false);
+    // Caps Lock is an on/off state, not a value: just its icon in a small capsule, bright when on and
+    // dim when off (the words stay for screen readers).
+    private const double HudIconOnlyWidth = 62;   // the icon (26) centred with 12 on each side, plus the edge margins
+    private bool _hudIconOnly;
+    private bool _hudShownIconOnly;
+
+    private void ShowCapsHud(bool on)
+    {
+        _hudIconOnly = true;
+        ShowTextHud(CapsGlyph, string.Empty, red: false, on ? TimerFocusBrush : Frozen(Color.FromRgb(0x63, 0x63, 0x66)));
+        HudName.Visibility = Visibility.Collapsed;
+        System.Windows.Automation.AutomationProperties.SetName(HudPanel, on ? Tr.Text("Caps Lock nyala", "Caps Lock on") : Tr.Text("Caps Lock mati", "Caps Lock off"));
+    }
 
     private void ShowLanguageHud(System.Globalization.CultureInfo culture)
     {
@@ -313,6 +324,9 @@ public partial class NotchWindow
         // Only the volume and brightness faces use the capsule; every other face hides it.
         HudCapsule.Visibility = _capsuleWanted ? Visibility.Visible : Visibility.Collapsed;
         _capsuleWanted = false;
+        HudPanel.Width = (_hudIconOnly ? HudIconOnlyWidth : HudWidth) - 12;
+        _hudShownIconOnly = _hudIconOnly;
+        _hudIconOnly = false;
         if (!_host.SystemHud || _suspendedForChat || _view is not (NotchView.Compact or NotchView.Hud) || _dragging)
         {
             return;

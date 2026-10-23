@@ -112,7 +112,7 @@ public partial class NotchWindow
         NotchView.Music => MusicPageWidth,
         NotchView.Timer => TimerWidth,
         NotchView.TimerDone => TimerDoneWidth,
-        NotchView.Hud => HudWidth,
+        NotchView.Hud => _hudShownIconOnly ? HudIconOnlyWidth : HudWidth,
         NotchView.Shelf => ShelfWidth,
         NotchView.Calendar => CalendarWidth,
         NotchView.Jobs or NotchView.Held => JobsWidth,
