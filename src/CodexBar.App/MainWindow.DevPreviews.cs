@@ -163,6 +163,11 @@ public partial class MainWindow
             _notch.PreviewPrivacy(privacyPreview);
         }
 
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_MOTION") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.RunMotionProbe();
+        }
+
         // CODEXBAR_PREVIEW_TODAY=1: the combined Today page with sample weather, water and reminders (never saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TODAY") is { Length: > 0 } && _notch is not null)
         {

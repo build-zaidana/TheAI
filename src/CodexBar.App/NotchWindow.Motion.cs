@@ -52,6 +52,24 @@ public partial class NotchWindow
     private TimeSpan _motionLastFrame;
     private NotchView _shownView = NotchView.Compact;
 
+    // CODEXBAR_TEST_MOTION=1: open and close the notch a few times and log each animation's frame pacing.
+    private readonly bool _motionProbe = Environment.GetEnvironmentVariable("CODEXBAR_TEST_MOTION") is { Length: > 0 };
+    private int _probeFrames;
+    private int _probeSlow;
+    private double _probeWorst;
+
+    internal async void RunMotionProbe()
+    {
+        await Task.Delay(3000);
+        for (var i = 0; i < 6; i++)
+        {
+            OpenToday();
+            await Task.Delay(1400);
+            Collapse();
+            await Task.Delay(1200);
+        }
+    }
+
     private readonly DropShadowEffect _shadow = new()
     {
         BlurRadius = 48,
@@ -164,8 +182,7 @@ public partial class NotchWindow
             ApplyShape();
             Left = left;
             Top = top;
-            Shell.Effect = expanded ? _shadow : null;
-            _shadow.Opacity = expanded ? 0.45 : 0;
+            Shell.Effect = null;
             _shownView = _view;
             UpdateWindowStyle();
             ApplyKeyline();
@@ -175,7 +192,7 @@ public partial class NotchWindow
         // Opening: a lively spring that overshoots a hair. Closing: quicker and calmer.
         var opening = expanded && _shownView == NotchView.Compact ||
                       width > _shapeWidth.Value + 0.5 || height > _shapeHeight.Value + 0.5;
-        var (response, damping) = opening ? (_island ? (0.44, 0.62) : (0.40, 0.78)) : (0.30, 0.94);
+        var (response, damping) = opening ? (_island ? (0.42, 0.72) : (0.40, 0.82)) : (0.30, 0.95);
         Retarget(_shapeWidth, width, response, damping);
         Retarget(_shapeHeight, height, response, damping);
         Retarget(_shapeRadius, radius, response, damping);
@@ -184,13 +201,13 @@ public partial class NotchWindow
         Retarget(_windowLeft, left, response, 1);
         Retarget(_windowTop, top, response, 1);
         _moveWindow = true;
-        Shell.Effect = null;   // re-rasterising the blur each frame costs more than everything else
+        Shell.Effect = null;   // no effects on the shape: in a transparent window they flicker and cost frames
         StartMotion();
 
         if (outgoing != incoming)
         {
             FadeOut(outgoing);
-            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 60 : 30), blur: expanded);
+            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 90 : 40), blur: false);
         }
 
         _shownView = _view;
@@ -275,8 +292,15 @@ public partial class NotchWindow
             return;
         }
 
-        var dt = Math.Min((now - _motionLastFrame).TotalSeconds, 1.0 / 20);
+        var gap = (now - _motionLastFrame).TotalMilliseconds;
+        var dt = Math.Min(gap / 1000, 1.0 / 20);
         _motionLastFrame = now;
+        if (_motionProbe)
+        {
+            _probeFrames++;
+            _probeSlow += gap > 25 ? 1 : 0;
+            _probeWorst = Math.Max(_probeWorst, gap);
+        }
 
         // Small fixed substeps keep the integration stable whatever the frame time is.
         var springs = new[] { _shapeWidth, _shapeHeight, _shapeRadius, _armH, _armV, _windowLeft, _windowTop };
@@ -294,7 +318,7 @@ public partial class NotchWindow
             _moveWindow = false;
         }
 
-        var settled = springs.All(s => s.Settled(0.25));
+        var settled = springs.All(s => s.Settled(0.5));
         if (settled)
         {
             foreach (var spring in springs)
@@ -312,12 +336,14 @@ public partial class NotchWindow
 
         if (settled)
         {
-            StopMotion();
-            if (_view != NotchView.Compact)
+            if (_motionProbe && _probeFrames > 0)
             {
-                Shell.Effect = _shadow;
-                _shadow.BeginAnimation(DropShadowEffect.OpacityProperty, new DoubleAnimation(0, 0.45, TimeSpan.FromMilliseconds(180)));
+                CodexBar.Core.DiagnosticsLog.Info("Motion", $"{_view}: {_probeFrames} frames, {_probeSlow} over 25 ms, worst {_probeWorst:0} ms");
+                (_probeFrames, _probeSlow, _probeWorst) = (0, 0, 0);
             }
+
+            StopMotion();
+
         }
     }
 
