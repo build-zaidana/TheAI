@@ -5,246 +5,312 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TheAI for Windows</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="TheAI turns the top of your Windows screen into a notch for your AI agents, builds, music and day. Free for Windows 10 and 11.">
-<meta property="og:title" content="TheAI — a notch for Windows">
-<meta property="og:description" content="Your AI agents, builds, music and day in one notch at the top of the screen.">
+<meta name="description" content="TheAI turns the top of your Windows screen into a living notch for your AI agents, your day, music and more. Free for Windows 10 and 11.">
+<meta property="og:title" content="TheAI: a living notch for Windows">
+<meta property="og:description" content="Your AI agents and your day, at the top of the screen.">
 <meta property="og:image" content="assets/notch-today.png">
 <meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="assets/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Black like the notch itself. One column: a "screen" with the notch at its top edge, six
-   features as cards, three numbers, privacy, four questions, download. */
+/* Night sky over a black notch: navy-black ground, one violet-to-blue glow where the notch lives,
+   app-style gradient tiles that use the same colours as the app. */
 :root {
-  --bg: #000;
-  --ink: #f5f5f7;
-  --ink-2: rgba(245, 245, 247, .62);
-  --ink-3: rgba(245, 245, 247, .38);
-  --rule: rgba(255, 255, 255, .09);
-  --card: #0c0c0e;
-  --screen-a: #23262e;
-  --screen-b: #101115;
-  --radius: 22px;
-  --wrap: 1080px;
+  --bg: #06070c;
+  --bg-2: #0c0e16;
+  --ink: #f4f5fa;
+  --ink-2: #a3a8bd;
+  --ink-3: #6c7189;
+  --rule: rgba(160, 170, 220, .12);
+  --glow-a: #7c5cff;
+  --glow-b: #3b82f6;
+  --display: "Bricolage Grotesque", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font: 400 16px/1.55 "Hanken Grotesk", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 [data-lang="en"] [lang="id"], [data-lang="id"] [lang="en"] { display: none !important; }
 a { color: inherit; }
 img { max-width: 100%; height: auto; display: block; }
-.wrap { max-width: var(--wrap); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
-h1, h2, h3 { font-family: Sora, system-ui, sans-serif; font-weight: 600; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 8px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
 
 /* Top bar */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
-.brand { display: flex; align-items: center; gap: 10px; font: 600 17px Sora, sans-serif; text-decoration: none; }
-.brand img { width: 26px; height: 26px; border-radius: 7px; }
-.top-actions { display: flex; align-items: center; gap: 10px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 16px; position: relative; z-index: 2; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); text-decoration: none; }
+.brand img { width: 28px; height: 28px; border-radius: 8px; }
+.nav { display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--ink-2); }
+.nav a { text-decoration: none; }
+.nav a:hover { color: var(--ink); }
 .lang { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
-.lang button {
-  font: 600 12px "Hanken Grotesk", sans-serif; color: var(--ink-2); background: none; border: 0;
-  padding: 5px 10px; border-radius: 999px; cursor: pointer;
-}
+.lang button { font: 600 12px var(--body); color: var(--ink-2); background: none; border: 0; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--ink); color: #000; }
 
-.btn {
-  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
-  font: 600 15px "Hanken Grotesk", sans-serif; padding: 12px 20px; border-radius: 999px;
-  border: 1px solid var(--rule); transition: transform .15s ease, background .15s ease;
-}
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; font: 600 16px var(--body); padding: 15px 28px; border-radius: 999px; transition: transform .15s ease, box-shadow .2s ease; }
+.btn svg { width: 18px; height: 18px; }
 .btn:hover { transform: translateY(-1px); }
-.btn.primary { background: var(--ink); color: #000; border-color: var(--ink); }
-.btn.small { padding: 8px 14px; font-size: 13px; }
-.btn.ghost:hover { background: rgba(255, 255, 255, .06); }
+.btn.primary { background: var(--ink); color: #05060a; box-shadow: 0 10px 40px rgba(124, 92, 255, .25); }
+.btn.ghost { color: var(--ink); border: 1px solid rgba(124, 92, 255, .55); box-shadow: inset 0 0 24px rgba(124, 92, 255, .18); }
 
-/* Hero: a screen with the notch at its top edge */
-.hero { text-align: center; padding: 40px 0 20px; }
-.screen {
-  position: relative; margin: 0 auto 44px; max-width: 760px; height: 260px;
-  border-radius: var(--radius); overflow: hidden;
-  background: radial-gradient(120% 140% at 20% 0%, var(--screen-a) 0%, var(--screen-b) 60%, #050506 100%);
-  border: 1px solid var(--rule);
+/* Hero */
+.hero { position: relative; text-align: center; padding-block: 36px 40px; }
+.hero::before {
+  content: ""; position: absolute; left: 50%; top: -160px; width: min(980px, 140vw); height: 620px; translate: -50% 0;
+  background: radial-gradient(closest-side, rgba(124, 92, 255, .32), rgba(59, 130, 246, .14) 55%, transparent 100%);
+  pointer-events: none; z-index: 0;
 }
+.hero > * { position: relative; z-index: 1; }
+.stage { height: 132px; position: relative; margin-bottom: 26px; }
 .notch {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  height: 38px; background: #000; border-radius: 0 0 18px 18px;
-  border: 1px solid rgba(255, 255, 255, .14); border-top: 0;
-  transition: width .45s cubic-bezier(.3, 1.4, .5, 1);
-  overflow: hidden;
+  position: absolute; top: 0; left: 50%; translate: -50% 0; height: 40px; background: #000; border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), 0 0 60px rgba(124, 92, 255, .45), 0 20px 50px rgba(0, 0, 0, .6);
+  transition: width .55s cubic-bezier(.34, 1.45, .5, 1); overflow: hidden;
 }
-.face {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; gap: 12px; opacity: 0; transition: opacity .25s ease; white-space: nowrap;
-  font: 500 13px "Hanken Grotesk", sans-serif;
-}
-.face.on { opacity: 1; transition-delay: .15s; }
-.face .num { font: 600 14px Sora, sans-serif; }
-.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
-.ring { width: 15px; height: 15px; border-radius: 50%; border: 2.2px solid rgba(255,255,255,.25); border-top-color: var(--ink); display: inline-block; }
-.lead { display: flex; align-items: center; gap: 9px; }
-.hero h1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; }
-.hero p { color: var(--ink-2); font-size: clamp(16px, 2.2vw, 19px); max-width: 620px; margin: 16px auto 28px; }
-.cta { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
-.fine { display: block; margin-top: 14px; color: var(--ink-3); font-size: 13px; }
+.face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 9px 0 9px; opacity: 0; transition: opacity .25s; white-space: nowrap; font: 500 14px var(--body); }
+.face.on { opacity: 1; transition-delay: .18s; }
+.face .lead { display: flex; align-items: center; gap: 10px; }
+.face .num { font: 600 14px var(--display); padding-right: 8px; font-variant-numeric: tabular-nums; }
+.face .tile { width: 24px; height: 24px; border-radius: 7px; }
+.face .tile svg { width: 14px; height: 14px; }
+.eyes { display: flex; gap: 10px; margin: 0 auto; }
+.eyes i { width: 9px; height: 13px; border-radius: 5px; background: var(--ink); animation: blink 4.5s infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.pill { display: inline-block; font-size: 13px; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px; margin-bottom: 22px; background: rgba(12, 14, 22, .6); }
+.hero h1 { font-weight: 800; font-size: clamp(42px, 7.6vw, 92px); line-height: .98; letter-spacing: -.035em; }
+.hero p { color: var(--ink-2); font-size: clamp(16px, 2.2vw, 19px); max-width: 600px; margin: 22px auto 30px; }
+.cta { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.cta .btn { min-width: 260px; }
+.fine { margin-top: 16px; color: var(--ink-3); font-size: 13.5px; }
 
-/* Features */
-section { padding: 64px 0 0; }
-.kicker { color: var(--ink-3); font: 600 12px "Hanken Grotesk", sans-serif; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
-.section-title { font-size: clamp(26px, 4vw, 36px); margin-bottom: 28px; }
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.card {
-  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
-  padding: 22px 22px 0; display: flex; flex-direction: column; overflow: hidden;
-}
-.card h3 { font-size: 18px; display: flex; align-items: center; gap: 9px; }
-.card p { color: var(--ink-2); font-size: 14.5px; margin: 8px 0 18px; }
-.card code { font: 500 12.5px ui-monospace, Consolas, monospace; color: var(--ink); background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px; }
-.shot {
-  margin-top: auto; border-radius: 14px 14px 0 0; padding: 0 12px;
-  background: radial-gradient(120% 140% at 20% 0%, var(--screen-a) 0%, var(--screen-b) 70%);
-  display: flex; justify-content: center; min-height: 150px;
-}
-.shot img { width: 100%; max-width: 380px; object-fit: contain; object-position: top; }
-.more { color: var(--ink-2); font-size: 15px; margin-top: 22px; }
+/* Tiles: the same colours as the app */
+.tile { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; border-radius: 14px; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px rgba(0,0,0,.35); }
+.tile svg { width: 24px; height: 24px; }
+.violet { background: linear-gradient(160deg, #a78bfa, #6d28d9); }
+.sky { background: linear-gradient(160deg, #6ac1ff, #2f6fe0); }
+.green { background: linear-gradient(160deg, #4ade80, #159a55); }
+.teal { background: linear-gradient(160deg, #4fe3e8, #0b9cb0); }
+.yellow { background: linear-gradient(160deg, #ffd44d, #e8a300); }
+.red { background: linear-gradient(160deg, #ff7a6e, #e0322b); }
+.pink { background: linear-gradient(160deg, #ff7ac6, #c026d3); }
+.orange { background: linear-gradient(160deg, #ffa940, #f06a00); }
+.graphite { background: linear-gradient(160deg, #e5e7ef, #8a90a6); color: #111; }
+.indigo { background: linear-gradient(160deg, #8b8bff, #4f46e5); }
 
-/* Numbers */
-.numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.number { border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px; }
-.number b { display: block; font: 600 34px Sora, sans-serif; letter-spacing: -.02em; }
-.number span { color: var(--ink-2); font-size: 14.5px; }
+/* Sections */
+section { padding-block: 72px 0; }
+.kicker { font: 600 13px var(--body); letter-spacing: .12em; text-transform: uppercase; color: #9b8cff; margin-bottom: 12px; }
+h2 { font-weight: 800; font-size: clamp(32px, 5vw, 56px); line-height: 1.02; letter-spacing: -.03em; max-width: 14ch; }
+.lede { color: var(--ink-2); font-size: 17px; max-width: 58ch; margin: 16px 0 0; }
 
-/* Privacy + FAQ */
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.panel { border: 1px solid var(--rule); border-radius: var(--radius); padding: 24px; background: var(--card); }
-.panel h3 { font-size: 18px; margin-bottom: 12px; }
-.panel ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; }
-.panel li { margin: 6px 0; }
-details { border-top: 1px solid var(--rule); padding: 12px 0; }
+/* Showcase: real screenshots of the notch */
+.showcase { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 36px; align-items: start; }
+.shot { border: 1px solid var(--rule); border-radius: 22px; padding: 0 16px 18px; background: radial-gradient(120% 120% at 50% 0%, rgba(124, 92, 255, .22), rgba(12, 14, 22, .9) 60%); display: grid; gap: 14px; min-width: 0; }
+.shot img { margin: 0 auto; width: 100%; max-width: 420px; }
+.shot figcaption { color: var(--ink-2); font-size: 14px; text-align: center; }
+
+/* Feature list */
+.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; margin-top: 36px; }
+.feature { display: flex; gap: 18px; padding-block: 22px; border-top: 1px solid var(--rule); min-width: 0; }
+.feature h3 { font-weight: 600; font-size: 19px; letter-spacing: -.01em; margin-bottom: 6px; }
+.feature p { margin: 0; color: var(--ink-2); font-size: 15px; }
+
+/* Light */
+.light { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center; margin-top: 36px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.stat b { display: block; font: 800 clamp(32px, 4.4vw, 48px)/1 var(--display); letter-spacing: -.03em; background: linear-gradient(120deg, #a78bfa, #60a5fa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stat span { display: block; margin-top: 8px; color: var(--ink-2); font-size: 14px; }
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.points li { display: flex; gap: 12px; color: var(--ink-2); font-size: 15px; }
+.points li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 8px; background: linear-gradient(120deg, #a78bfa, #60a5fa); }
+.points strong { color: var(--ink); font-weight: 600; }
+
+/* Privacy + questions */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 36px; }
+.panel { border: 1px solid var(--rule); border-radius: 22px; padding: 26px; background: var(--bg-2); }
+.panel h3 { font-weight: 600; font-size: 20px; margin-bottom: 12px; }
+.panel ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 15px; }
+.panel li { margin: 7px 0; }
+details { border-top: 1px solid var(--rule); padding-block: 13px; }
 details:first-of-type { border-top: 0; padding-top: 0; }
-summary { cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; }
+summary { cursor: pointer; font-weight: 600; list-style: none; }
 summary::-webkit-details-marker { display: none; }
 summary::after { content: "+"; float: right; color: var(--ink-3); }
-details[open] summary::after { content: "–"; }
-details p { color: var(--ink-2); font-size: 14.5px; margin: 8px 0 0; }
+details[open] summary::after { content: "\2013"; }
+details p { color: var(--ink-2); font-size: 15px; margin: 8px 0 0; }
 
 /* Download */
-.download { text-align: center; padding: 72px 0 40px; }
-.download h2 { font-size: clamp(28px, 4.5vw, 42px); margin-bottom: 12px; }
-.download p { color: var(--ink-2); margin: 0 0 24px; }
-footer { border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 13px; padding: 22px 0 36px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.download { text-align: center; position: relative; padding-block: 96px 56px; }
+.download::before { content: ""; position: absolute; inset: 0; background: radial-gradient(closest-side, rgba(124, 92, 255, .22), transparent); pointer-events: none; }
+.download > * { position: relative; }
+.download h2 { margin: 0 auto 14px; max-width: none; }
+.download p { color: var(--ink-2); margin: 0 0 28px; }
+footer { border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 13px; padding-block: 22px 36px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 footer a { color: var(--ink-2); }
 
-@media (max-width: 860px) {
-  .grid { grid-template-columns: 1fr 1fr; }
-  .two { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .showcase { grid-template-columns: minmax(0, 1fr); }
+  .features { grid-template-columns: minmax(0, 1fr); }
+  .light, .two { grid-template-columns: minmax(0, 1fr); }
+  .nav .link { display: none; }
 }
-@media (max-width: 560px) {
+@media (max-width: 520px) {
   .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  .grid, .numbers { grid-template-columns: 1fr; }
-  .screen { height: 200px; }
-  .top .btn { display: none; }
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  .cta .btn { min-width: 0; width: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="brand" href="#"><img src="assets/icon-64.png" alt="" width="26" height="26">TheAI</a>
-    <div class="top-actions">
+    <a class="brand" href="#"><img src="assets/icon-64.png" alt="" width="28" height="28">TheAI</a>
+    <nav class="nav" aria-label="Page">
+      <a class="link" href="#features"><span lang="en">Features</span><span lang="id">Fitur</span></a>
+      <a class="link" href="#light"><span lang="en">Lightweight</span><span lang="id">Ringan</span></a>
+      <a class="link" href="#download"><span lang="en">Download</span><span lang="id">Unduh</span></a>
       <div class="lang" role="group" aria-label="Language">
         <button id="lang-en" type="button" aria-pressed="true">EN</button>
         <button id="lang-id" type="button" aria-pressed="false">ID</button>
       </div>
-      <a class="btn primary small" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download</span><span lang="id">Unduh</span></a>
-    </div>
+    </nav>
   </header>
 
   <main>
     <div class="hero">
-      <div class="screen" aria-hidden="true">
+      <div class="stage" aria-hidden="true">
         <div class="notch" id="notch">
-          <div class="face on" data-width="250"><span class="lead"><span class="ring"></span>npm run build</span><span class="num">72%</span></div>
-          <div class="face" data-width="230"><span class="lead"><span class="dot" style="background:#30d158"></span><span lang="en">Claude: tests pass</span><span lang="id">Claude: tes lulus</span></span><span class="num">✓</span></div>
-          <div class="face" data-width="210"><span class="lead"><span class="dot" style="background:#5ac8fa"></span><span lang="en">Water</span><span lang="id">Air</span></span><span class="num">1,250 ml</span></div>
-          <div class="face" data-width="200"><span class="lead"><span class="dot" style="background:#63e6be"></span>Ashar</span><span class="num">15:12</span></div>
-          <div class="face" data-width="230"><span class="lead"><span class="dot" style="background:#ff453a"></span>Standup</span><span class="num"><span lang="en">in 5 min</span><span lang="id">5 mnt lagi</span></span></div>
+          <div class="face on" data-width="150"><span class="eyes"><i></i><i></i></span></div>
+          <div class="face" data-width="270"><span class="lead"><span class="tile violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /></svg></span><span lang="en">Claude: tests pass</span><span lang="id">Claude: tes lulus</span></span><span class="num">&#10003;</span></div>
+          <div class="face" data-width="240"><span class="lead"><span class="tile teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" /></svg></span><span lang="en">Water</span><span lang="id">Air</span></span><span class="num">1,250 ml</span></div>
+          <div class="face" data-width="230"><span class="lead"><span class="tile green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9" /> <path d="M20 3v4" /> <path d="M22 5h-4" /></svg></span>Ashar</span><span class="num">15:12</span></div>
+          <div class="face" data-width="260"><span class="lead"><span class="tile red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" x2="14" y1="2" y2="2" /> <line x1="12" x2="15" y1="14" y2="11" /> <circle cx="12" cy="14" r="8" /></svg></span><span lang="en">Focus</span><span lang="id">Fokus</span></span><span class="num">18:42</span></div>
         </div>
       </div>
-      <h1><span lang="en">A notch for Windows.</span><span lang="id">Notch untuk Windows.</span></h1>
-      <p><span lang="en">Your AI agents, builds, music and day, at the top of the screen. Pick only what you want; the rest stays out of the way.</span><span lang="id">Agent AI, build, musik, dan harimu di puncak layar. Pilih yang kamu mau saja; sisanya tidak mengganggu.</span></p>
+      <span class="pill"><span lang="en">Free for Windows 10 and 11</span><span lang="id">Gratis untuk Windows 10 dan 11</span></span>
+      <h1><span lang="en">Your agents and your day, up top.</span><span lang="id">Agent dan harimu, di puncak layar.</span></h1>
+      <p><span lang="en">TheAI turns the top edge of Windows into a living notch. Your AI agents report there, and your day, music and reminders wait one hover away.</span><span lang="id">TheAI mengubah tepi atas Windows jadi notch yang hidup. Agent AI-mu melapor di sana, dan harimu, musik, serta pengingat tinggal satu sentuhan kursor.</span></p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
+        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
         <a class="btn ghost" href="#features"><span lang="en">See what it does</span><span lang="id">Lihat fiturnya</span></a>
       </div>
-      <span class="fine"><span lang="en">Free · Windows 10 (1809+) and 11 · x64 · no account</span><span lang="id">Gratis · Windows 10 (1809+) dan 11 · x64 · tanpa akun</span></span>
+      <div class="fine"><span lang="en">x64 · no account · installs for your user only</span><span lang="id">x64 · tanpa akun · terpasang untuk akunmu saja</span></div>
+    </div>
+
+    <div class="showcase">
+      <figure class="shot"><img src="assets/notch-today.png" width="420" height="258" alt="The Today page: weather, microphone in use, the next prayer, water and reminders, each with a coloured tile."><figcaption><span lang="en">Your day, one page</span><span lang="id">Harimu, satu halaman</span></figcaption></figure>
+      <figure class="shot"><img src="assets/notch-jobs-open.png" width="420" height="219" alt="Live activities: a failing lint with an Ask Claude button, a build in progress and a deploy."><figcaption><span lang="en">Builds and agents, live</span><span lang="id">Build dan agent, langsung</span></figcaption></figure>
+      <figure class="shot"><img src="assets/notch-water.png" width="420" height="168" alt="Water: 1,250 of 2,000 ml and a week of bars."><figcaption><span lang="en">Water, glass by glass</span><span lang="id">Air, gelas demi gelas</span></figcaption></figure>
     </div>
 
     <section id="features">
-      <div class="kicker"><span lang="en">What it does</span><span lang="id">Yang bisa dilakukan</span></div>
-      <h2 class="section-title"><span lang="en">Everything at a glance. Nothing in the way.</span><span lang="id">Semua sekilas pandang. Tanpa mengganggu.</span></h2>
-      <div class="grid">
-        <article class="card">
-          <h3><span class="dot" style="background:#bf5af2"></span><span lang="en">Agents in the notch</span><span lang="id">Agent di notch</span></h3>
-          <p><span lang="en">Claude Code, Codex and Gemini CLI report progress and ask for permission here. Builds and CI too.</span><span lang="id">Claude Code, Codex, dan Gemini CLI melapor progres dan minta izin di sini. Build dan CI juga.</span></p>
-          <div class="shot"><img src="assets/notch-jobs-open.png" alt="Live activities: a build in progress and CI checks." loading="lazy"></div>
+      <div class="kicker"><span lang="en">Everything it does</span><span lang="id">Semua yang bisa dilakukan</span></div>
+      <h2><span lang="en">Pick only what you want.</span><span lang="id">Pilih yang kamu mau saja.</span></h2>
+      <p class="lede"><span lang="en">Every feature is optional. On first start you choose, with a picture of each one, and Settings changes it any time.</span><span lang="id">Setiap fitur opsional. Saat pertama dibuka kamu memilih, lengkap dengan gambar tiap fitur, dan Pengaturan bisa mengubahnya kapan saja.</span></p>
+      <div class="features">
+        <article class="feature">
+          <span class="tile violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /></svg></span>
+          <div>
+            <h3><span lang="en">Agents in the notch</span><span lang="id">Agent di notch</span></h3>
+            <p><span lang="en">Claude Code, Codex and Gemini CLI report what they are doing and ask for permission here, even the sessions in your terminal.</span><span lang="id">Claude Code, Codex, dan Gemini CLI melapor dan minta izin di sini, termasuk sesi di terminalmu.</span></p>
+          </div>
         </article>
-        <article class="card">
-          <h3><span class="dot" style="background:#ffd60a"></span><span lang="en">Your day on one page</span><span lang="id">Harimu di satu halaman</span></h3>
-          <p><span lang="en">Weather, the next meeting, prayer times, water and reminders. Tap a row for more.</span><span lang="id">Cuaca, rapat berikutnya, jadwal sholat, air, dan pengingat. Ketuk baris untuk detail.</span></p>
-          <div class="shot"><img src="assets/notch-today.png" alt="The Today page: weather, microphone, prayer time, water and reminders." loading="lazy"></div>
+        <article class="feature">
+          <span class="tile sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="M20 12h2" /> <path d="m19.07 4.93-1.41 1.41" /> <path d="M15.947 12.65a4 4 0 0 0-5.925-4.128" /> <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z" /></svg></span>
+          <div>
+            <h3><span lang="en">Your day on one page</span><span lang="id">Harimu di satu halaman</span></h3>
+            <p><span lang="en">Weather, the next meeting, prayer times, water and reminders as short rows. Tap one for the full page.</span><span lang="id">Cuaca, rapat berikutnya, jadwal sholat, air, dan pengingat dalam baris singkat. Ketuk untuk halaman lengkap.</span></p>
+          </div>
         </article>
-        <article class="card">
-          <h3><span class="dot" style="background:#5ac8fa"></span><span lang="en">Drink water</span><span lang="id">Minum air</span></h3>
-          <p><span lang="en">A daily goal, one click per glass, the last seven days, and a gentle nudge.</span><span lang="id">Target harian, satu klik per gelas, tujuh hari terakhir, dan pengingat lembut.</span></p>
-          <div class="shot"><img src="assets/notch-water.png" alt="Water: 1,250 of 2,000 ml and a week of bars." loading="lazy"></div>
+        <article class="feature">
+          <span class="tile green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9" /> <path d="M20 3v4" /> <path d="M22 5h-4" /></svg></span>
+          <div>
+            <h3><span lang="en">Prayer times</span><span lang="id">Jadwal sholat</span></h3>
+            <p><span lang="en">The next prayer for your city, worked out on your PC with Kemenag angles, and a quiet note when it begins.</span><span lang="id">Waktu sholat berikutnya untuk kotamu, dihitung di PC dengan sudut Kemenag, dan pemberitahuan lembut saat masuk waktu.</span></p>
+          </div>
         </article>
-        <article class="card">
-          <h3><span class="dot" style="background:#ff9f0a"></span><span lang="en">Focus and timers</span><span lang="id">Fokus dan timer</span></h3>
-          <p><span lang="en">Pomodoro, countdowns and alarms. During focus, agent results wait for the break.</span><span lang="id">Pomodoro, hitung mundur, dan alarm. Saat fokus, hasil agent menunggu istirahat.</span></p>
-          <div class="shot"><img src="assets/notch-timer-open.png" alt="The timer page with a pomodoro running." loading="lazy"></div>
+        <article class="feature">
+          <span class="tile teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" /></svg></span>
+          <div>
+            <h3><span lang="en">Water reminder</span><span lang="id">Pengingat minum air</span></h3>
+            <p><span lang="en">A daily goal, one click per glass and the last seven days. It nudges you only during your hours.</span><span lang="id">Target harian, satu klik per gelas, dan tujuh hari terakhir. Hanya mengingatkan di jam aktifmu.</span></p>
+          </div>
         </article>
-        <article class="card">
-          <h3><span class="dot" style="background:#f5f5f7"></span><span lang="en">Small things, done right</span><span lang="id">Hal kecil, dibuat rapi</span></h3>
-          <p><span lang="en">Volume, brightness, battery, Caps Lock, keyboard language, the internet dropping, and a dot when your mic or camera is on.</span><span lang="id">Volume, kecerahan, baterai, Caps Lock, bahasa keyboard, internet putus, dan titik saat mic atau kamera menyala.</span></p>
-          <div class="shot"><img src="assets/notch-hud-caps.png" alt="Caps Lock on, shown in the notch." loading="lazy"></div>
+        <article class="feature">
+          <span class="tile yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0" /> <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></svg></span>
+          <div>
+            <h3><span lang="en">Reminders and to-dos</span><span lang="id">Pengingat dan to-do</span></h3>
+            <p><span lang="en">Type it the way you say it: "15m stretch", "14:30 call", "tomorrow 9:00 standup".</span><span lang="id">Ketik seperti biasa: "15m peregangan", "14:30 telepon", "besok 9.00 standup".</span></p>
+          </div>
         </article>
-        <article class="card">
-          <h3><span class="dot" style="background:#30d158"></span><span lang="en">Type / for anything</span><span lang="id">Ketik / untuk apa saja</span></h3>
-          <p><span lang="en"><code>/review</code> <code>/translate</code> <code>/remind 15m</code> <code>/water</code> <code>/mute</code> and your own templates.</span><span lang="id"><code>/review</code> <code>/translate</code> <code>/remind 15m</code> <code>/water</code> <code>/mute</code> dan template buatanmu.</span></p>
-          <div class="shot"><img src="assets/notch-palette.png" alt="The command palette listing commands." loading="lazy"></div>
+        <article class="feature">
+          <span class="tile red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" x2="14" y1="2" y2="2" /> <line x1="12" x2="15" y1="14" y2="11" /> <circle cx="12" cy="14" r="8" /></svg></span>
+          <div>
+            <h3><span lang="en">Focus timer</span><span lang="id">Timer fokus</span></h3>
+            <p><span lang="en">Pomodoro, countdowns and alarms. While you focus, agent results wait for the break.</span><span lang="id">Pomodoro, hitung mundur, dan alarm. Saat fokus, hasil agent menunggu sampai istirahat.</span></p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="tile pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13" /> <circle cx="6" cy="18" r="3" /> <circle cx="18" cy="16" r="3" /></svg></span>
+          <div>
+            <h3><span lang="en">Music and synced lyrics</span><span lang="id">Musik dan lirik</span></h3>
+            <p><span lang="en">What any player is playing, with controls. Lyrics sit beside it; click a line to jump there.</span><span lang="id">Lagu dari pemutar apa pun, lengkap dengan kontrol. Lirik di sampingnya; klik baris untuk lompat.</span></p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="tile orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /> <path d="M19 10v2a7 7 0 0 1-14 0v-2" /> <line x1="12" x2="12" y1="19" y2="22" /></svg></span>
+          <div>
+            <h3><span lang="en">Microphone and camera</span><span lang="id">Mikrofon dan kamera</span></h3>
+            <p><span lang="en">A dot while an app uses your mic or camera, its name, and /mute when you need it.</span><span lang="id">Titik saat aplikasi memakai mic atau kamera, namanya, dan /mute saat perlu.</span></p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="tile graphite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 8h.01" /> <path d="M12 12h.01" /> <path d="M14 8h.01" /> <path d="M16 12h.01" /> <path d="M18 8h.01" /> <path d="M6 8h.01" /> <path d="M7 16h10" /> <path d="M8 12h.01" /> <rect width="20" height="16" x="2" y="4" rx="2" /></svg></span>
+          <div>
+            <h3><span lang="en">Volume, Caps Lock and Wi-Fi</span><span lang="id">Volume, Caps Lock, dan Wi-Fi</span></h3>
+            <p><span lang="en">Clean overlays instead of Windows pop-ups, plus Caps Lock, keyboard language and the internet dropping.</span><span lang="id">Tampilan rapi menggantikan pop-up Windows, plus Caps Lock, bahasa keyboard, dan internet putus.</span></p>
+          </div>
+        </article>
+        <article class="feature">
+          <span class="tile indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" /></svg></span>
+          <div>
+            <h3><span lang="en">Type / for anything</span><span lang="id">Ketik / untuk apa saja</span></h3>
+            <p><span lang="en">/review, /translate, /remind 15m, /water, /mute and your own templates, from the keyboard.</span><span lang="id">/review, /translate, /remind 15m, /water, /mute, dan template buatanmu, langsung dari keyboard.</span></p>
+          </div>
         </article>
       </div>
-      <p class="more"><span lang="en">Also: music with synced lyrics you can click, clipboard history, a file shelf, the daily recap, a system page and a quiet companion. Every one is optional.</span><span lang="id">Juga: musik dengan lirik yang bisa diklik, riwayat clipboard, rak file, rekap harian, halaman sistem, dan teman diam. Semuanya opsional.</span></p>
     </section>
 
-    <section>
-      <div class="numbers">
-        <div class="number"><b>&lt; 0.5%</b><span lang="en">of one CPU core at rest. It redraws only when something changes.</span><span lang="id">dari satu inti CPU saat diam. Menggambar ulang hanya saat ada yang berubah.</span></div>
-        <div class="number"><b>~100 MB</b><span lang="en">of memory, and it hides itself during games and fullscreen video.</span><span lang="id">memori, dan bersembunyi saat game dan video layar penuh.</span></div>
-        <div class="number"><b>0</b><span lang="en">accounts, ads or analytics. Free, with no trial.</span><span lang="id">akun, iklan, atau analitik. Gratis, tanpa masa coba.</span></div>
+    <section id="light">
+      <div class="kicker"><span lang="en">Lightweight</span><span lang="id">Ringan</span></div>
+      <h2><span lang="en">So quiet you forget it is there.</span><span lang="id">Begitu tenang, sampai lupa ada.</span></h2>
+      <div class="light">
+        <div class="stats">
+          <div class="stat"><b>&lt;0.5%</b><span lang="en">of one CPU core at rest</span><span lang="id">dari satu inti CPU saat diam</span></div>
+          <div class="stat"><b>~100 MB</b><span lang="en">of memory in use</span><span lang="id">memori terpakai</span></div>
+          <div class="stat"><b>0</b><span lang="en">accounts, ads or trackers</span><span lang="id">akun, iklan, atau pelacak</span></div>
+        </div>
+        <ul class="points">
+          <li><span><strong lang="en">Draws only when something changes.</strong><strong lang="id">Menggambar hanya saat ada yang berubah.</strong> <span lang="en">A still notch costs nothing.</span><span lang="id">Notch yang diam tidak memakan apa-apa.</span></span></li>
+          <li><span><strong lang="en">Listens instead of checking.</strong><strong lang="id">Mendengar, bukan mengecek.</strong> <span lang="en">Windows tells TheAI when a song, the battery or the network changes.</span><span lang="id">Windows memberi tahu TheAI saat lagu, baterai, atau jaringan berubah.</span></span></li>
+          <li><span><strong lang="en">Steps aside for games.</strong><strong lang="id">Minggir saat bermain game.</strong> <span lang="en">It hides while anything runs fullscreen.</span><span lang="id">Bersembunyi selama ada yang layar penuh.</span></span></li>
+        </ul>
       </div>
     </section>
 
     <section>
       <div class="two">
         <div class="panel">
-          <h3><span lang="en">Privacy</span><span lang="id">Privasi</span></h3>
+          <h3><span lang="en">Your data stays here</span><span lang="id">Datamu tetap di sini</span></h3>
           <ul>
             <li><span lang="en">Your AI provider gets only what you ask, through the agent or key you choose.</span><span lang="id">Penyedia AI-mu hanya menerima yang kamu minta, lewat agent atau key pilihanmu.</span></li>
             <li><span lang="en">GitHub, once a day, to check for a new version.</span><span lang="id">GitHub, sekali sehari, untuk cek versi baru.</span></li>
-            <li><span lang="en">Only if you turn them on: weather and prayer times (your city's name to Open-Meteo), synced lyrics (lrclib.net), your PR checks, an iCal link.</span><span lang="id">Hanya jika dinyalakan: cuaca dan jadwal sholat (nama kota ke Open-Meteo), lirik (lrclib.net), check PR, tautan iCal.</span></li>
+            <li><span lang="en">Only when turned on: your city's name to Open-Meteo for weather and prayer times, lyrics from lrclib.net, your PR checks, an iCal link.</span><span lang="id">Hanya jika dinyalakan: nama kota ke Open-Meteo untuk cuaca dan jadwal sholat, lirik dari lrclib.net, check PR, tautan iCal.</span></li>
             <li><span lang="en">Everything else stays on your PC. Keys live in Windows Credential Manager.</span><span lang="id">Selebihnya tetap di PC-mu. Key disimpan di Windows Credential Manager.</span></li>
           </ul>
         </div>
@@ -271,17 +337,16 @@ footer a { color: var(--ink-2); }
     </section>
 
     <section class="download" id="download">
-      <h2><span lang="en">Get TheAI</span><span lang="id">Dapatkan TheAI</span></h2>
-      <p><span lang="en">Installs for your user only, no administrator rights. Or run the portable zip.</span><span lang="id">Terpasang untuk akunmu saja, tanpa hak administrator. Atau jalankan versi portable.</span></p>
+      <h2><span lang="en">Bring your notch to life.</span><span lang="id">Hidupkan notch-mu.</span></h2>
+      <p><span lang="en">Windows 10 (1809+) and 11 · installer or portable zip</span><span lang="id">Windows 10 (1809+) dan 11 · installer atau versi portable</span></p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Download the installer</span><span lang="id">Unduh installer</span></a>
-        <a class="btn ghost" href="https://github.com/build-zaidana/theai-app/releases/latest"><span lang="en">Portable zip</span><span lang="id">Versi portable</span></a>
+        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
       </div>
     </section>
   </main>
 
   <footer>
-    <span><span lang="en">TheAI is free to use. Not affiliated with Anthropic, OpenAI or Google.</span><span lang="id">TheAI gratis digunakan. Tidak berafiliasi dengan Anthropic, OpenAI, atau Google.</span></span>
+    <span><span lang="en">TheAI is free to use. Icons by Lucide (ISC). Not affiliated with Anthropic, OpenAI or Google.</span><span lang="id">TheAI gratis digunakan. Ikon dari Lucide (ISC). Tidak berafiliasi dengan Anthropic, OpenAI, atau Google.</span></span>
     <span><a href="https://github.com/build-zaidana/theai-app/issues"><span lang="en">Report a problem</span><span lang="id">Laporkan masalah</span></a> · <a href="https://github.com/build-zaidana/theai-app/releases"><span lang="en">Release notes</span><span lang="id">Catatan rilis</span></a></span>
   </footer>
 </div>
@@ -303,7 +368,7 @@ footer a { color: var(--ink-2); }
   buttons.en.addEventListener('click', () => set('en'));
   buttons.id.addEventListener('click', () => set('id'));
 
-  // The notch shows what it would during a day, one face at a time.
+  // The notch rests with its eyes, then shows what it would during a day, one face at a time.
   const notch = document.getElementById('notch');
   const faces = [...notch.querySelectorAll('.face')];
   let index = 0;
