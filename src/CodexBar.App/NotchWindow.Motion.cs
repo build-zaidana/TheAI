@@ -192,7 +192,7 @@ public partial class NotchWindow
         // Opening: a lively spring that overshoots a hair. Closing: quicker and calmer.
         var opening = expanded && _shownView == NotchView.Compact ||
                       width > _shapeWidth.Value + 0.5 || height > _shapeHeight.Value + 0.5;
-        var (response, damping) = opening ? (_island ? (0.42, 0.72) : (0.40, 0.82)) : (0.30, 0.95);
+        var (response, damping) = opening ? (_island ? (0.34, 0.74) : (0.32, 0.84)) : (0.24, 1.0);
         Retarget(_shapeWidth, width, response, damping);
         Retarget(_shapeHeight, height, response, damping);
         Retarget(_shapeRadius, radius, response, damping);
@@ -318,7 +318,7 @@ public partial class NotchWindow
             _moveWindow = false;
         }
 
-        var settled = springs.All(s => s.Settled(0.5));
+        var settled = springs.All(s => s.Settled(0.75));
         if (settled)
         {
             foreach (var spring in springs)
