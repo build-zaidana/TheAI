@@ -20,13 +20,6 @@ public partial class NotchWindow
     private static readonly TimeSpan HudLong = TimeSpan.FromMilliseconds(2400);
 
     // 16-unit icons: speaker body (fill) and its waves / mute cross (stroke), the sun, a bolt, headphones.
-    private static readonly Geometry SpeakerBody = Geometry.Parse("M 1,5.5 L 4.2,5.5 L 8.6,1.8 L 8.6,14.2 L 4.2,10.5 L 1,10.5 Z");
-    private static readonly Geometry SpeakerWaves0 = Geometry.Empty;
-    private static readonly Geometry SpeakerWaves1 = Geometry.Parse("M 11.5,5.2 A 3.6,3.6 0 0 1 11.5,10.8");
-    private static readonly Geometry SpeakerWaves2 = Geometry.Parse("M 11.5,5.2 A 3.6,3.6 0 0 1 11.5,10.8 M 13.8,2.8 A 7,7 0 0 1 13.8,13.2");
-    private static readonly Geometry SpeakerMute = Geometry.Parse("M 11.5,5.5 L 16.5,10.5 M 16.5,5.5 L 11.5,10.5");
-    private static readonly Geometry SunBody = Geometry.Parse("M 9,5.6 A 3.4,3.4 0 1 0 9.001,5.6 Z");
-    private static readonly Geometry SunRays = Geometry.Parse("M 9,1.2 L 9,3.2 M 9,14.8 L 9,16.8 M 1.2,9 L 3.2,9 M 14.8,9 L 16.8,9 M 3.5,3.5 L 4.9,4.9 M 13.1,13.1 L 14.5,14.5 M 3.5,14.5 L 4.9,13.1 M 13.1,4.9 L 14.5,3.5");
     private static readonly Geometry Bolt = Geometry.Parse("M 8,1 L 2,9 L 6.5,9 L 5.5,15 L 12,7 L 7.5,7 Z");
     private static readonly Geometry HeadphoneBand = Geometry.Parse("M 2,10 L 2,8 A 7,7 0 0 1 16,8 L 16,10");
     private static readonly Geometry CapsGlyph = Icons.CapsLock;
@@ -168,7 +161,7 @@ public partial class NotchWindow
 
     // Caps Lock is an on/off state, not a value: just its icon in a small capsule, bright when on and
     // dim when off (the words stay for screen readers).
-    private const double HudIconOnlyWidth = 62;   // the icon (26) centred with 12 on each side, plus the edge margins
+    private const double HudIconOnlyWidth = 60;   // the icon (26) centred with 12 on each side, plus the edge margins
     private bool _hudIconOnly;
     private bool _hudShownIconOnly;
 
@@ -204,12 +197,13 @@ public partial class NotchWindow
 
     // ---- The HUD's faces ---------------------------------------------------------------------
 
+    // Volume and brightness: Lucide's own icons as one stroke each (no filled half that could break
+    // up when the icon turns dark over the fill).
     private void ShowVolumeHud(float level, bool muted)
     {
         var quiet = muted || level < 0.005f;
-        HudIconFill.Data = SpeakerBody;
-        HudIconFill.Fill = quiet ? TimerQuietBrush : TimerFocusBrush;
-        HudIconStroke.Data = muted ? SpeakerMute : level < 0.005f ? SpeakerWaves0 : level < 0.5f ? SpeakerWaves1 : SpeakerWaves2;
+        HudIconFill.Data = Geometry.Empty;
+        HudIconStroke.Data = quiet ? Icons.VolumeMute : Icons.Volume;
         HudIconStroke.Stroke = quiet ? TimerQuietBrush : TimerFocusBrush;
         ShowBar(muted ? 0 : level);
         ShowHud(HudShort);
@@ -217,9 +211,8 @@ public partial class NotchWindow
 
     private void ShowBrightnessHud(int level)
     {
-        HudIconFill.Data = SunBody;
-        HudIconFill.Fill = TimerFocusBrush;
-        HudIconStroke.Data = SunRays;
+        HudIconFill.Data = Geometry.Empty;
+        HudIconStroke.Data = Icons.Brightness;
         HudIconStroke.Stroke = TimerFocusBrush;
         ShowBar(level / 100.0, BrightnessFill);
         ShowHud(HudShort);
@@ -275,6 +268,7 @@ public partial class NotchWindow
     private static readonly Brush BrightnessFill = CapsuleFill(0xFF, 0xE2, 0x7A, 0xFF, 0xBF, 0x1F);
     private static readonly Brush OnFillBrush = Frozen(Color.FromRgb(0x14, 0x14, 0x16));
     private bool _capsuleWanted;
+    private const double HudRadius = 20;
 
     private static Brush CapsuleFill(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
     {
@@ -324,7 +318,7 @@ public partial class NotchWindow
         // Only the volume and brightness faces use the capsule; every other face hides it.
         HudCapsule.Visibility = _capsuleWanted ? Visibility.Visible : Visibility.Collapsed;
         _capsuleWanted = false;
-        HudPanel.Width = (_hudIconOnly ? HudIconOnlyWidth : HudWidth) - 12;
+        HudPanel.Width = (_hudIconOnly ? HudIconOnlyWidth : HudWidth) - 8;
         _hudShownIconOnly = _hudIconOnly;
         _hudIconOnly = false;
         if (!_host.SystemHud || _suspendedForChat || _view is not (NotchView.Compact or NotchView.Hud) || _dragging)

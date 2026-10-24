@@ -156,7 +156,9 @@ public partial class NotchWindow
         }
 
         // The HUD is the compact notch made a little wider: it keeps the compact corners.
-        var radius = expanded && _view != NotchView.Hud ? ExpandedRadius : CompactRadius;
+        // The HUD's corners follow its capsule (half the capsule's height plus the 4 px inset), so the
+        // two curves run parallel instead of the capsule looking cut off at the ends.
+        var radius = _view == NotchView.Hud ? HudRadius : expanded ? ExpandedRadius : CompactRadius;
         var (armH, armV) = expanded ? (height, width) : (CompactThickness, CompactThickness);
         var (left, top) = ComputePlacement(width, height);
 

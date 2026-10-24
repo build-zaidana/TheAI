@@ -919,7 +919,7 @@
                 </Grid>
 
                 <!-- System HUD: volume, brightness, battery, headphones — a slightly wider compact notch for a moment. -->
-                <Grid x:Name="HudPanel" Height="40" Width="228" Margin="6,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <Grid x:Name="HudPanel" Height="40" Width="232" Margin="4,0" HorizontalAlignment="Center" VerticalAlignment="Top"
                       Visibility="Collapsed" SizeChanged="Panel_SizeChanged" IsHitTestVisible="False">
                     <Grid.RenderTransform>
                         <TranslateTransform />
@@ -935,7 +935,7 @@
                     </Border>
                     <Grid Width="26" VerticalAlignment="Center" Margin="12,0,0,0">
                         <Path x:Name="HudIconFill" Fill="#F5F5F7" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                        <Path x:Name="HudIconStroke" Stroke="#F5F5F7" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                        <Path x:Name="HudIconStroke" Stroke="#F5F5F7" StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               HorizontalAlignment="Left" VerticalAlignment="Center" />
                         <Grid x:Name="HudIconBattery" Width="26" Height="13" HorizontalAlignment="Left" Visibility="Collapsed">
                             <Border Width="22" Height="13" HorizontalAlignment="Left" CornerRadius="3.5" BorderBrush="#F5F5F7" BorderThickness="1.4" />
