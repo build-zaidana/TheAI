@@ -290,11 +290,16 @@ public partial class NotchWindow
     private static string AlarmClock(DateTimeOffset at) =>
         at.ToLocalTime().ToString("H':'mm", CultureInfo.InvariantCulture);
 
-    /// <summary>The outline stays the notch's usual one; the timer's colour lives in its content only.</summary>
-    private void ApplyKeyline() => Shell.BorderBrush = OutlineBrush;
+    /// <summary>The notch's usual faint rim; orange while an agent waits on you (board 1).</summary>
+    private void ApplyKeyline() => Shell.BorderBrush = _state == NotchState.Waiting ? WaitingRim : OutlineBrush;
+
+    // Board 1: focus in the timer's red, a pomodoro break in green, any other timer in white.
+    private static readonly Brush FocusRingBrush = Frozen(Color.FromRgb(0xFF, 0x6B, 0x5E));
+    private static readonly Brush BreakRingBrush = Frozen(Color.FromRgb(0x4A, 0xDE, 0x80));
 
     private Brush TimerBrush() =>
-        _timer.Mode == TimerMode.Pomodoro && _timer.Phase != PomodoroPhase.Focus ? TimerBreakBrush : TimerFocusBrush;
+        _timer.Mode != TimerMode.Pomodoro ? TimerFocusBrush
+        : _timer.Phase == PomodoroPhase.Focus ? FocusRingBrush : BreakRingBrush;
 
     private static SolidColorBrush Tint(Brush brush, byte alpha)
     {

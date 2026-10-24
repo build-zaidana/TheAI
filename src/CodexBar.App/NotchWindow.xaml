@@ -587,7 +587,7 @@
                     <Grid x:Name="CompactIndicator" HorizontalAlignment="Right" VerticalAlignment="Center" Width="14" Height="14">
                         <Grid x:Name="SpinnerIndicator" Visibility="Collapsed">
                             <Ellipse Stroke="#2EFFFFFF" StrokeThickness="2.4" />
-                            <Path Stroke="{StaticResource NotchAccent}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                            <Path Stroke="#A78BFA" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Data="M 7,1.2 A 5.8,5.8 0 0 1 12.8,7" RenderTransformOrigin="0.5,0.5">
                                 <Path.RenderTransform>
                                     <RotateTransform x:Name="SpinnerRotation" />
@@ -607,9 +607,9 @@
                         <!-- Music playing while no agent works: a small equalizer. -->
                         <StackPanel x:Name="CompactEq" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Height="12" Visibility="Collapsed" IsHitTestVisible="False">
-                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.5" /></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="{StaticResource NotchGreen}" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.4" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="#FF7AC6" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.5" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="#FF7AC6" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
+                            <Rectangle Width="2.4" Height="12" RadiusX="1.2" RadiusY="1.2" Fill="#FF7AC6" Margin="0.6,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.4" /></Rectangle.RenderTransform></Rectangle>
                         </StackPanel>
                         <!-- The idle companion: two eyes that blink, and close while the computer is left alone. -->
                         <StackPanel x:Name="CompanionEyes" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"

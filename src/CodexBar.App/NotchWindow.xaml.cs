@@ -1119,6 +1119,8 @@ public partial class NotchWindow : Window
         UpdateVisibility();
     }
 
+    private static readonly Brush WaitingRim = Frozen(System.Windows.Media.Color.FromArgb(0xC0, 0xFF, 0x9F, 0x0A));
+
     private void ApplyState()
     {
         CompactGlyph.Visibility = _state == NotchState.Idle ? Visibility.Collapsed : Visibility.Visible;
@@ -1126,6 +1128,7 @@ public partial class NotchWindow : Window
         SpinnerIndicator.Visibility = _state == NotchState.Working ? Visibility.Visible : Visibility.Collapsed;
         DoneIndicator.Visibility = _state == NotchState.Done ? Visibility.Visible : Visibility.Collapsed;
         WaitIndicator.Visibility = _state == NotchState.Waiting ? Visibility.Visible : Visibility.Collapsed;
+        ApplyKeyline();
         ErrorIndicator.Visibility = _state == NotchState.Error ? Visibility.Visible : Visibility.Collapsed;
         ApplyQuotaRing();
         ApplyQueueState();
