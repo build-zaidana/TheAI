@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,7 +18,7 @@ namespace CodexBar.App;
 // comes back here. The separate mode keeps a page per feature.
 public partial class NotchWindow
 {
-    private const double TodayWidth = 420;
+    private const double TodayWidth = 460;   // panel: 2 * S1 + the 436 wide panes
 
     private static readonly Geometry CalendarGlyph = Icons.Calendar;
     private static readonly Geometry DropGlyph = Icons.Droplet;
@@ -159,23 +159,23 @@ public partial class NotchWindow
 
     private void AddTodayRow(Geometry glyph, string text, object right, Action open, Brush? sideAccent = null)
     {
-        var grid = new Grid { MinHeight = 38, Background = Brushes.Transparent, Cursor = Cursors.Hand };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
+        var grid = new Grid { MinHeight = DesignTokens.Row, Background = Brushes.Transparent, Cursor = Cursors.Hand };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DesignTokens.RowIcon + DesignTokens.S4) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(new Border
         {
-            Width = 22,
-            Height = 22,
-            CornerRadius = new CornerRadius(6.5),
+            Width = DesignTokens.RowIcon,
+            Height = DesignTokens.RowIcon,
+            CornerRadius = new CornerRadius(DesignTokens.RowIcon / 2),
             Background = TileFor(glyph),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             Child = new Path
             {
                 Data = glyph,
-                Width = 13,
-                Height = 13,
+                Width = 16,
+                Height = 16,
                 Stretch = Stretch.Uniform,
                 Stroke = Brushes.White,
                 StrokeThickness = 1.7,
@@ -189,7 +189,7 @@ public partial class NotchWindow
         var label = new TextBlock
         {
             Text = text,
-            FontSize = 13.5,
+            FontSize = 14,
             Foreground = TimerFocusBrush,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center
@@ -204,7 +204,7 @@ public partial class NotchWindow
             Foreground = sideAccent ?? TimerQuietBrush,
             VerticalAlignment = VerticalAlignment.Center
         };
-        side.Margin = new Thickness(10, 0, 0, 0);
+        side.Margin = new Thickness(DesignTokens.S3, 0, 0, 0);
         side.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(side, 2);
         grid.Children.Add(side);
@@ -219,9 +219,8 @@ public partial class NotchWindow
         System.Windows.Automation.AutomationProperties.SetName(grid, text);
         var row = new Border
         {
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(8, 2, 8, 2),
-            Margin = new Thickness(-8, 0, -8, 1),
+            CornerRadius = new CornerRadius(DesignTokens.R3),
+            Padding = new Thickness(0),
             Background = Brushes.Transparent,
             Child = grid
         };
