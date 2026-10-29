@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -162,7 +162,7 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar, Jobs, Held, Recap, Clipboard, System, Reminders, Weather, Water, Today, Selection }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar, Jobs, Held, Recap, Clipboard, System, Reminders, Weather, Water, Today, Selection, Control }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
@@ -687,7 +687,7 @@ public partial class NotchWindow : Window
         PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, SelectionPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -710,7 +710,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, SelectionPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -742,7 +742,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, SelectionPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }

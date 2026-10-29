@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -96,6 +96,7 @@ public partial class NotchWindow
         NotchView.Recap => RecapPanel,
         NotchView.Clipboard => ClipPanel,
         NotchView.System => SystemPanel,
+        NotchView.Control => ControlPanel,
         NotchView.Reminders => ReminderPanel,
         NotchView.Weather => WeatherPanel,
         NotchView.Water => WaterPanel,
@@ -119,6 +120,7 @@ public partial class NotchWindow
         NotchView.Recap => RecapWidth,
         NotchView.Clipboard => ClipWidth,
         NotchView.System => SystemWidth,
+        NotchView.Control => ControlWidth,
         NotchView.Reminders => RemindersWidth,
         NotchView.Weather => WeatherWidth,
         NotchView.Water => WaterWidth,
@@ -164,7 +166,7 @@ public partial class NotchWindow
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, SelectionPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;

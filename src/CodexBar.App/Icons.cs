@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 
 namespace CodexBar.App;
 
@@ -25,6 +25,11 @@ internal static class Icons
     public static readonly Geometry MicOff = Freeze("M 2,2 L 22,22 M 18.89 13.23 A 7.12 7.12 0 0 0 19 12 v -2 M 5 10 v 2 a 7 7 0 0 0 12 5 M 15 9.34 V 5 a 3 3 0 0 0 -5.68 -1.33 M 9 9 v 3 a 3 3 0 0 0 5.12 2.12 M 12,19 L 12,22");
     public static readonly Geometry Video = Freeze("M 16 13 l 5.223 3.482 a .5 .5 0 0 0 .777 -.416 V 7.87 a .5 .5 0 0 0 -.752 -.432 L 16 10.5 M 4,6 H 14 A 2,2 0 0 1 16,8 V 16 A 2,2 0 0 1 14,18 H 4 A 2,2 0 0 1 2,16 V 8 A 2,2 0 0 1 4,6 Z");
     public static readonly Geometry Keyboard = Freeze("M 10 8 h .01 M 12 12 h .01 M 14 8 h .01 M 16 12 h .01 M 18 8 h .01 M 6 8 h .01 M 7 16 h 10 M 8 12 h .01 M 4,4 H 20 A 2,2 0 0 1 22,6 V 18 A 2,2 0 0 1 20,20 H 4 A 2,2 0 0 1 2,18 V 6 A 2,2 0 0 1 4,4 Z");
+    public static readonly Geometry Bluetooth = Freeze("M 7 7 l 10 10 l -5 5 V 2 l 5 5 L 7 17");
+    public static readonly Geometry Timer = Freeze("M 10 2 h 4 M 12 14 l 3 -3 M 20 14 a 8 8 0 1 1 -16 0 a 8 8 0 0 1 16 0");
+    public static readonly Geometry Screenshot = Freeze("M 3 7 V 5 a 2 2 0 0 1 2 -2 h 2 M 17 3 h 2 a 2 2 0 0 1 2 2 v 2 M 21 17 v 2 a 2 2 0 0 1 -2 2 h -2 M 7 21 H 5 a 2 2 0 0 1 -2 -2 v -2 M 12 9 a 3 3 0 1 1 0 6 a 3 3 0 0 1 0 -6 Z");
+    public static readonly Geometry Clipboard = Freeze("M 8 4 H 6 a 2 2 0 0 0 -2 2 v 14 a 2 2 0 0 0 2 2 h 12 a 2 2 0 0 0 2 -2 V 6 a 2 2 0 0 0 -2 -2 h -2 M 9 2 h 6 v 4 H 9 z");
+    public static readonly Geometry Lock = Freeze("M 5 11 h 14 a 2 2 0 0 1 2 2 v 7 a 2 2 0 0 1 -2 2 H 5 a 2 2 0 0 1 -2 -2 v -7 a 2 2 0 0 1 2 -2 Z M 7 11 V 7 a 5 5 0 0 1 10 0 v 4");
     public static readonly Geometry Wifi = Freeze("M 12 20 h .01 M 2 8.82 a 15 15 0 0 1 20 0 M 5 12.859 a 10 10 0 0 1 14 0 M 8.5 16.429 a 5 5 0 0 1 7 0");
     public static readonly Geometry WifiOff = Freeze("M 12 20 h .01 M 8.5 16.429 a 5 5 0 0 1 7 0 M 5 12.859 a 10 10 0 0 1 5.17 -2.69 M 19 12.859 a 10 10 0 0 0 -2.007 -1.523 M 2 8.82 a 15 15 0 0 1 4.177 -2.643 M 22 8.82 a 15 15 0 0 0 -11.288 -3.764 M 2 2 l 20 20");
     public static readonly Geometry CapsLock = Freeze("M 9 19 h 6 M 9 15 v -3 H 5 l 7 -7 7 7 h -4 v 3 H 9 z");

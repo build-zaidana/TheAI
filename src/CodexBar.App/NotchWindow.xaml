@@ -1130,6 +1130,38 @@
                     </Border>
                 </StackPanel>
 
+                <!-- Control Center (board 12): toggles in one pane, brightness and volume as vertical sliders. Built from Tokens.xaml. -->
+                <StackPanel x:Name="ControlPanel" Margin="{StaticResource PanelPadding}" Width="378" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pusat kontrol">
+                    <StackPanel.RenderTransform>
+                        <TranslateTransform />
+                    </StackPanel.RenderTransform>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="56" />
+                            <ColumnDefinition Width="56" />
+                        </Grid.ColumnDefinitions>
+                        <Border Background="#18FFFFFF" CornerRadius="{StaticResource PaneRadius}" Padding="{StaticResource PanelPadding}" Height="130">
+                            <UniformGrid x:Name="ControlTiles" Columns="4" Rows="2" />
+                        </Border>
+                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Background="#18FFFFFF" CornerRadius="28" Height="130" ClipToBounds="True"
+                                Cursor="Hand" Tag="brightness" AutomationProperties.Name="Brightness">
+                            <Grid>
+                                <Border x:Name="CcBrightnessFill" Background="#FFD60A" VerticalAlignment="Bottom" Height="0" />
+                                <Path x:Name="CcBrightnessGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
+                            </Grid>
+                        </Border>
+                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" CornerRadius="28" Height="130" ClipToBounds="True"
+                                Cursor="Hand" Tag="volume" Background="#18FFFFFF" AutomationProperties.Name="Volume">
+                            <Grid>
+                                <Border x:Name="CcVolumeFill" Background="#F5F5F7" VerticalAlignment="Bottom" Height="0" />
+                                <Path x:Name="CcVolumeGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#8E8E93" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
                 <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
                 <StackPanel x:Name="WaterPanel" Margin="20,14,20,12" Width="380" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">

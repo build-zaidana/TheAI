@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -279,6 +279,7 @@ public partial class NotchWindow
             NotchView.Recap => false,
             NotchView.Clipboard => false,
             NotchView.System => false,
+            NotchView.Control => false,
             NotchView.Reminders => false,
             NotchView.Weather => false,
             NotchView.Water => false,
@@ -329,6 +330,9 @@ public partial class NotchWindow
                 break;
             case NotchView.System:
                 OpenSystem();
+                break;
+            case NotchView.Control:
+                OpenControl();
                 break;
             case NotchView.Reminders:
                 OpenReminders();
@@ -430,6 +434,7 @@ public partial class NotchWindow
             pages.Add(NotchView.System);
         }
 
+        pages.Add(NotchView.Control);   // the last page: toggles and sliders are always one scroll away
         return pages;
     }
 
