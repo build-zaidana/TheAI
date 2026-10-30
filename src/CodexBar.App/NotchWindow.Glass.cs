@@ -77,9 +77,9 @@ public partial class NotchWindow
         };
         _glassTint = Gradient(start, end,
             (Color.FromArgb(0xFF, 0, 0, 0), 0),
-            (Color.FromArgb(0xE6, 0, 0, 0), 0.3),
-            (Color.FromArgb(0xA6, 0x08, 0x08, 0x0A), 0.7),
-            (Color.FromArgb(0x8C, 0x10, 0x10, 0x12), 1));
+            (Color.FromArgb(0xB3, 0, 0, 0), 0.25),
+            (Color.FromArgb(0x66, 0x06, 0x06, 0x08), 0.6),
+            (Color.FromArgb(0x4D, 0x0C, 0x0C, 0x0E), 1));
         _glassRim = Gradient(start, end,
             (Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0),
             (Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF), 0.4),
