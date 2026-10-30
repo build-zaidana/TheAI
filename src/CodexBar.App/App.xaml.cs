@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using CodexBar.Core;
 using CodexBar.Persistence;
 using CodexBar.Providers;
@@ -53,7 +53,9 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        _singleInstanceMutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
+        // A snapshot run (CODEXBAR_SNAPSHOT_DIR) renders previews to files and may run beside the real app.
+        var mutexName = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } ? MutexName + ".Snapshot" : MutexName;
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, mutexName, out var createdNew);
         _ownsMutex = createdNew;
         if (!createdNew)
         {

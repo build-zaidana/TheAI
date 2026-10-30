@@ -1119,13 +1119,11 @@
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
                     <!-- Panes use the dimension tokens (Tokens.xaml): panel pad S1, pane radius R2, pane pad S2, gap S3. -->
-                    <Border Background="#18FFFFFF" CornerRadius="{StaticResource PaneRadius}" Padding="{StaticResource PanePadding}" Height="76">
-                        <Grid VerticalAlignment="Center">
-                            <TextBlock FontFamily="{StaticResource SoraFont}" FontSize="20" FontWeight="SemiBold" Foreground="#F5F5F7" Text="{local:Tr Hari ini, En=Today}" />
-                            <TextBlock x:Name="TodayDate" FontSize="12" Foreground="#8E8E93" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                        </Grid>
-                    </Border>
-                    <Border Background="#18FFFFFF" CornerRadius="{StaticResource PaneRadius}" Padding="{StaticResource ListPanePadding}" Margin="0,10,0,0">
+                    <Grid Height="{StaticResource HeaderHeight}" Margin="16,0,16,0">
+                        <TextBlock FontFamily="{StaticResource SoraFont}" FontSize="20" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" Text="{local:Tr Hari ini, En=Today}" />
+                        <TextBlock x:Name="TodayDate" FontSize="12.5" Foreground="#8E8E93" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <Border Style="{StaticResource GlassPane}" Padding="{StaticResource ListPanePadding}" Margin="0,10,0,0">
                         <StackPanel x:Name="TodayRows" />
                     </Border>
                 </StackPanel>
@@ -1142,18 +1140,18 @@
                             <ColumnDefinition Width="56" />
                             <ColumnDefinition Width="56" />
                         </Grid.ColumnDefinitions>
-                        <Border Background="#18FFFFFF" CornerRadius="{StaticResource PaneRadius}" Padding="{StaticResource PanelPadding}" Height="130">
+                        <Border Style="{StaticResource GlassPane}" Padding="{StaticResource PanelPadding}" Height="130">
                             <UniformGrid x:Name="ControlTiles" Columns="4" Rows="2" />
                         </Border>
-                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Background="#18FFFFFF" CornerRadius="28" Height="130" ClipToBounds="True"
+                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource GlassPane}" CornerRadius="28" Height="130"
                                 Cursor="Hand" Tag="brightness" AutomationProperties.Name="Brightness">
                             <Grid>
                                 <Border x:Name="CcBrightnessFill" Background="#FFD60A" VerticalAlignment="Bottom" Height="0" />
                                 <Path x:Name="CcBrightnessGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
                             </Grid>
                         </Border>
-                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" CornerRadius="28" Height="130" ClipToBounds="True"
-                                Cursor="Hand" Tag="volume" Background="#18FFFFFF" AutomationProperties.Name="Volume">
+                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" Style="{StaticResource GlassPane}" CornerRadius="28" Height="130"
+                                Cursor="Hand" Tag="volume" AutomationProperties.Name="Volume">
                             <Grid>
                                 <Border x:Name="CcVolumeFill" Background="#F5F5F7" VerticalAlignment="Bottom" Height="0" />
                                 <Path x:Name="CcVolumeGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#8E8E93" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
@@ -1608,7 +1606,7 @@
                 </StackPanel>
             </local:UnclampedGrid>
             <!-- Music and the agent are two pages: scrolling switches between them. -->
-            <StackPanel x:Name="PageDots" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0"
+            <StackPanel x:Name="PageDots" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1"
                         Visibility="Collapsed" IsHitTestVisible="False">
             </StackPanel>
             </Grid>

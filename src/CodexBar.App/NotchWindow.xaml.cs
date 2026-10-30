@@ -481,7 +481,7 @@ public partial class NotchWindow : Window
     // Notch: hangs from the screen edge, only the bottom corners round. Dynamic Island: a pill
     // floating just below the edge, every corner round (half the height when compact).
     private double CompactRadius => _island ? 16 : 15;
-    private double ExpandedRadius => _island ? 32 : 28;
+    private double ExpandedRadius => _island ? 32 : DesignTokens.R1;   // R1: panes inside sit concentric at R2
 
     // Notch: only the corners facing away from its edge are round. Island: all four.
     private void ApplyRadius(double radius)

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -145,6 +145,9 @@ public partial class NotchWindow
 
         foreach (var slider in new[] { CcBrightnessSlider, CcVolumeSlider })
         {
+            // A Border's rounded corners do not clip its child, so the fill gets a pill-shaped clip of its own.
+            var inner = (FrameworkElement)slider.Child;
+            inner.SizeChanged += (_, _) => inner.Clip = new RectangleGeometry(new Rect(inner.RenderSize), inner.ActualWidth / 2, inner.ActualWidth / 2);
             slider.MouseLeftButtonDown += (_, e) =>
             {
                 _draggingSlider = slider;
@@ -172,18 +175,24 @@ public partial class NotchWindow
     {
         foreach (var (button, tile) in _controlButtons)
         {
-            button.Background = new SolidColorBrush(tile.IsOn() ? tile.On : Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF));
+            button.Background = new SolidColorBrush(tile.IsOn() ? tile.On : Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF));
         }
 
         var volume = SystemControls.GetVolume();
         SetSlider(CcVolumeSlider, CcVolumeFill, volume ?? 0, enabled: volume is not null);
     }
 
-    private static void SetSlider(Border slider, Border fill, int percent, bool enabled)
+    private void SetSlider(Border slider, Border fill, int percent, bool enabled)
     {
         slider.Opacity = enabled ? 1 : 0.4;
-        fill.Height = slider.Height * Math.Clamp(percent, 0, 100) / 100.0;
+        fill.Height = (slider.Height - 2) * Math.Clamp(percent, 0, 100) / 100.0;
+        // The icon sits at the bottom: dark on the lit fill, light on the empty track.
+        var glyph = slider == CcVolumeSlider ? CcVolumeGlyph : CcBrightnessGlyph;
+        glyph.Stroke = fill.Height > 34 ? IconOnFill : IconOnTrack;
     }
+
+    private static readonly System.Windows.Media.Brush IconOnFill = Frozen(Color.FromArgb(0xCC, 0, 0, 0));
+    private static readonly System.Windows.Media.Brush IconOnTrack = Frozen(Color.FromRgb(0xF5, 0xF5, 0xF7));
 
     private void DragSlider(Border slider, double y)
     {
@@ -197,6 +206,18 @@ public partial class NotchWindow
         else
         {
             _ = SystemControls.SetBrightnessAsync(percent);
+        }
+    }
+
+    internal async void PreviewControl()
+    {
+        await Task.Delay(400);
+        OpenControl();
+        _pinned = true;
+        if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } dir)
+        {
+            await Task.Delay(1500);
+            SnapshotShell(System.IO.Path.Combine(dir, "notch-control.png"));
         }
     }
 }

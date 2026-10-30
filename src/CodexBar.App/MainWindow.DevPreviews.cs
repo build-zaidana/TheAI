@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -172,6 +172,12 @@ public partial class MainWindow
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TODAY") is { Length: > 0 } && _notch is not null)
         {
             _notch.PreviewToday();
+        }
+
+        // CODEXBAR_PREVIEW_CONTROL=1: the Control Center page (reads volume and radios, changes nothing).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CONTROL") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewControl();
         }
 
         // CODEXBAR_PREVIEW_IDLE=1: the closed notch at rest (time and a sample temperature).

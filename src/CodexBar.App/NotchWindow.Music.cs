@@ -495,11 +495,14 @@ public partial class NotchWindow
         PageDots.Children.Clear();
         foreach (var page in pages)
         {
-            PageDots.Children.Add(new System.Windows.Shapes.Ellipse
+            // Board 13: the page indicator is a lit segment of the notch's bottom outline, so it takes no room inside.
+            PageDots.Children.Add(new System.Windows.Shapes.Rectangle
             {
-                Width = 5,
-                Height = 5,
-                Margin = new Thickness(0, 2, 0, 2),
+                Width = page == _view ? 22 : 14,
+                Height = 2,
+                RadiusX = 1,
+                RadiusY = 1,
+                Margin = new Thickness(3, 0, 3, 0),
                 Fill = page == _view ? PageDotOn : PageDotOff
             });
         }
