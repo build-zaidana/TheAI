@@ -501,6 +501,9 @@
                 MouseLeftButtonUp="Shell_MouseLeftButtonUp">
 
             <Grid x:Name="ShellRoot">
+            <!-- Tint over the frosted desktop of the open notch (NotchWindow.Glass.cs). -->
+            <Border x:Name="ShellTint" IsHitTestVisible="False" Visibility="Collapsed"
+                    CornerRadius="{Binding CornerRadius, ElementName=Shell}" />
             <!-- Corner-docked L shape (Border background is cleared in corner mode). -->
             <local:NotchShape x:Name="CornerShape" Visibility="Collapsed" />
             <local:UnclampedGrid>

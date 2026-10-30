@@ -140,7 +140,6 @@ public partial class NotchWindow
         var incoming = PanelFor(_view);
         var outgoing = PanelFor(_shownView);
         var expanded = _view != NotchView.Compact;
-        ApplyShellMaterial(expanded);
         incoming.Visibility = Visibility.Visible;
 
         double width, height;
@@ -164,6 +163,7 @@ public partial class NotchWindow
         var radius = _view == NotchView.Hud ? HudRadius : expanded ? ExpandedRadius : CompactRadius;
         var (armH, armV) = expanded ? (height, width) : (CompactThickness, CompactThickness);
         var (left, top) = ComputePlacement(width, height);
+        ApplyShellMaterial(expanded, left, top, width, height);
 
         if (!animate || !IsVisible)
         {
