@@ -1609,6 +1609,9 @@
             <StackPanel x:Name="PageDots" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1"
                         Visibility="Collapsed" IsHitTestVisible="False">
             </StackPanel>
+            <!-- Rim of the open notch's glass (NotchWindow.Glass.cs): drawn on top, takes no room. -->
+            <Border x:Name="ShellRim" IsHitTestVisible="False" BorderThickness="1" Panel.ZIndex="100"
+                    CornerRadius="{Binding CornerRadius, ElementName=Shell}" Visibility="Collapsed" />
             </Grid>
         </Border>
     </Grid>
