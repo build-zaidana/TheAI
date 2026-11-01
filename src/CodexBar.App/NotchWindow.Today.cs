@@ -51,6 +51,7 @@ public partial class NotchWindow
         : glyph == CrescentGlyph ? PrayerTile
         : glyph == MicGlyph || glyph == MicOffGlyph ? MicTile
         : WeatherTile;
+    private static readonly Brush RowLine = Frozen(System.Windows.Media.Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF));
     private static readonly Brush RowHover = Frozen(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
 
     /// <summary>Views the combined mode folds into Today.</summary>
@@ -220,10 +221,16 @@ public partial class NotchWindow
         var row = new Border
         {
             CornerRadius = new CornerRadius(DesignTokens.R3),
-            Padding = new Thickness(0),
+            Padding = new Thickness(12, 0, 12, 0),
             Background = Brushes.Transparent,
             Child = grid
         };
+        if (TodayRows.Children.Count > 0)
+        {
+            // Hairline between rows, inset to the text like a macOS list.
+            TodayRows.Children.Add(new Border { Height = 0.5, Background = RowLine, Margin = new Thickness(12 + DesignTokens.RowIcon + DesignTokens.S4, 0, 12, 0) });
+        }
+
         row.MouseEnter += (_, _) => row.Background = RowHover;
         row.MouseLeave += (_, _) => row.Background = Brushes.Transparent;
         TodayRows.Children.Add(row);

@@ -17,7 +17,7 @@ public partial class NotchWindow
 {
     private const double FrostWidth = 680, FrostHeight = 600;   // covers the widest and tallest page
 
-    private Brush? _glassTint, _glassRim;
+    private Brush? _glassTint, _glassRim, _glassEdgeFade;
     private string? _glassEdge;
     private ImageBrush? _frost;
     private Rect _frostArea;                       // DIPs, screen coordinates
@@ -34,6 +34,7 @@ public partial class NotchWindow
         {
             Shell.Background = Brushes.Black;
             ShellTint.Visibility = Visibility.Collapsed;
+            ShellEdgeFade.Visibility = Visibility.Collapsed;
             ShellRim.Visibility = Visibility.Collapsed;
             _frost = null;
             return;
@@ -55,6 +56,8 @@ public partial class NotchWindow
         Shell.Background = (Brush?)_frost ?? Brushes.Black;
         ShellTint.Background = _glassTint;
         ShellTint.Visibility = Visibility.Visible;
+        ShellEdgeFade.Background = _glassEdgeFade;
+        ShellEdgeFade.Visibility = Visibility.Visible;
         ShellRim.BorderBrush = _glassRim;
         ShellRim.Visibility = Visibility.Visible;
     }
@@ -75,11 +78,17 @@ public partial class NotchWindow
             "right" => (new Point(1, 0), new Point(0, 0)),
             _ => (new Point(0, 0), new Point(0, 1))
         };
-        _glassTint = Gradient(start, end,
+        // Like Search or Ask: darkest at the leading end, clearing toward the far end.
+        var (across, acrossEnd) = Edge is "left" or "right" ? (new Point(0, 0), new Point(0, 1)) : (new Point(0, 0), new Point(1, 0));
+        _glassTint = Gradient(across, acrossEnd,
+            (Color.FromArgb(0xEB, 0, 0, 0), 0),
+            (Color.FromArgb(0xC2, 0, 0, 0), 0.45),
+            (Color.FromArgb(0x4D, 0x0A, 0x0A, 0x0C), 1));
+        // ...and solid black where it meets the screen edge, so it still grows out of the bezel.
+        _glassEdgeFade = Gradient(start, end,
             (Color.FromArgb(0xFF, 0, 0, 0), 0),
-            (Color.FromArgb(0xB3, 0, 0, 0), 0.25),
-            (Color.FromArgb(0x66, 0x06, 0x06, 0x08), 0.6),
-            (Color.FromArgb(0x4D, 0x0C, 0x0C, 0x0E), 1));
+            (Color.FromArgb(0x99, 0, 0, 0), 0.12),
+            (Color.FromArgb(0x00, 0, 0, 0), 0.35));
         _glassRim = Gradient(start, end,
             (Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0),
             (Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF), 0.4),

@@ -504,6 +504,7 @@
             <!-- Tint over the frosted desktop of the open notch (NotchWindow.Glass.cs). -->
             <Border x:Name="ShellTint" IsHitTestVisible="False" Visibility="Collapsed"
                     CornerRadius="{Binding CornerRadius, ElementName=Shell}" />
+            <Border x:Name="ShellEdgeFade" IsHitTestVisible="False" Visibility="Collapsed" />
             <!-- Corner-docked L shape (Border background is cleared in corner mode). -->
             <local:NotchShape x:Name="CornerShape" Visibility="Collapsed" />
             <local:UnclampedGrid>
@@ -1121,14 +1122,12 @@
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <!-- Panes use the dimension tokens (Tokens.xaml): panel pad S1, pane radius R2, pane pad S2, gap S3. -->
+                    <!-- One surface like macOS Search or Ask: rows sit on the glass, split by hairlines. -->
                     <Grid Height="{StaticResource HeaderHeight}" Margin="16,0,16,0">
                         <TextBlock FontFamily="{StaticResource SoraFont}" FontSize="20" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" Text="{local:Tr Hari ini, En=Today}" />
                         <TextBlock x:Name="TodayDate" FontSize="12.5" Foreground="#8E8E93" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
-                    <Border Style="{StaticResource GlassPane}" Padding="{StaticResource ListPanePadding}" Margin="0,10,0,0">
-                        <StackPanel x:Name="TodayRows" />
-                    </Border>
+                    <StackPanel x:Name="TodayRows" Margin="4,2,4,4" />
                 </StackPanel>
 
                 <!-- Control Center (board 12): toggles in one pane, brightness and volume as vertical sliders. Built from Tokens.xaml. -->
@@ -1143,17 +1142,15 @@
                             <ColumnDefinition Width="56" />
                             <ColumnDefinition Width="56" />
                         </Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource GlassPane}" Padding="{StaticResource PanelPadding}" Height="130">
-                            <UniformGrid x:Name="ControlTiles" Columns="4" Rows="2" />
-                        </Border>
-                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Style="{StaticResource GlassPane}" CornerRadius="28" Height="130"
+                        <UniformGrid x:Name="ControlTiles" Columns="4" Rows="2" Height="130" Margin="0,0,4,0" />
+                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Background="#1FFFFFFF" CornerRadius="28" Height="130"
                                 Cursor="Hand" Tag="brightness" AutomationProperties.Name="Brightness">
                             <Grid>
                                 <Border x:Name="CcBrightnessFill" Background="#FFD60A" VerticalAlignment="Bottom" Height="0" />
                                 <Path x:Name="CcBrightnessGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
                             </Grid>
                         </Border>
-                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" Style="{StaticResource GlassPane}" CornerRadius="28" Height="130"
+                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" Background="#1FFFFFFF" CornerRadius="28" Height="130"
                                 Cursor="Hand" Tag="volume" AutomationProperties.Name="Volume">
                             <Grid>
                                 <Border x:Name="CcVolumeFill" Background="#F5F5F7" VerticalAlignment="Bottom" Height="0" />
