@@ -83,6 +83,24 @@ public partial class MainWindow
             }
         }
 
+        // CODEXBAR_PREVIEW_WORK=1|compact: a sample turn still running (steps streaming), on the agent page or in the pill.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WORK") is { Length: > 0 } work && _notch is not null)
+        {
+            _notch.OnTurnStarted("Rapikan token desain di NotchWindow");
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Membaca NotchWindow.Glass.cs"));
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Mengubah Tokens.xaml"));
+            if (work != "compact")
+            {
+                _notch.PreviewAgent(NotchWindow.MainActivityKey);
+            }
+        }
+
+        // CODEXBAR_SNAPSHOT_AS=<name>: with CODEXBAR_SNAPSHOT_DIR, the whole notch area to <name>.png after 3 s.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_AS") is { Length: > 0 } snapshotName && _notch is not null)
+        {
+            _notch.SnapshotLater(snapshotName, TimeSpan.FromSeconds(3));
+        }
+
         // CODEXBAR_PREVIEW_SUGGESTION=activity|launcher: a finished sample turn with habit guesses.
         // CODEXBAR_TEST_SUGGEST_AI=1: ask the AI for a guess on a sample turn and log it (no UI).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SUGGESTION") is { Length: > 0 } suggestionPreview && _notch is not null)

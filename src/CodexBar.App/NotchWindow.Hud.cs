@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CodexBar.App.Hud;
@@ -202,6 +202,13 @@ public partial class NotchWindow
     private void ShowVolumeHud(float level, bool muted)
     {
         var quiet = muted || level < 0.005f;
+        if (ShowLiquidLevel(LiquidHudKind.Volume, level, quiet))
+        {
+            _liquidWanted = true;
+            ShowHud(HudShort);
+            return;
+        }
+
         HudIconFill.Data = Geometry.Empty;
         HudIconStroke.Data = quiet ? Icons.VolumeMute : Icons.Volume;
         HudIconStroke.Stroke = quiet ? TimerQuietBrush : TimerFocusBrush;
@@ -211,6 +218,13 @@ public partial class NotchWindow
 
     private void ShowBrightnessHud(int level)
     {
+        if (ShowLiquidLevel(LiquidHudKind.Brightness, level / 100.0, muted: false))
+        {
+            _liquidWanted = true;
+            ShowHud(HudShort);
+            return;
+        }
+
         HudIconFill.Data = Geometry.Empty;
         HudIconStroke.Data = Icons.Brightness;
         HudIconStroke.Stroke = TimerFocusBrush;
@@ -267,7 +281,7 @@ public partial class NotchWindow
     private static readonly Brush VolumeFill = CapsuleFill(0xFF, 0xFF, 0xFF, 0xD8, 0xD8, 0xDE);
     private static readonly Brush BrightnessFill = CapsuleFill(0xFF, 0xE2, 0x7A, 0xFF, 0xBF, 0x1F);
     private static readonly Brush OnFillBrush = Frozen(Color.FromRgb(0x14, 0x14, 0x16));
-    private bool _capsuleWanted;
+    private bool _capsuleWanted, _liquidWanted;
     private const double HudRadius = 20;
 
     private static Brush CapsuleFill(byte r1, byte g1, byte b1, byte r2, byte g2, byte b2)
@@ -318,7 +332,12 @@ public partial class NotchWindow
         // Only the volume and brightness faces use the capsule; every other face hides it.
         HudCapsule.Visibility = _capsuleWanted ? Visibility.Visible : Visibility.Collapsed;
         _capsuleWanted = false;
-        HudPanel.Width = (_hudIconOnly ? HudIconOnlyWidth : HudWidth) - 8;
+        if (!_liquidWanted)
+        {
+            _liquidHud = LiquidHudKind.None;   // a plain face: the liquid overlay steps aside
+        }
+        _liquidWanted = false;
+        HudPanel.Width = (_hudIconOnly ? HudIconOnlyWidth : _liquidHud != LiquidHudKind.None ? LiquidHudWidth : HudWidth) - 8;
         _hudShownIconOnly = _hudIconOnly;
         _hudIconOnly = false;
         if (!_host.SystemHud || _suspendedForChat || _view is not (NotchView.Compact or NotchView.Hud) || _dragging)
@@ -364,6 +383,9 @@ public partial class NotchWindow
             case "offline":
                 ShowNetworkHud(false);
                 break;
+            case "water":
+                ShowWaterHud(1000, 1250, 2000);
+                break;
             case "headphones":
                 ShowHeadphonesHud("WH-1000XM5", null);
                 break;
@@ -392,7 +414,7 @@ public partial class NotchWindow
                 await Task.Delay(100);
             }
 
-            SnapshotShell(System.IO.Path.Combine(dir, $"notch-hud-{kind}.png"));
+            SnapshotShell(System.IO.Path.Combine(dir, $"notch-hud-{kind}.png"), _liquidHud != LiquidHudKind.None ? Root : null);
         }
     }
 }

@@ -113,7 +113,7 @@ public partial class NotchWindow
         NotchView.Music => MusicPageWidth,
         NotchView.Timer => TimerWidth,
         NotchView.TimerDone => TimerDoneWidth,
-        NotchView.Hud => _hudShownIconOnly ? HudIconOnlyWidth : HudWidth,
+        NotchView.Hud => _hudShownIconOnly ? HudIconOnlyWidth : _liquidHud != LiquidHudKind.None ? LiquidHudWidth : HudWidth,
         NotchView.Shelf => ShelfWidth,
         NotchView.Calendar => CalendarWidth,
         NotchView.Jobs or NotchView.Held => JobsWidth,
@@ -163,7 +163,6 @@ public partial class NotchWindow
         var radius = _view == NotchView.Hud ? HudRadius : expanded ? ExpandedRadius : CompactRadius;
         var (armH, armV) = expanded ? (height, width) : (CompactThickness, CompactThickness);
         var (left, top) = ComputePlacement(width, height);
-        ApplyShellMaterial(expanded, left, top, width, height);
 
         if (!animate || !IsVisible)
         {
@@ -191,6 +190,8 @@ public partial class NotchWindow
             _shownView = _view;
             UpdateWindowStyle();
             ApplyKeyline();
+            ApplyLiquidHud();
+            ApplyLiveObject();
             return;
         }
 
@@ -218,6 +219,8 @@ public partial class NotchWindow
         _shownView = _view;
         UpdateWindowStyle();
         ApplyKeyline();
+        ApplyLiquidHud();
+        ApplyLiveObject();
     }
 
     private static void Retarget(Spring spring, double target, double response, double damping)
@@ -359,6 +362,7 @@ public partial class NotchWindow
         Radius = Math.Max(0, _shapeRadius.Value);
         CornerShape.ArmH = Math.Max(1, _armH.Value);
         CornerShape.ArmV = Math.Max(1, _armV.Value);
+        UpdateLiveObject();   // the live object rides the island's left edge as it grows
     }
 
     // ---- Content cross-fade -------------------------------------------------------------------

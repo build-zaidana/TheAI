@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -95,7 +95,13 @@ public partial class NotchWindow
 
     private void AddWater(int millilitres)
     {
+        var before = _water.Today(DateTimeOffset.Now);
         _water.Add(millilitres, DateTimeOffset.Now);
+        if (millilitres > 0)
+        {
+            // Over the closed notch the glass fills (E3) and hands back; an open page shows it itself.
+            ShowWaterHud(before, _water.Today(DateTimeOffset.Now), _host.Water.GoalMl);
+        }
         SaveWater();
         ScheduleWaterNudge();
         _waterCollapse.Stop();

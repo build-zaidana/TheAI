@@ -168,8 +168,8 @@ public partial class NotchWindow : Window
     private const double IdleWidth = 150;
     private const double CompactWidth = 196;
     private const double LauncherWidth = 560;
-    private const double ActivityWidth = 600;
-    private const double QuickWidth = 352;
+    private const double ActivityWidth = IslandTokens.WidthL;
+    private const double QuickWidth = 384;   // the orb takes 48 on the left (board 05)
     private const int MaxSteps = 4;
     private const int MaxOutputChars = 700;
 
@@ -481,7 +481,7 @@ public partial class NotchWindow : Window
     // Notch: hangs from the screen edge, only the bottom corners round. Dynamic Island: a pill
     // floating just below the edge, every corner round (half the height when compact).
     private double CompactRadius => _island ? 16 : 15;
-    private double ExpandedRadius => _island ? 32 : DesignTokens.R1;   // R1: panes inside sit concentric at R2
+    private double ExpandedRadius => IslandTokens.Re;   // RE 36: a 40 corner item at P 16 sits concentric (R 20 + 16)
 
     // Notch: only the corners facing away from its edge are round. Island: all four.
     private void ApplyRadius(double radius)
@@ -1123,6 +1123,14 @@ public partial class NotchWindow : Window
 
     private void ApplyState()
     {
+        if (_view is NotchView.Activity or NotchView.Request or NotchView.Quick)
+        {
+            ApplyAgentObject();   // the orb says the state
+        }
+        else if (_view == NotchView.Compact)
+        {
+            QueueCompactObject();
+        }
         CompactGlyph.Visibility = _state == NotchState.Idle ? Visibility.Collapsed : Visibility.Visible;
         PlaceCompactChatButton();
         SpinnerIndicator.Visibility = _state == NotchState.Working ? Visibility.Visible : Visibility.Collapsed;
@@ -1207,9 +1215,10 @@ public partial class NotchWindow : Window
         ApplyOutline();
     }
 
-    // No rim on the side that meets the screen edge (the island floats, so it gets all four).
+    // No rim on the side that meets the screen edge (the island floats, so it gets all four). The
+    // top-centre island (Page 2) has none at all, like the iPhone's: clean black, nothing around it.
     private void ApplyOutline() =>
-        Shell.BorderThickness = IsCorner && !_floating ? new Thickness(0) : _island || _floating ? new Thickness(1) : Edge switch
+        Shell.BorderThickness = (IsCorner && !_floating) || (Edge == "top" && !_floating) ? new Thickness(0) : _island || _floating ? new Thickness(1) : Edge switch
         {
             "bottom" => new Thickness(1, 1, 1, 0),
             "left" => new Thickness(0, 1, 1, 1),

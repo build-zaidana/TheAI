@@ -12,45 +12,46 @@ using HorizontalAlignment = System.Windows.HorizontalAlignment;
 
 namespace CodexBar.App;
 
-// Control Center (canvas board 12): eight toggles in one pane and brightness / volume as vertical
-// sliders. Dimensions come from Tokens.xaml. Do Not Disturb and battery saver from the board are left
-// out: Windows has no supported way to flip them from an app.
+// Control Center (canvas Page 2, board 03): eight 52 tiles with a caption under each, then brightness
+// and volume as liquid capsules (board 25, G2). W_S 360, P 16 all round; the gap between tiles makes the
+// first and last tile flush with the sliders. Do Not Disturb and battery saver are left out: Windows has
+// no supported way to flip them from an app.
 public partial class NotchWindow
 {
-    private const double ControlWidth = 402;   // 2 * S1 + the 378 wide row of panes
+    private const double ControlWidth = IslandTokens.WidthS;
 
-    private sealed record ControlTile(string Label, Geometry Glyph, Color On, Func<bool> IsOn, Func<Task> Tap);
+    private sealed record ControlTile(string Label, string Caption, Geometry Glyph, Color On, Func<bool> IsOn, Func<Task> Tap);
 
     private readonly Dictionary<Border, ControlTile> _controlButtons = [];
     private bool? _wifiOn, _bluetoothOn;
     private bool _controlBuilt;
-    private Border? _draggingSlider;
+    private LiquidCapsule? _brightnessSlider, _volumeSlider;
 
     private IEnumerable<ControlTile> ControlTileList() =>
     [
-        new("Wi-Fi", Icons.Wifi, Color.FromRgb(0x0A, 0x84, 0xFF), () => _wifiOn == true, async () => _wifiOn = await SystemControls.ToggleRadioAsync(RadioKind.WiFi) ?? _wifiOn),
-        new("Bluetooth", Icons.Bluetooth, Color.FromRgb(0x0A, 0x84, 0xFF), () => _bluetoothOn == true, async () => _bluetoothOn = await SystemControls.ToggleRadioAsync(RadioKind.Bluetooth) ?? _bluetoothOn),
-        new(Tr.Text("Bisukan mikrofon", "Mute microphone"), Icons.MicOff, Color.FromRgb(0xFF, 0x45, 0x3A), () => MicMute.IsMuted() == true, () =>
+        new("Wi-Fi", "Wi-Fi", Icons.Wifi, Color.FromRgb(0x0A, 0x84, 0xFF), () => _wifiOn == true, async () => _wifiOn = await SystemControls.ToggleRadioAsync(RadioKind.WiFi) ?? _wifiOn),
+        new("Bluetooth", "Bluetooth", Icons.Bluetooth, Color.FromRgb(0x0A, 0x84, 0xFF), () => _bluetoothOn == true, async () => _bluetoothOn = await SystemControls.ToggleRadioAsync(RadioKind.Bluetooth) ?? _bluetoothOn),
+        new(Tr.Text("Bisukan mikrofon", "Mute microphone"), Tr.Text("Mikrofon", "Microphone"), Icons.MicOff, Color.FromRgb(0xFF, 0x45, 0x3A), () => MicMute.IsMuted() == true, () =>
         {
             ToggleMicMute();
             return Task.CompletedTask;
         }),
-        new(Tr.Text("Timer 25 menit", "25-minute timer"), Icons.Timer, Color.FromRgb(0xFF, 0x6B, 0x5E), () => TimerShowing, () =>
+        new(Tr.Text("Timer 25 menit", "25-minute timer"), "Timer 25", Icons.Timer, Color.FromRgb(0xFF, 0x6B, 0x5E), () => TimerShowing, () =>
         {
             _timer.StartTimer(TimeSpan.FromMinutes(25), DateTimeOffset.Now);
             return Task.CompletedTask;
         }),
-        new(Tr.Text("Tangkapan layar", "Screenshot"), Icons.Screenshot, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
+        new(Tr.Text("Tangkapan layar", "Screenshot"), Tr.Text("Tangkap", "Capture"), Icons.Screenshot, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
         {
             Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true });
             return Task.CompletedTask;
         }),
-        new(Tr.Text("+1 gelas air", "+1 glass of water"), Icons.Droplet, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
+        new(Tr.Text("+1 gelas air", "+1 glass of water"), Tr.Text("+1 gelas", "+1 glass"), Icons.Droplet, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
         {
             AddWater(_host.Water.GlassMl);
             return Task.CompletedTask;
         }),
-        new(Tr.Text("Papan klip", "Clipboard"), Icons.Clipboard, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
+        new(Tr.Text("Papan klip", "Clipboard"), Tr.Text("Papan klip", "Clipboard"), Icons.Clipboard, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
         {
             if (ClipboardAvailable)
             {
@@ -59,7 +60,7 @@ public partial class NotchWindow
 
             return Task.CompletedTask;
         }),
-        new(Tr.Text("Kunci layar", "Lock screen"), Icons.Lock, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
+        new(Tr.Text("Kunci layar", "Lock screen"), Tr.Text("Kunci", "Lock"), Icons.Lock, Color.FromRgb(0x2C, 0x2C, 0x2E), () => false, () =>
         {
             LockWorkStation();
             return Task.CompletedTask;
@@ -90,7 +91,7 @@ public partial class NotchWindow
         if (_view == NotchView.Control)
         {
             RefreshControl();
-            SetSlider(CcBrightnessSlider, CcBrightnessFill, brightness ?? 0, enabled: brightness is not null);
+            _brightnessSlider?.Set(brightness ?? 0, enabled: brightness is not null);
         }
     }
 
@@ -102,20 +103,30 @@ public partial class NotchWindow
         }
 
         _controlBuilt = true;
-        CcBrightnessGlyph.Data = Icons.Brightness;
-        CcVolumeGlyph.Data = Icons.Volume;
+        // Tile columns: 52, gap, 52, gap, 52, gap, 52 across the 328 inside P 16.
+        var gap = (IslandTokens.WidthS - (2 * IslandTokens.P) - (4 * IslandTokens.Tile)) / 3;
+        for (var c = 0; c < 7; c++)
+        {
+            ControlTiles.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(c % 2 == 0 ? IslandTokens.Tile : gap) });
+        }
+        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
+        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var index = 0;
         foreach (var tile in ControlTileList())
         {
+            var scale = new ScaleTransform();
             var button = new Border
             {
-                Width = DesignTokens.Tile,
-                Height = DesignTokens.Tile,
-                CornerRadius = new CornerRadius(DesignTokens.Tile / 2),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
+                Width = IslandTokens.Tile,
+                Height = IslandTokens.Tile,
+                CornerRadius = new CornerRadius(IslandTokens.Tile / 2),
                 Cursor = System.Windows.Input.Cursors.Hand,
-                Background = System.Windows.Media.Brushes.Transparent,
+                Background = IslandTokens.Surface1,
                 ToolTip = tile.Label,
+                RenderTransformOrigin = new System.Windows.Point(0.5, 0.5),
+                RenderTransform = scale,
                 Child = new Path
                 {
                     Data = tile.Glyph,
@@ -133,80 +144,60 @@ public partial class NotchWindow
                 }
             };
             System.Windows.Automation.AutomationProperties.SetName(button, tile.Label);
+            // Pressed: 52 -> 48 while the pointer is down; leaving the tile cancels.
+            button.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                scale.ScaleX = scale.ScaleY = 48.0 / IslandTokens.Tile;
+            };
+            button.MouseLeave += (_, _) => scale.ScaleX = scale.ScaleY = 1;
             button.MouseLeftButtonUp += async (_, e) =>
             {
                 e.Handled = true;
+                scale.ScaleX = scale.ScaleY = 1;
                 await tile.Tap();
                 RefreshControl();
             };
             _controlButtons[button] = tile;
-            ControlTiles.Children.Add(button);
+
+            var cell = new StackPanel();
+            cell.Children.Add(button);
+            cell.Children.Add(new TextBlock
+            {
+                Text = tile.Caption,
+                FontSize = 11,
+                Foreground = IslandTokens.Text2,
+                Margin = new Thickness(-24, 4, -24, 0),
+                TextAlignment = TextAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                IsHitTestVisible = false
+            });
+            Grid.SetColumn(cell, index % 4 * 2);
+            Grid.SetRow(cell, index / 4 * 2);
+            ControlTiles.Children.Add(cell);
+            index++;
         }
 
-        foreach (var slider in new[] { CcBrightnessSlider, CcVolumeSlider })
-        {
-            // A Border's rounded corners do not clip its child, so the fill gets a pill-shaped clip of its own.
-            var inner = (FrameworkElement)slider.Child;
-            inner.SizeChanged += (_, _) => inner.Clip = new RectangleGeometry(new Rect(inner.RenderSize), inner.ActualWidth / 2, inner.ActualWidth / 2);
-            slider.MouseLeftButtonDown += (_, e) =>
-            {
-                _draggingSlider = slider;
-                slider.CaptureMouse();
-                DragSlider(slider, e.GetPosition(slider).Y);
-                e.Handled = true;
-            };
-            slider.MouseMove += (_, e) =>
-            {
-                if (_draggingSlider == slider)
-                {
-                    DragSlider(slider, e.GetPosition(slider).Y);
-                }
-            };
-            slider.MouseLeftButtonUp += (_, _) =>
-            {
-                _draggingSlider = null;
-                slider.ReleaseMouseCapture();
-            };
-        }
+        _brightnessSlider = new LiquidCapsule(Icons.Brightness, IslandTokens.Btn, warm: true);
+        _volumeSlider = new LiquidCapsule(Icons.Volume, IslandTokens.Btn) { Margin = new Thickness(0, 8, 0, 0) };
+        System.Windows.Automation.AutomationProperties.SetName(_brightnessSlider, Tr.Text("Kecerahan", "Brightness"));
+        System.Windows.Automation.AutomationProperties.SetName(_volumeSlider, "Volume");
+        _brightnessSlider.Changed += percent => _ = SystemControls.SetBrightnessAsync(percent);
+        _volumeSlider.Changed += percent => SystemControls.SetVolume(percent);
+        ControlSliders.Children.Add(_brightnessSlider);
+        ControlSliders.Children.Add(_volumeSlider);
     }
 
-    /// <summary>Tiles light in their own colour when on; the rest stay a plain glass disc.</summary>
+    /// <summary>On: the tile fills with its colour. Off: surface/1. No outline, no glow.</summary>
     private void RefreshControl()
     {
         foreach (var (button, tile) in _controlButtons)
         {
-            button.Background = new SolidColorBrush(tile.IsOn() ? tile.On : Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF));
+            button.Background = tile.IsOn() ? new SolidColorBrush(tile.On) : IslandTokens.Surface1;
         }
 
         var volume = SystemControls.GetVolume();
-        SetSlider(CcVolumeSlider, CcVolumeFill, volume ?? 0, enabled: volume is not null);
-    }
-
-    private void SetSlider(Border slider, Border fill, int percent, bool enabled)
-    {
-        slider.Opacity = enabled ? 1 : 0.4;
-        fill.Height = (slider.Height - 2) * Math.Clamp(percent, 0, 100) / 100.0;
-        // The icon sits at the bottom: dark on the lit fill, light on the empty track.
-        var glyph = slider == CcVolumeSlider ? CcVolumeGlyph : CcBrightnessGlyph;
-        glyph.Stroke = fill.Height > 34 ? IconOnFill : IconOnTrack;
-    }
-
-    private static readonly System.Windows.Media.Brush IconOnFill = Frozen(Color.FromArgb(0xCC, 0, 0, 0));
-    private static readonly System.Windows.Media.Brush IconOnTrack = Frozen(Color.FromRgb(0xF5, 0xF5, 0xF7));
-
-    private void DragSlider(Border slider, double y)
-    {
-        var percent = (int)Math.Round(Math.Clamp(1 - y / slider.Height, 0, 1) * 100);
-        var isVolume = slider == CcVolumeSlider;
-        SetSlider(slider, isVolume ? CcVolumeFill : CcBrightnessFill, percent, enabled: true);
-        if (isVolume)
-        {
-            SystemControls.SetVolume(percent);
-        }
-        else
-        {
-            _ = SystemControls.SetBrightnessAsync(percent);
-        }
+        _volumeSlider?.Set(volume ?? 0, enabled: volume is not null);
     }
 
     internal async void PreviewControl()

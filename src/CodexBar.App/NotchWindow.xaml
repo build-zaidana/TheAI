@@ -11,7 +11,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         Topmost="True"
-        Width="720"
+        Width="900"
         Height="640"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
@@ -208,6 +208,52 @@
             </Setter>
         </Style>
         <!-- Request view (approvals / agent questions) -->
+        <!-- Island buttons (Page 2, board 00): 40 tall, R 20, so in a corner at P 16 they sit concentric with RE 36. -->
+        <Style x:Key="IslandButton" TargetType="Button">
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Foreground" Value="#F5F5F7" />
+            <Setter Property="Background" Value="#1C1C1E" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="20" Padding="16,0">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="IslandPrimaryButton" TargetType="Button" BasedOn="{StaticResource IslandButton}">
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Background" Value="#F5F5F7" />
+        </Style>
+        <Style x:Key="IslandRoundButton" TargetType="Button" BasedOn="{StaticResource IslandButton}">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="20">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="NotchPill" TargetType="Button">
             <Setter Property="Height" Value="32" />
             <Setter Property="Foreground" Value="White" />
@@ -307,10 +353,12 @@
 
         <!-- Timer page: thin display digits, tinted round buttons, quiet text buttons, length tiles. -->
         <!-- Sora (SIL Open Font License, Fonts/OFL.txt): the timer's digits and labels. -->
-        <FontFamily x:Key="SoraFont">pack://application:,,,/Fonts/#Sora</FontFamily>
+        <!-- Numbers and titles: Segoe UI Variable Display, Windows' closest match to SF (Page 2's Inter). -->
+        <FontFamily x:Key="SoraFont">Segoe UI Variable Display, Segoe UI</FontFamily>
 
         <Style x:Key="NotchDigits" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource SoraFont}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="FontSize" Value="44" />
             <Setter Property="Foreground" Value="#F5F5F7" />
             <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
@@ -492,7 +540,6 @@
                 CornerRadius="0,0,14,14"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
-                ClipToBounds="True"
                 MouseEnter="Shell_MouseEnter"
                 MouseLeave="Shell_MouseLeave"
                 PreviewMouseWheel="Shell_PreviewMouseWheel"
@@ -501,15 +548,16 @@
                 MouseLeftButtonUp="Shell_MouseLeftButtonUp">
 
             <Grid x:Name="ShellRoot">
-            <!-- Tint over the frosted desktop of the open notch (NotchWindow.Glass.cs). -->
-            <Border x:Name="ShellTint" IsHitTestVisible="False" Visibility="Collapsed"
-                    CornerRadius="{Binding CornerRadius, ElementName=Shell}" />
-            <Border x:Name="ShellEdgeFade" IsHitTestVisible="False" Visibility="Collapsed" />
+            <!-- The live object (record, dial, orb) leaving the island's left side, and the neck joining it:
+                 above the island's black, below the panels, and free to draw outside the Shell (NotchWindow.LiveObject.cs). -->
+            <Canvas x:Name="ObjectLayer" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" />
             <!-- Corner-docked L shape (Border background is cleared in corner mode). -->
             <local:NotchShape x:Name="CornerShape" Visibility="Collapsed" />
-            <local:UnclampedGrid>
+            <!-- The panels are clipped here (the Shell no longer clips, so the live object can leave it). -->
+            <local:UnclampedGrid x:Name="PanelHost" ClipToBounds="True">
                 <!-- Compact: icon only, like a hardware notch with a live activity. -->
                 <Grid x:Name="CompactPanel" Height="32" Margin="11,0" Cursor="Hand" VerticalAlignment="Top"
+                      MouseEnter="CompactPanel_MouseEnter" MouseLeave="CompactPanel_MouseLeave"
                       Background="Transparent"
                       AutomationProperties.Name="Buka TheAI">
                     <Border x:Name="CompactGlyph" Width="13" Height="13" CornerRadius="3.5" Background="White"
@@ -570,7 +618,7 @@
                         <TextBlock x:Name="CompactHeldText" FontSize="10" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
-                    <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22"
+                    <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22" Opacity="0"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
                             ToolTip="Buka chat" AutomationProperties.Name="Buka chat">
                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4"
@@ -629,7 +677,9 @@
                 </Grid>
 
                 <!-- Music: the track playing in any app (Spotify, a browser, Media Player…), its controls and volume. -->
-                <Grid x:Name="MusicPanel" Margin="18,14,18,16" Width="400" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <!-- Music (Page 2, board 04, V3): cover 104 at P 16, title, artist, a seek bar in the cover's colour and
+                     the three controls 40; the record (NotchWindow.LiveObject.cs) leaves the island's left side under the cover. -->
+                <Grid x:Name="MusicPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Musik">
                     <Grid.RenderTransform>
                         <TranslateTransform />
@@ -638,89 +688,78 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="MusicMain">
-                    <Grid>
+                    <Grid x:Name="MusicMain">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="104" />
+                            <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border x:Name="MusicArt" Width="60" Height="60" CornerRadius="12" Background="{StaticResource NotchFill}">
-                            <Path x:Name="MusicArtPlaceholder" Fill="{StaticResource NotchText3}" Width="22" Height="22" Stretch="Uniform"
+                        <Border x:Name="MusicArt" Width="104" Height="104" CornerRadius="20" Background="#1C1C1E" VerticalAlignment="Top">
+                            <Path x:Name="MusicArtPlaceholder" Fill="#7C7C80" Width="26" Height="26" Stretch="Uniform"
                                   Data="M 6,2 L 16,0 L 16,12 A 3,3 0 1 1 14,9.2 L 14,3.4 L 8,4.6 L 8,14 A 3,3 0 1 1 6,11.2 Z" />
                         </Border>
-                        <StackPanel Grid.Column="1" Margin="14,0,10,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="MusicTitle" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource NotchText}"
+                        <StackPanel Grid.Column="2">
+                            <TextBlock x:Name="MusicTitle" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7" Margin="0,2,0,0"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="MusicArtist" FontSize="13" Foreground="{StaticResource NotchText2}" Margin="0,2,0,0"
+                            <TextBlock x:Name="MusicArtist" FontSize="13" Foreground="#98989F" Margin="0,2,0,0"
                                        TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="MusicSource" FontSize="11" Foreground="{StaticResource NotchText3}" Margin="0,3,0,0"
-                                       TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <StackPanel x:Name="MusicEq" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Height="18"
-                                    Margin="0,0,4,0" IsHitTestVisible="False">
-                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.5" /></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8" /></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.35" /></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle Width="3" Height="18" RadiusX="1.5" RadiusY="1.5" Fill="{StaticResource NotchGreen}" Margin="1,0" RenderTransformOrigin="0.5,0.5"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.65" /></Rectangle.RenderTransform></Rectangle>
+                            <TextBlock x:Name="MusicSource" Visibility="Collapsed" />
+                            <StackPanel x:Name="MusicEq" Visibility="Collapsed" Orientation="Horizontal" IsHitTestVisible="False">
+                                <Rectangle Width="3" Height="18"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+                                <Rectangle Width="3" Height="18"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+                                <Rectangle Width="3" Height="18"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+                                <Rectangle Width="3" Height="18"><Rectangle.RenderTransform><ScaleTransform /></Rectangle.RenderTransform></Rectangle>
+                            </StackPanel>
+
+                            <!-- Hidden in the track-change toast; hovering the toast opens it all. -->
+                            <StackPanel x:Name="MusicFull">
+                                <!-- The bar: 4 high in a 20 tall hit area; under the pointer it grows to 8 and shows a knob. -->
+                                <Grid x:Name="MusicProgress" Height="20" Margin="0,4,0,0" Background="Transparent" Cursor="Hand"
+                                      MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
+                                      MouseEnter="MusicProgress_MouseEnter" MouseLeave="MusicProgress_MouseLeave"
+                                      AutomationProperties.Name="Posisi lagu">
+                                    <Border x:Name="MusicProgressTrack" Height="4" CornerRadius="2" Background="#2C2C2E" VerticalAlignment="Center" />
+                                    <Border x:Name="MusicProgressFill" Height="4" CornerRadius="2" Background="#F5F5F7"
+                                            HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
+                                </Grid>
+                                <Grid Visibility="Collapsed">
+                                    <TextBlock x:Name="MusicElapsed" />
+                                    <TextBlock x:Name="MusicRemaining" />
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,0">
+                                    <Button x:Name="MusicPrevButton" Style="{StaticResource NotchIconButton}" Width="40" Height="40" Foreground="#F5F5F7" Click="MusicPrev_Click"
+                                            AutomationProperties.Name="Lagu sebelumnya">
+                                        <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              Data="M 0,0 L 2.4,0 L 2.4,14 L 0,14 Z M 14,0 L 14,14 L 3.4,7 Z" />
+                                    </Button>
+                                    <Button x:Name="MusicPlayButton" Style="{StaticResource NotchIconButton}" Width="40" Height="40" Margin="8,0"
+                                            Foreground="#F5F5F7" Click="MusicPlay_Click" AutomationProperties.Name="Putar/jeda">
+                                        <Grid>
+                                            <Path x:Name="MusicPlayGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  Data="M 0,0 L 16,9 L 0,18 Z" Margin="3,0,0,0" />
+                                            <Path x:Name="MusicPauseGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  Data="M 0,0 L 5,0 L 5,18 L 0,18 Z M 10,0 L 15,0 L 15,18 L 10,18 Z" Visibility="Collapsed" />
+                                        </Grid>
+                                    </Button>
+                                    <Button x:Name="MusicNextButton" Style="{StaticResource NotchIconButton}" Width="40" Height="40" Foreground="#F5F5F7" Click="MusicNext_Click"
+                                            AutomationProperties.Name="Lagu berikutnya">
+                                        <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              Data="M 0,0 L 10.6,7 L 0,14 Z M 11.6,0 L 14,0 L 14,14 L 11.6,14 Z" />
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- The app's own volume: kept, but off the page (board 04 has no room for it). -->
+                                <Grid x:Name="MusicVolumeRow" Visibility="Collapsed">
+                                    <Grid x:Name="MusicVolume" Height="14" Background="Transparent"
+                                          MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp">
+                                        <Border x:Name="MusicVolumeFill" Width="0" />
+                                    </Grid>
+                                    <TextBlock x:Name="MusicVolumeLabel" />
+                                </Grid>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
-
-                    <!-- Hidden in the track-change toast; hovering the toast opens it all. -->
-                    <StackPanel x:Name="MusicFull">
-                        <Grid x:Name="MusicProgress" Height="14" Margin="0,16,0,0" Background="Transparent" Cursor="Hand"
-                              MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
-                              AutomationProperties.Name="Posisi lagu">
-                            <Border Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center" />
-                            <Border x:Name="MusicProgressFill" Height="4" CornerRadius="2" Background="{StaticResource NotchText}"
-                                    HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
-                        </Grid>
-                        <Grid Margin="0,2,0,0">
-                            <TextBlock x:Name="MusicElapsed" FontSize="11" Foreground="{StaticResource NotchText3}" HorizontalAlignment="Left" />
-                            <TextBlock x:Name="MusicRemaining" FontSize="11" Foreground="{StaticResource NotchText3}" HorizontalAlignment="Right" />
-                        </Grid>
-
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
-                            <Button x:Name="MusicPrevButton" Style="{StaticResource NotchIconButton}" Width="44" Height="40" Click="MusicPrev_Click"
-                                    AutomationProperties.Name="Lagu sebelumnya">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      Data="M 0,0 L 2.4,0 L 2.4,14 L 0,14 Z M 14,0 L 14,14 L 3.4,7 Z" />
-                            </Button>
-                            <Button x:Name="MusicPlayButton" Style="{StaticResource NotchIconButton}" Width="52" Height="44" Margin="10,0"
-                                    Foreground="{StaticResource NotchText}" Click="MusicPlay_Click" AutomationProperties.Name="Putar/jeda">
-                                <Grid>
-                                    <Path x:Name="MusicPlayGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                          Data="M 0,0 L 16,9 L 0,18 Z" Margin="3,0,0,0" />
-                                    <Path x:Name="MusicPauseGlyph" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                          Data="M 0,0 L 5,0 L 5,18 L 0,18 Z M 10,0 L 15,0 L 15,18 L 10,18 Z" Visibility="Collapsed" />
-                                </Grid>
-                            </Button>
-                            <Button x:Name="MusicNextButton" Style="{StaticResource NotchIconButton}" Width="44" Height="40" Click="MusicNext_Click"
-                                    AutomationProperties.Name="Lagu berikutnya">
-                                <Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                      Data="M 0,0 L 10.6,7 L 0,14 Z M 11.6,0 L 14,0 L 14,14 L 11.6,14 Z" />
-                            </Button>
-                        </StackPanel>
-
-                        <Grid x:Name="MusicVolumeRow" Margin="2,10,2,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Path Fill="{StaticResource NotchText3}" VerticalAlignment="Center" Data="M 0,4 L 3,4 L 7,0.5 L 7,11.5 L 3,8 L 0,8 Z" />
-                            <Grid x:Name="MusicVolume" Grid.Column="1" Height="14" Margin="10,0" Background="Transparent" Cursor="Hand"
-                                  MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
-                                  AutomationProperties.Name="Volume aplikasi">
-                                <Border Height="4" CornerRadius="2" Background="#33FFFFFF" VerticalAlignment="Center" />
-                                <Border x:Name="MusicVolumeFill" Height="4" CornerRadius="2" Background="{StaticResource NotchText2}"
-                                        HorizontalAlignment="Left" VerticalAlignment="Center" Width="0" />
-                            </Grid>
-                            <TextBlock x:Name="MusicVolumeLabel" Grid.Column="2" FontSize="11" Foreground="{StaticResource NotchText3}"
-                                       VerticalAlignment="Center" MinWidth="88" TextAlignment="Right" />
-                        </Grid>
-                    </StackPanel>
-                    </StackPanel>
                     <!-- Synced lyrics beside the player: the line being sung in white; click any line to jump there. -->
                     <Border x:Name="MusicLyricsSide" Grid.Column="1" Width="236" Margin="18,0,0,0" Padding="16,0,0,0"
                             BorderBrush="#1AFFFFFF" BorderThickness="1,0,0,0" Visibility="Collapsed" ClipToBounds="True"
@@ -732,44 +771,47 @@
                 <!-- Timer, after the Clock app's live activities and DynamicLake's stacked rows: one row per
                      thing running (tinted control, grey control, label, time in Sora), a minute ruler with
                      mode icons when nothing runs, and typing that lands in the row itself. -->
-                <StackPanel x:Name="TimerPanel" Margin="14,12,22,14" Width="384" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="TimerPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Timer"
                             PreviewMouseLeftButtonDown="TimerPanel_PreviewMouseDown">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
 
-                    <!-- Running: pause + stop leading, label + time trailing. -->
-                    <Grid x:Name="TimerRunRow" Height="56">
+                    <!-- Running (board 06): the label over the time on the left, pause (filled in the timer's colour)
+                         and stop as 40s in the bottom-right corner; the dial is the live object (V3). -->
+                    <Grid x:Name="TimerRunRow" Height="88">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="TimerPlayButton" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
-                                Background="#38FFFFFF" Click="TimerPlay_Click" AutomationProperties.Name="Jeda">
+                        <StackPanel VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal" Height="16">
+                                <Path x:Name="TimerCaptionIcon" Visibility="Collapsed" />
+                                <TextBlock x:Name="TimerCaption" FontSize="13" FontWeight="SemiBold" Foreground="#FF9F0A" MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBlock x:Name="TimerBig" Style="{StaticResource NotchDigits}" FontSize="48" Margin="0,4,0,0" VerticalAlignment="Top" Text="24:12" />
+                        </StackPanel>
+                        <Button x:Name="TimerPlayButton" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="40" Height="40" VerticalAlignment="Bottom"
+                                Background="#FF9F0A" Click="TimerPlay_Click" AutomationProperties.Name="Jeda">
                             <Grid>
-                                <Path x:Name="TimerPlayGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"
+                                <Path x:Name="TimerPlayGlyph" Fill="Black" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform"
                                       Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
-                                <Path x:Name="TimerPauseGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                <Path x:Name="TimerPauseGlyph" Fill="Black" HorizontalAlignment="Center" VerticalAlignment="Center" Width="11" Height="14" Stretch="Uniform"
                                       Data="M 1,1.5 Q 1,0 2.5,0 L 4,0 Q 5.4,0 5.4,1.5 L 5.4,16.5 Q 5.4,18 4,18 L 2.5,18 Q 1,18 1,16.5 Z M 9,1.5 Q 9,0 10.5,0 L 12,0 Q 13.4,0 13.4,1.5 L 13.4,16.5 Q 13.4,18 12,18 L 10.5,18 Q 9,18 9,16.5 Z" />
                             </Grid>
                         </Button>
-                        <Button x:Name="TimerStopButton" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
-                                Background="#1FFFFFFF" Click="TimerReset_Click" AutomationProperties.Name="Hentikan">
+                        <Button x:Name="TimerStopButton" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="8,0,0,0" VerticalAlignment="Bottom"
+                                Background="#1C1C1E" Click="TimerReset_Click" AutomationProperties.Name="Hentikan">
                             <Grid>
-                                <Path x:Name="TimerStopGlyph" Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      Data="M 1,1 L 12,12 M 12,1 L 1,12" />
-                                <Path x:Name="TimerResetGlyph" Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                <Path x:Name="TimerStopGlyph" Stroke="White" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="M 1,1 L 11,11 M 11,1 L 1,11" />
+                                <Path x:Name="TimerResetGlyph" Stroke="White" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       StrokeLineJoin="Round" Visibility="Collapsed"
                                       Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
                             </Grid>
                         </Button>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Path x:Name="TimerCaptionIcon" Fill="#99FFFFFF" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,2,10,0" />
-                            <TextBlock x:Name="TimerCaption" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,10,0" MaxWidth="130" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="TimerBig" Style="{StaticResource NotchDigits}" Text="24:12" />
-                        </StackPanel>
                     </Grid>
 
                     <!-- The stopwatch: its own row, so it can run beside a countdown. -->
@@ -779,7 +821,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="TimerWatchPlay" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                        <Button x:Name="TimerWatchPlay" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
                                 Background="#38FFFFFF" Click="TimerWatchPlay_Click" AutomationProperties.Name="Jeda">
                             <Grid>
                                 <Path x:Name="TimerWatchPlayGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"
@@ -788,7 +830,7 @@
                                       Data="M 1,1.5 Q 1,0 2.5,0 L 4,0 Q 5.4,0 5.4,1.5 L 5.4,16.5 Q 5.4,18 4,18 L 2.5,18 Q 1,18 1,16.5 Z M 9,1.5 Q 9,0 10.5,0 L 12,0 Q 13.4,0 13.4,1.5 L 13.4,16.5 Q 13.4,18 12,18 L 10.5,18 Q 9,18 9,16.5 Z" />
                             </Grid>
                         </Button>
-                        <Button x:Name="TimerWatchReset" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                        <Button x:Name="TimerWatchReset" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="10,0,0,0"
                                 Background="#1FFFFFFF" Click="TimerWatchReset_Click" AutomationProperties.Name="Reset">
                             <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
@@ -813,7 +855,7 @@
                             <TextBlock x:Name="TimerAlarmCaption" Style="{StaticResource NotchLabel}" FontSize="20" MaxWidth="150" TextTrimming="CharacterEllipsis" />
                             <TextBlock x:Name="TimerAlarmTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
                         </StackPanel>
-                        <Button x:Name="TimerAlarmCancel" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                        <Button x:Name="TimerAlarmCancel" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
                                 Background="#1FFFFFFF" Click="TimerAlarmCancel_Click" AutomationProperties.Name="Hapus alarm">
                             <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
                         </Button>
@@ -826,7 +868,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Button x:Name="TimerStartButton" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Background="#38FFFFFF"
+                            <Button x:Name="TimerStartButton" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Background="#38FFFFFF"
                                     VerticalAlignment="Center" Click="TimerStart_Click" AutomationProperties.Name="Mulai">
                                 <Path Fill="#F5F5F7" Margin="3,0,0,0" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
                             </Button>
@@ -863,31 +905,27 @@
                 </StackPanel>
 
                 <!-- Time's up / the alarm rings: the same row, now green or ringing. -->
-                <Grid x:Name="TimerDonePanel" Margin="14,12,22,14" Width="384" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <Grid x:Name="TimerDonePanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                       Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Waktu habis">
                     <Grid.RenderTransform>
                         <TranslateTransform />
                     </Grid.RenderTransform>
-                    <Grid x:Name="TimerDoneRow" Height="56">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button x:Name="TimerDoneNext" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Background="#38FFFFFF"
-                                Click="TimerDoneNext_Click" AutomationProperties.Name="Langkah berikutnya">
-                            <Path x:Name="TimerDoneNextGlyph" Stroke="#F5F5F7" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                  Data="M 15,9 A 6,6 0 1 1 13.2,4.7 M 13.6,1.6 L 13.6,5.2 L 10,5.2" />
-                        </Button>
-                        <Button x:Name="TimerDoneClose" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
-                                Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="Tutup">
-                            <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
-                        </Button>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Path x:Name="TimerDoneIcon" Fill="#99FFFFFF" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center" Margin="0,2,8,0" />
-                            <TextBlock x:Name="TimerDoneTitle" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,12,0"
-                                       MaxWidth="130" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="TimerDoneDigits" Style="{StaticResource NotchDigits}" Text="0:00" />
+                    <!-- Time is up (board 06): the dial pulses at 00; a headline, a line under it, two actions in the corner. -->
+                    <Grid x:Name="TimerDoneRow" Height="104">
+                        <StackPanel VerticalAlignment="Top">
+                            <Path x:Name="TimerDoneIcon" Visibility="Collapsed" />
+                            <TextBlock x:Name="TimerDoneTitle" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerDoneSub" FontSize="13" Foreground="#98989F" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="TimerDoneDigits" Visibility="Collapsed" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                            <Button x:Name="TimerDoneNext" Style="{StaticResource IslandPrimaryButton}" Click="TimerDoneNext_Click" AutomationProperties.Name="Langkah berikutnya">
+                                <TextBlock x:Name="TimerDoneNextText" />
+                            </Button>
+                            <Button x:Name="TimerDoneClose" Style="{StaticResource IslandButton}" Margin="8,0,0,0" Click="TimerDoneClose_Click" AutomationProperties.Name="Tutup">
+                                <TextBlock x:Name="TimerDoneCloseText" />
+                            </Button>
+                            <Path x:Name="TimerDoneNextGlyph" Visibility="Collapsed" />
                         </StackPanel>
                     </Grid>
                     <Grid x:Name="TimerRingRow" Height="56" Visibility="Collapsed">
@@ -907,7 +945,7 @@
                             <TextBlock x:Name="TimerRingCaption" Style="{StaticResource NotchLabel}" FontSize="20" MaxWidth="120" TextTrimming="CharacterEllipsis" />
                             <TextBlock x:Name="TimerRingTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
                         </StackPanel>
-                        <Button x:Name="TimerSnoozeButton" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="52" Height="52"
+                        <Button x:Name="TimerSnoozeButton" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
                                 Background="#38FFFFFF" Click="TimerSnooze_Click" AutomationProperties.Name="Tunda 9 menit">
                             <Canvas Width="22" Height="22">
                                 <TextBlock Text="Z" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" Canvas.Left="1" Canvas.Top="-1" />
@@ -915,7 +953,7 @@
                                 <TextBlock Text="z" FontFamily="{StaticResource SoraFont}" FontSize="12" Foreground="#F5F5F7" Canvas.Left="3" Canvas.Top="9" />
                             </Canvas>
                         </Button>
-                        <Button x:Name="TimerRingClose" Grid.Column="3" Style="{StaticResource NotchTintButton}" Width="52" Height="52" Margin="10,0,0,0"
+                        <Button x:Name="TimerRingClose" Grid.Column="3" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="10,0,0,0"
                                 Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="Matikan alarm">
                             <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
                         </Button>
@@ -1116,48 +1154,26 @@
                     <StackPanel x:Name="WorldClockRows" />
                 </StackPanel>
 
-                <!-- Today (the combined page mode): weather, the next meeting, water and reminders as rows. -->
-                <StackPanel x:Name="TodayPanel" Margin="{StaticResource PanelPadding}" Width="436" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <!-- Today (Page 2, board 02, D1): the date is the title; rows 56 with 40 items; P 16 all round, the last row ends 8 above the edge. -->
+                <StackPanel x:Name="TodayPanel" Width="420" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Hari ini">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <!-- One surface like macOS Search or Ask: rows sit on the glass, split by hairlines. -->
-                    <Grid Height="{StaticResource HeaderHeight}" Margin="16,0,16,0">
-                        <TextBlock FontFamily="{StaticResource SoraFont}" FontSize="20" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" Text="{local:Tr Hari ini, En=Today}" />
-                        <TextBlock x:Name="TodayDate" FontSize="12.5" Foreground="#8E8E93" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <Grid Height="32" Margin="16,16,16,8">
+                        <TextBlock x:Name="TodayDate" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
                     </Grid>
-                    <StackPanel x:Name="TodayRows" Margin="4,2,4,4" />
+                    <StackPanel x:Name="TodayRows" Margin="8,0,8,8" />
                 </StackPanel>
 
-                <!-- Control Center (board 12): toggles in one pane, brightness and volume as vertical sliders. Built from Tokens.xaml. -->
-                <StackPanel x:Name="ControlPanel" Margin="{StaticResource PanelPadding}" Width="378" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <!-- Control Center (Page 2, board 03): eight 52 tiles with captions, then brightness and volume as liquid capsules. P 16 all round. -->
+                <StackPanel x:Name="ControlPanel" Margin="16" Width="328" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pusat kontrol">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="56" />
-                            <ColumnDefinition Width="56" />
-                        </Grid.ColumnDefinitions>
-                        <UniformGrid x:Name="ControlTiles" Columns="4" Rows="2" Height="130" Margin="0,0,4,0" />
-                        <Border x:Name="CcBrightnessSlider" Grid.Column="1" Margin="10,0,0,0" Background="#1FFFFFFF" CornerRadius="28" Height="130"
-                                Cursor="Hand" Tag="brightness" AutomationProperties.Name="Brightness">
-                            <Grid>
-                                <Border x:Name="CcBrightnessFill" Background="#FFD60A" VerticalAlignment="Bottom" Height="0" />
-                                <Path x:Name="CcBrightnessGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
-                            </Grid>
-                        </Border>
-                        <Border x:Name="CcVolumeSlider" Grid.Column="2" Margin="10,0,0,0" Background="#1FFFFFFF" CornerRadius="28" Height="130"
-                                Cursor="Hand" Tag="volume" AutomationProperties.Name="Volume">
-                            <Grid>
-                                <Border x:Name="CcVolumeFill" Background="#F5F5F7" VerticalAlignment="Bottom" Height="0" />
-                                <Path x:Name="CcVolumeGlyph" Width="18" Height="18" Stretch="Uniform" Stroke="#8E8E93" StrokeThickness="1.8" VerticalAlignment="Bottom" Margin="0,0,0,14" IsHitTestVisible="False" />
-                            </Grid>
-                        </Border>
-                    </Grid>
+                    <Grid x:Name="ControlTiles" />
+                    <StackPanel x:Name="ControlSliders" Margin="0,16,0,0" />
                 </StackPanel>
 
                 <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
@@ -1386,17 +1402,15 @@
                 </StackPanel>
 
                 <!-- Quick: a request arriving while the notch is compact; one click for the recommended answer. -->
-                <StackPanel x:Name="QuickPanel" Margin="18,12,16,14" Width="318" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="QuickPanel" Margin="16" MinHeight="88" Width="320" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="7" Height="7" Fill="{StaticResource NotchOrange}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock x:Name="QuickKind" FontSize="11" Foreground="#8CFFFFFF" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <TextBlock x:Name="QuickText" Margin="0,8,0,0" FontSize="13" TextWrapping="Wrap" MaxHeight="54" TextTrimming="CharacterEllipsis" />
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button x:Name="QuickPrimary" Style="{StaticResource NotchPrimaryPill}" Height="28" Margin="0" Click="QuickPrimary_Click" />
-                        <Button x:Name="QuickSecondary" Style="{StaticResource NotchPill}" Height="28" Margin="6,0,0,0" Click="QuickSecondary_Click" />
-                        <Button x:Name="QuickMore" Style="{StaticResource NotchIconButton}" Margin="4,0,0,0" Click="QuickMore_Click"
+                    <TextBlock x:Name="QuickKind" FontSize="13" FontWeight="SemiBold" Foreground="#98989F" />
+                    <TextBlock x:Name="QuickText" Margin="0,4,0,0" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7"
+                               TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <Button x:Name="QuickPrimary" Style="{StaticResource IslandPrimaryButton}" Margin="0" Click="QuickPrimary_Click" />
+                        <Button x:Name="QuickSecondary" Style="{StaticResource IslandButton}" Margin="8,0,0,0" Click="QuickSecondary_Click" />
+                        <Button x:Name="QuickMore" Style="{StaticResource IslandRoundButton}" Margin="8,0,0,0" Click="QuickMore_Click"
                                 ToolTip="Pilihan lain" AutomationProperties.Name="Pilihan lain">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="3.5" Height="3.5" Fill="White" />
@@ -1408,17 +1422,16 @@
                 </StackPanel>
 
                 <!-- Request: an approval or a question from the agent, answered right here. -->
-                <StackPanel x:Name="RequestPanel" Margin="20,14,16,16" Width="564" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="RequestPanel" Margin="16" Width="532" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
                     <Grid Height="22">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Fill="{StaticResource NotchOrange}" Margin="0,0,9,0" VerticalAlignment="Center" />
-                            <TextBlock x:Name="RequestKind" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock x:Name="RequestKind" FontSize="13" FontWeight="SemiBold" Foreground="#98989F" VerticalAlignment="Center" />
                         </StackPanel>
                         <TextBlock x:Name="RequestContext" FontSize="12" Foreground="{StaticResource NotchText3}"
                                    HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
-                    <TextBlock x:Name="RequestTitle" Margin="0,10,0,0" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="RequestTitle" Margin="0,4,0,0" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7" TextWrapping="Wrap" />
                     <TextBlock x:Name="RequestMessage" Margin="0,4,0,0" FontSize="13" Foreground="#9BFFFFFF" TextWrapping="Wrap" />
                     <Border x:Name="RequestDetailBox" Margin="0,12,0,0" Background="#12FFFFFF" CornerRadius="12" Padding="12,10">
                         <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -1434,16 +1447,18 @@
                             <TextBlock x:Name="RequestCountdown" Margin="12,0,0,0" FontSize="12" Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="RequestTertiary" Style="{StaticResource NotchPill}" Click="RequestTertiary_Click" />
-                            <Button x:Name="RequestSecondary" Style="{StaticResource NotchPill}" Click="RequestSecondary_Click" />
-                            <Button x:Name="RequestPrimary" Style="{StaticResource NotchPrimaryPill}" Click="RequestPrimary_Click" />
+                            <!-- Board 05: 40 tall, R 20, the last one in the corner (R 20 + 16 = RE). -->
+                            <Button x:Name="RequestTertiary" Style="{StaticResource IslandButton}" Margin="0,0,8,0" Click="RequestTertiary_Click" />
+                            <Button x:Name="RequestSecondary" Style="{StaticResource IslandButton}" Margin="0,0,8,0" Click="RequestSecondary_Click" />
+                            <Button x:Name="RequestPrimary" Style="{StaticResource IslandPrimaryButton}" Click="RequestPrimary_Click" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
 
                 <!-- Activity: steps + live output of the running (or last) turn. -->
-                <StackPanel x:Name="ActivityPanel" Margin="20,12,16,16" Width="564" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged">
+                <StackPanel x:Name="ActivityPanel" Margin="16" Width="532" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" Background="Transparent"
+                            MouseEnter="ActivityPanel_MouseEnter" MouseLeave="ActivityPanel_MouseLeave">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1453,10 +1468,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                            <Run x:Name="ActivityProviderRun" Text="Codex" FontSize="12" FontWeight="SemiBold" />
-                            <Run x:Name="ActivityContextRun" Text="  TheAI" FontSize="12" Foreground="{StaticResource NotchText3}" />
+                            <Run x:Name="ActivityProviderRun" Text="Codex" FontSize="13" FontWeight="SemiBold" Foreground="#98989F" />
+                            <Run x:Name="ActivityContextRun" Text="  TheAI" FontSize="13" Foreground="#7C7C80" />
                         </TextBlock>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <StackPanel x:Name="ActivityTools" Grid.Column="1" Orientation="Horizontal" Opacity="0">
                             <StackPanel x:Name="ActivityPager" Orientation="Horizontal" Margin="0,0,6,0" Visibility="Collapsed">
                                 <Button Style="{StaticResource NotchIconButton}" Width="24" Click="PrevActivity_Click" AutomationProperties.Name="Agent sebelumnya">
                                     <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
@@ -1487,8 +1502,8 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock x:Name="ActivityPrompt" Margin="0,8,0,0" FontSize="13" Foreground="#9BFFFFFF"
-                               TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="ActivityPrompt" Margin="0,2,0,0" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold"
+                               Foreground="#F5F5F7" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis" />
 
                     <ItemsControl x:Name="StepList" Margin="0,10,0,0" Focusable="False">
                         <ItemsControl.ItemTemplate>
@@ -1499,10 +1514,10 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Grid Width="14" Height="14" Margin="0,0,10,0" VerticalAlignment="Center">
-                                        <Path Visibility="{Binding DoneVisibility}" Stroke="#30D158" StrokeThickness="2"
+                                        <Path Visibility="{Binding DoneVisibility}" Stroke="#32D74B" StrokeThickness="2.2"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                               Data="M 2.5,7.5 L 5.6,10.4 L 11.5,3.8" />
-                                        <Ellipse Visibility="{Binding ActiveVisibility}" Width="7" Height="7" Fill="#0A84FF" />
+                                        <Ellipse Visibility="{Binding ActiveVisibility}" Width="11" Height="11" Stroke="#32D74B" StrokeThickness="2" />
                                     </Grid>
                                     <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="13"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -1609,9 +1624,6 @@
             <StackPanel x:Name="PageDots" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1"
                         Visibility="Collapsed" IsHitTestVisible="False">
             </StackPanel>
-            <!-- Rim of the open notch's glass (NotchWindow.Glass.cs): drawn on top, takes no room. -->
-            <Border x:Name="ShellRim" IsHitTestVisible="False" BorderThickness="1" Panel.ZIndex="100"
-                    CornerRadius="{Binding CornerRadius, ElementName=Shell}" Visibility="Collapsed" />
             </Grid>
         </Border>
     </Grid>

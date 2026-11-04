@@ -19,7 +19,7 @@ namespace CodexBar.App;
 // when the track changes. Music and the agent are two pages of the open notch; scrolling switches.
 public partial class NotchWindow
 {
-    private const double MusicWidth = 436;
+    private const double MusicWidth = IslandTokens.WidthM;
     private const double MusicMiniWidth = 340;
     private const double MusicLyricsWidth = 254;   // the lyrics column and its gap
     private const int LyricsBefore = 1;
@@ -154,6 +154,7 @@ public partial class NotchWindow
 
     private void ApplyMusicCompact()
     {
+        QueueCompactObject();
         var music = MusicShowing;
         var track = _media.Current;
         CompactArt.HorizontalAlignment = CompactGlyph.HorizontalAlignment;
@@ -515,6 +516,12 @@ public partial class NotchWindow
             await Task.Delay(100);   // the media session arrives asynchronously
         }
 
+        if (!MusicShowing && Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 })
+        {
+            _media.ShowSample(SampleTrack());   // nothing playing: draw the page with a sample song
+            await Task.Delay(300);
+        }
+
         if (MusicShowing)
         {
             if (mode == "lyrics")
@@ -541,7 +548,7 @@ public partial class NotchWindow
             if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } dir)
             {
                 await Task.Delay(1500);   // let the spring settle
-                SnapshotShell(System.IO.Path.Combine(dir, $"notch-music-{mode}.png"));
+                SnapshotShell(System.IO.Path.Combine(dir, $"notch-music-{mode}.png"), Root);
             }
         }
     }
@@ -558,7 +565,8 @@ public partial class NotchWindow
         using (var context = visual.RenderOpen())
         {
             context.DrawRectangle(System.Windows.Media.Brushes.DimGray, null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
-            context.DrawRectangle(new VisualBrush(target), null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
+            // Absolute viewbox: the element exactly as laid out (a relative one stretches its content bounds to fill).
+            context.DrawRectangle(new VisualBrush(target) { Viewbox = new Rect(target.RenderSize), ViewboxUnits = BrushMappingMode.Absolute }, null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
         }
         bitmap.Render(visual);
         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
@@ -611,12 +619,12 @@ public partial class NotchWindow
                 ApplyView(animate: true);   // a new track without lyrics: the column goes
             }
         }
-        MusicVolumeRow.Visibility = _volume is null ? Visibility.Collapsed : Visibility.Visible;
         MusicVolumeLabel.Text = string.Format(Tr.Text("Volume {0}", "{0} volume"), track.AppName);
         RenderVolume();
         LoadLyrics(track);
         RenderMusicProgress();
         RenderPageDots();
+        ApplyMusicObject();
     }
 
     private void RenderMusicProgress()

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -58,6 +58,13 @@ internal sealed class MediaMonitor : IDisposable
 
     /// <summary>The current track, or null when nothing has a media session.</summary>
     public MediaSnapshot? Current { get; private set; }
+
+    /// <summary>Shows a made-up track (snapshot runs only).</summary>
+    internal void ShowSample(MediaSnapshot sample)
+    {
+        Current = sample;
+        Changed?.Invoke();
+    }
 
     /// <summary>Raised on the UI thread whenever the track, play state or position changes.</summary>
     public event Action? Changed;

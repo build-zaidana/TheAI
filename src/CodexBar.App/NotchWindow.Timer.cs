@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -203,6 +203,7 @@ public partial class NotchWindow
 
     private void ApplyTimerCompact()
     {
+        QueueCompactObject();
         var showing = TimerShowing;
         CompactTimer.HorizontalAlignment = CompactGlyph.HorizontalAlignment;
         CompactTimer.VerticalAlignment = CompactGlyph.VerticalAlignment;
@@ -291,15 +292,18 @@ public partial class NotchWindow
         at.ToLocalTime().ToString("H':'mm", CultureInfo.InvariantCulture);
 
     /// <summary>The notch's usual faint rim; orange while an agent waits on you (board 1).</summary>
-    private void ApplyKeyline() => Shell.BorderBrush = _state == NotchState.Waiting ? WaitingRim : OutlineBrush;
+    // While a live object is out, its surface draws the outline around the island and the object together.
+    private void ApplyKeyline() => Shell.BorderBrush = _liveKind != LiveKind.None ? System.Windows.Media.Brushes.Transparent
+        : _state == NotchState.Waiting ? WaitingRim : OutlineBrush;
 
-    // Board 1: focus in the timer's red, a pomodoro break in green, any other timer in white.
-    private static readonly Brush FocusRingBrush = Frozen(Color.FromRgb(0xFF, 0x6B, 0x5E));
-    private static readonly Brush BreakRingBrush = Frozen(Color.FromRgb(0x4A, 0xDE, 0x80));
+    // Page 2, boards 01 and 06: a countdown in the timer's orange (accent/timer), a pomodoro break in green;
+    // the same colour as the dial, so the pill, the page and the light agree.
+    private static readonly Brush FocusRingBrush = IslandTokens.Frozen(IslandTokens.Timer);
+    private static readonly Brush BreakRingBrush = IslandTokens.Frozen(IslandTokens.Agent);
 
     private Brush TimerBrush() =>
-        _timer.Mode != TimerMode.Pomodoro ? TimerFocusBrush
-        : _timer.Phase == PomodoroPhase.Focus ? FocusRingBrush : BreakRingBrush;
+        _timer.Mode == TimerMode.Stopwatch ? TimerFocusBrush
+        : _timer.Mode == TimerMode.Pomodoro && _timer.Phase != PomodoroPhase.Focus ? BreakRingBrush : FocusRingBrush;
 
     private static SolidColorBrush Tint(Brush brush, byte alpha)
     {
@@ -369,9 +373,11 @@ public partial class NotchWindow
         {
             var brush = TimerBrush();
             var running = _timer.Run == TimerRun.Running;
-            TimerPlayButton.Background = Tint(brush, 0x38);
-            TimerPlayGlyph.Fill = brush;
-            TimerPauseGlyph.Fill = brush;
+            // Board 06: pause is the one filled button while it runs; paused, everything greys.
+            var colour = IslandTokens.Frozen(TimerColour());
+            TimerPlayButton.Background = running ? colour : IslandTokens.Surface1;
+            TimerPlayGlyph.Fill = running ? System.Windows.Media.Brushes.Black : IslandTokens.Text1;
+            TimerPauseGlyph.Fill = TimerPlayGlyph.Fill;
             TimerPlayGlyph.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
             TimerPauseGlyph.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
             System.Windows.Automation.AutomationProperties.SetName(TimerPlayButton, running ? Tr.Text("Jeda", "Pause") : Tr.Text("Lanjut", "Resume"));
@@ -385,8 +391,13 @@ public partial class NotchWindow
             TimerCaptionIcon.Data = icon;
             TimerCaptionIcon.Visibility = typed.Length == 0 && icon is not null ? Visibility.Visible : Visibility.Collapsed;
             TimerBig.Text = result ?? (stopwatch ? NotchTimer.FormatPrecise(_timer.Elapsed(now)) : NotchTimer.Format(_timer.Remaining(now)));
-            TimerBig.Foreground = brush;
-            TimerBig.Opacity = running || result is not null ? 1 : 0.55;
+            TimerBig.Foreground = running || result is not null ? IslandTokens.Text1 : IslandTokens.Text2;
+            TimerBig.Opacity = 1;
+            if (typed.Length == 0)
+            {
+                TimerCaption.Foreground = running ? colour : IslandTokens.Text2;
+            }
+            TimerCaptionIcon.Visibility = Visibility.Collapsed;
         }
 
         // Stopwatch row, stacked under the countdown.
@@ -452,6 +463,10 @@ public partial class NotchWindow
         }
 
         RenderPageDots();
+        if (_view is NotchView.Timer)
+        {
+            ApplyTimerObject();
+        }
     }
 
     // The label slot shows the typed text (white, with a caret) while typing, else its usual label.
@@ -480,7 +495,10 @@ public partial class NotchWindow
     // Words only where an icon can't say it: a label the person typed, or which lap it is.
     private string TimerCaptionText() => _timer.Mode == TimerMode.Stopwatch
         ? (_timer.Laps.Count > 0 ? (_timer.Laps.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : _timer.Label)
-        : _timer.Label;
+        : _timer.Label.Length > 0 ? _timer.Label
+        : _timer.Mode == TimerMode.Pomodoro
+            ? _timer.Phase == PomodoroPhase.Focus ? Tr.Text("Fokus", "Focus") : Tr.Text("Istirahat", "Break")
+            : "Timer";
 
     private Geometry? TimerCaptionIcon_() => _timer.Mode switch
     {
@@ -770,18 +788,19 @@ public partial class NotchWindow
             var nextLength = finished.Mode == TimerMode.Timer ? finished.Duration
                 : nextBreak ? _timer.PhaseLength(_timer.Phase == PomodoroPhase.LongBreak ? PomodoroPhase.LongBreak : PomodoroPhase.ShortBreak)
                 : _timer.FocusLength;
-            TimerDoneIcon.Data = finished.Mode == TimerMode.Timer ? TimerIcon : nextBreak ? BreakIcon : FocusIcon;
-            TimerDoneTitle.Text = finished.Label.Length > 0 && finished.Mode == TimerMode.Timer
-                ? finished.Label
-                : nextLength.TotalMinutes >= 1 && nextLength.TotalSeconds % 60 == 0
-                    ? ((int)nextLength.TotalMinutes).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    : NotchTimer.Format(nextLength);
-            System.Windows.Automation.AutomationProperties.SetName(TimerDoneNext, finished.Mode == TimerMode.Timer
-                ? Tr.Text("Ulangi", "Repeat") : nextBreak ? Tr.Text("Mulai istirahat", "Start the break") : Tr.Text("Fokus lagi", "Focus again"));
-            TimerDoneTitle.Foreground = TimerQuietBrush;
-            TimerDoneDigits.Foreground = accent;
-            TimerDoneNextGlyph.Stroke = accent;
-            TimerDoneNext.Background = Tint(accent, 0x38);
+            // Board 06: a headline, what just finished under it, and the next step as the primary action.
+            var minutes = (int)Math.Round(finished.Duration.TotalMinutes);
+            TimerDoneTitle.Text = finished.Label.Length > 0 && finished.Mode == TimerMode.Timer ? finished.Label : Tr.Text("Waktu habis", "Time's up");
+            TimerDoneSub.Text = finished.Mode == TimerMode.Timer
+                ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Tr.Text("Timer {0} menit selesai", "{0}-minute timer done"), minutes)
+                : finished.Phase == PomodoroPhase.Focus
+                    ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Tr.Text("Fokus {0} menit selesai", "{0} minutes of focus done"), minutes)
+                    : Tr.Text("Istirahat selesai", "Break over");
+            TimerDoneNextText.Text = finished.Mode == TimerMode.Timer
+                ? Tr.Text("Ulangi", "Repeat") : nextBreak ? Tr.Text("Mulai istirahat", "Start the break") : Tr.Text("Fokus lagi", "Focus again");
+            TimerDoneCloseText.Text = Tr.Text("Tutup", "Close");
+            System.Windows.Automation.AutomationProperties.SetName(TimerDoneNext, TimerDoneNextText.Text);
+            _ = nextLength;
         }
 
         TimerRipple1.Stroke = accent;
@@ -859,8 +878,9 @@ public partial class NotchWindow
             });
         }
 
-        // Rings only where there is room under the notch: docked to the top edge.
-        if (Edge == "top")
+        // Rings only where there is room under the notch: docked to the top edge. The top-centre island
+        // has the pulsing dial instead (Page 2), so it stays clean.
+        if (Edge == "top" && !LiveObjectAllowed)
         {
             TimerRipples.Margin = new Thickness(0, height + Shell.Margin.Top, 0, 0);
             TimerRipples.Visibility = Visibility.Visible;
@@ -1002,7 +1022,7 @@ public partial class NotchWindow
                 return;
             }
 
-            SnapshotShell(System.IO.Path.Combine(dir, $"notch-timer-{mode}.png"));
+            SnapshotShell(System.IO.Path.Combine(dir, $"notch-timer-{mode}.png"), Root);
         }
     }
 }
