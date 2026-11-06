@@ -232,6 +232,28 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="IslandChip" TargetType="Button">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Foreground" Value="#F5F5F7" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="#1C1C1E" CornerRadius="14" Padding="12,0">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#2C2C2E" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="IslandPrimaryButton" TargetType="Button" BasedOn="{StaticResource IslandButton}">
             <Setter Property="Foreground" Value="Black" />
             <Setter Property="Background" Value="#F5F5F7" />
@@ -374,27 +396,28 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
+        <!-- Timer modes as chips (Page 2, board 06): 28 tall, R 14, surface/1; the chosen one is white. -->
         <Style x:Key="NotchModeButton" TargetType="Button">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="Foreground" Value="#66FFFFFF" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Foreground" Value="#98989F" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="Transparent" CornerRadius="16">
+                        <Border x:Name="Bg" Background="#1C1C1E" CornerRadius="14">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Width="16" Height="16" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource NotchFill}" />
-                                <Setter Property="Foreground" Value="#CCFFFFFF" />
+                                <Setter TargetName="Bg" Property="Background" Value="#2C2C2E" />
+                                <Setter Property="Foreground" Value="#F5F5F7" />
                             </Trigger>
                             <Trigger Property="Tag" Value="selected">
-                                <Setter TargetName="Bg" Property="Background" Value="#38FFFFFF" />
-                                <Setter Property="Foreground" Value="#F5F5F7" />
+                                <Setter TargetName="Bg" Property="Background" Value="#F5F5F7" />
+                                <Setter Property="Foreground" Value="Black" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -861,24 +884,10 @@
                         </Button>
                     </Grid>
 
-                    <!-- Nothing running: start, the hour / minute / second wheels (or the mode's length), the four modes. -->
+                    <!-- Nothing running (board 06, set up): the modes as chips, the wheels (or the mode's length),
+                         and start as a 40 in the bottom-right corner, concentric with the island's corner. -->
                     <StackPanel x:Name="TimerIdle">
-                        <Grid Margin="0,2,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button x:Name="TimerStartButton" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Background="#38FFFFFF"
-                                    VerticalAlignment="Center" Click="TimerStart_Click" AutomationProperties.Name="Mulai">
-                                <Path Fill="#F5F5F7" Margin="3,0,0,0" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
-                            </Button>
-                            <local:TimeWheel x:Name="TimerWheel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <StackPanel x:Name="TimerIdleShown" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Height="56">
-                                <TextBlock x:Name="TimerIdleCaption" Style="{StaticResource NotchLabel}" Foreground="#99FFFFFF" Margin="0,4,10,0" Visibility="Collapsed" />
-                                <TextBlock x:Name="TimerIdleDigits" Style="{StaticResource NotchDigits}" FontSize="48" Text="25:00" />
-                            </StackPanel>
-                        </Grid>
-                        <StackPanel x:Name="TimerModes" Orientation="Horizontal" Margin="6,10,0,0">
+                        <StackPanel x:Name="TimerModes" Orientation="Horizontal">
                             <Button x:Name="TimerModeTimer" Style="{StaticResource NotchModeButton}" Click="TimerMode_Click" ToolTip="Timer" AutomationProperties.Name="Timer">
                                 <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       Data="M 8,9 m -5.8,0 a 5.8,5.8 0 1 0 11.6,0 a 5.8,5.8 0 1 0 -11.6,0 M 8,9 L 8,6.3 M 6.3,1.8 L 9.7,1.8" />
@@ -896,6 +905,21 @@
                                       Data="M 8,8.8 m -5.4,0 a 5.4,5.4 0 1 0 10.8,0 a 5.4,5.4 0 1 0 -10.8,0 M 8,6.4 L 8,9 L 9.9,9 M 2.2,4.2 L 4.2,2.2 M 13.8,4.2 L 11.8,2.2" />
                             </Button>
                         </StackPanel>
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <local:TimeWheel x:Name="TimerWheel" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                            <StackPanel x:Name="TimerIdleShown" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock x:Name="TimerIdleCaption" FontSize="13" FontWeight="SemiBold" Foreground="#98989F" Visibility="Collapsed" />
+                                <TextBlock x:Name="TimerIdleDigits" Style="{StaticResource NotchDigits}" FontSize="48" Text="25:00" />
+                            </StackPanel>
+                            <Button x:Name="TimerStartButton" Grid.Column="1" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Background="#FF9F0A"
+                                    VerticalAlignment="Bottom" Margin="12,0,0,0" Click="TimerStart_Click" AutomationProperties.Name="Mulai">
+                                <Path Fill="Black" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
+                            </Button>
+                        </Grid>
                     </StackPanel>
 
                     <!-- Keystrokes land here; the row shows them in place of its label, the number shows the result. -->
@@ -1074,34 +1098,37 @@
                 </StackPanel>
 
                 <!-- Clipboard history: tiles of what was copied lately (click = copy, drag = paste, right-click = pin). -->
-                <StackPanel x:Name="ClipPanel" Margin="20,14,26,14" Width="394" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <!-- Clipboard (Page 2 language): a 17 title, the hint under it, cards R 20 on surface/1 three across, P 16. -->
+                <StackPanel x:Name="ClipPanel" Margin="16" Width="408" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Clipboard">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid Margin="0,0,0,10">
+                    <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Clipboard" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
-                        <TextBlock x:Name="ClipHint" Grid.Column="1" FontSize="11.5" Foreground="#99FFFFFF" Margin="12,0,8,0" VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" Text="{local:Tr Klik untuk menyalin · klik kanan untuk menyematkan, En=Click to copy · right-click to pin}" />
-                        <Button Grid.Column="2" Style="{StaticResource NotchTextButton}" Content="{local:Tr Bersihkan, En=Clear}" Click="ClipClear_Click" />
+                        <StackPanel>
+                            <TextBlock Text="{local:Tr Papan klip, En=Clipboard}" FontFamily="{StaticResource SoraFont}" FontSize="17" FontWeight="SemiBold" Foreground="#F5F5F7" />
+                            <TextBlock x:Name="ClipHint" FontSize="13" Foreground="#7C7C80" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                       Text="{local:Tr Klik untuk menyalin · klik kanan untuk menyematkan, En=Click to copy · right-click to pin}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource IslandChip}" VerticalAlignment="Top" Content="{local:Tr Bersihkan, En=Clear}" Click="ClipClear_Click" />
                     </Grid>
-                    <UniformGrid x:Name="ClipTiles" Columns="3" Margin="0,0,-7,-7" />
-                    <TextBlock x:Name="ClipEmpty" Visibility="Collapsed" FontSize="12" Foreground="#99FFFFFF"
+                    <UniformGrid x:Name="ClipTiles" Columns="3" Margin="0,0,-8,-8" />
+                    <TextBlock x:Name="ClipEmpty" Visibility="Collapsed" FontSize="13" Foreground="#98989F"
                                Text="{local:Tr Belum ada yang disalin, En=Nothing copied yet}" />
                 </StackPanel>
 
                 <!-- The machine: CPU, GPU, memory, the system drive. -->
-                <StackPanel x:Name="SystemPanel" Margin="20,12,26,12" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="SystemPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Sistem">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <StackPanel x:Name="SystemRows" />
+                    <!-- Four tiles, two by two, R 20 on surface/1 (corner tiles concentric with RE 36 at P 16). -->
+                    <UniformGrid x:Name="SystemRows" Columns="2" Margin="0,0,-8,-8" />
                 </StackPanel>
 
                 <!-- Reminders & to-dos: the open ones (due first), and a field to add one. -->

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -23,7 +23,7 @@ public partial class NotchWindow
     private readonly DispatcherTimer _systemWatch = new() { Interval = TimeSpan.FromSeconds(30) };
     private readonly SystemAlerts _systemAlerts = new();
     private SystemMonitor? _monitor;
-    private (Border Fill, TextBlock Value)[]? _systemBars;
+    private (Border Fill, TextBlock Value, TextBlock Unit)[]? _systemBars;
 
     private bool SystemPageAvailable => _host.SystemMonitor;
 
@@ -114,58 +114,64 @@ public partial class NotchWindow
         if (_systemBars is null)
         {
             SystemRows.Children.Clear();
-            _systemBars = new[] { "CPU", "GPU", "RAM", "C:" }.Select(AddSystemRow).ToArray();
+            _systemBars = new[] { "CPU", "GPU", Tr.Text("Memori", "Memory"), "C:" }.Select(AddSystemRow).ToArray();
         }
 
         var sample = Monitor.Sample();
-        SetBar(0, sample.Cpu, sample.Cpu is { } cpu ? $"{cpu:0}%" : "—");
-        SetBar(1, sample.Gpu, sample.Gpu is { } gpu ? $"{gpu:0}%" : "—");
-        SetBar(2, sample.MemoryLoad, $"{SystemAlerts.Bytes(sample.MemoryUsed)} / {SystemAlerts.Bytes(sample.MemoryTotal)}");
+        SetBar(0, sample.Cpu, sample.Cpu is { } cpu ? $"{cpu:0}%" : "—", string.Empty);
+        SetBar(1, sample.Gpu, sample.Gpu is { } gpu ? $"{gpu:0}%" : "—", string.Empty);
+        SetBar(2, sample.MemoryLoad, SystemAlerts.Bytes(sample.MemoryUsed), string.Format(Tr.Text("dari {0}", "of {0}"), SystemAlerts.Bytes(sample.MemoryTotal)));
         var diskUsed = sample.DiskTotal > 0 ? 100.0 * (sample.DiskTotal - sample.DiskFree) / sample.DiskTotal : (double?)null;
-        SetBar(3, diskUsed, string.Format(Tr.Text("{0} kosong", "{0} free"), SystemAlerts.Bytes(sample.DiskFree)));
+        SetBar(3, diskUsed, SystemAlerts.Bytes(sample.DiskFree), Tr.Text("kosong", "free"));
     }
 
-    private void SetBar(int index, double? percent, string value)
+    private void SetBar(int index, double? percent, string value, string unit)
     {
-        var (fill, text) = _systemBars![index];
-        var track = fill.Parent is Border bar && bar.ActualWidth > 0 ? bar.ActualWidth : 220;
+        var (fill, text, small) = _systemBars![index];
+        var track = fill.Parent is Border bar && bar.ActualWidth > 0 ? bar.ActualWidth : 140;
         fill.Width = Math.Max(4, track * Math.Clamp(percent ?? 0, 0, 100) / 100);
         // Full memory or a full drive is the one red: a busy CPU or GPU is just busy.
         var warn = index >= 2 && percent >= (index == 2 ? SystemAlerts.MemoryLimit : 100 - SystemAlerts.DiskPercentLimit);
-        fill.Background = warn ? (Brush)FindResource("NotchRed") : TimerFocusBrush;
+        fill.Background = warn ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
         text.Text = value;
-        text.Foreground = warn ? (Brush)FindResource("NotchRed") : TimerFocusBrush;
+        text.Foreground = warn ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
+        small.Text = unit;
     }
 
-    private (Border Fill, TextBlock Value) AddSystemRow(string label)
+    /// <summary>A tile like an iPhone widget: the name, the number large, a thin bar of the load at the bottom.</summary>
+    private (Border Fill, TextBlock Value, TextBlock Unit) AddSystemRow(string label)
     {
-        var grid = new Grid { Height = 32 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(124) });
-        grid.Children.Add(new TextBlock { Text = label, FontSize = 12.5, Foreground = TimerQuietBrush, VerticalAlignment = VerticalAlignment.Center });
-        var fill = new Border { CornerRadius = new CornerRadius(2.5), HorizontalAlignment = HorizontalAlignment.Left, Background = TimerFocusBrush };
-        var bar = new Border
-        {
-            Height = 5,
-            CornerRadius = new CornerRadius(2.5),
-            Background = Frozen(Color.FromArgb(0x2E, 0xFF, 0xFF, 0xFF)),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = fill
-        };
-        Grid.SetColumn(bar, 1);
-        grid.Children.Add(bar);
+        var stack = new StackPanel();
+        stack.Children.Add(new TextBlock { Text = label, FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = IslandTokens.Text2 });
+        var line = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
         var value = new TextBlock
         {
             Style = (Style)FindResource("NotchDigits"),
-            FontSize = 12,
-            TextAlignment = TextAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
+            FontSize = 24,
+            VerticalAlignment = VerticalAlignment.Bottom
         };
-        Grid.SetColumn(value, 2);
-        grid.Children.Add(value);
-        SystemRows.Children.Add(grid);
-        return (fill, value);
+        var unit = new TextBlock { FontSize = 13, Foreground = IslandTokens.Text3, Margin = new Thickness(6, 0, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
+        line.Children.Add(value);
+        line.Children.Add(unit);
+        stack.Children.Add(line);
+        var fill = new Border { CornerRadius = new CornerRadius(2), HorizontalAlignment = HorizontalAlignment.Left, Background = IslandTokens.Text1 };
+        stack.Children.Add(new Border
+        {
+            Height = 4,
+            Margin = new Thickness(0, 10, 0, 0),
+            CornerRadius = new CornerRadius(2),
+            Background = IslandTokens.Surface2,
+            Child = fill
+        });
+        SystemRows.Children.Add(new Border
+        {
+            Margin = new Thickness(0, 0, 8, 8),
+            Padding = new Thickness(16, 14, 16, 16),
+            CornerRadius = new CornerRadius(IslandTokens.Ri),
+            Background = IslandTokens.Surface1,
+            Child = stack
+        });
+        return (fill, value, unit);
     }
 
     // ---- Dev preview ---------------------------------------------------------------------

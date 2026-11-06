@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,7 +27,7 @@ namespace CodexBar.App;
 // skipped — and only pinned texts are written to disk; the rest is forgotten when TheAI quits.
 public partial class NotchWindow
 {
-    private const double ClipWidth = 440;
+    private const double ClipWidth = 440;   // P 16 + three cards and two 8 gaps + P 16
     private const int WmClipboardUpdate = 0x031D;
     private const int ClipShown = 12;
 
@@ -253,12 +253,12 @@ public partial class NotchWindow
             : new TextBlock
             {
                 Text = item.Text!.Trim(),
-                FontSize = 11,
-                LineHeight = 14,
-                Foreground = Frozen(Color.FromArgb(0xD9, 0xFF, 0xFF, 0xFF)),
+                FontSize = 13,
+                LineHeight = 17,
+                Foreground = IslandTokens.Text1,
                 TextWrapping = TextWrapping.Wrap,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(8, 6, 8, 6)
+                Margin = new Thickness(12, 10, 12, 10)
             };
         var grid = new Grid();
         grid.Children.Add(content);
@@ -271,16 +271,16 @@ public partial class NotchWindow
                 Fill = TimerFocusBrush,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 6, 6, 0)
+                Margin = new Thickness(0, 10, 10, 0)
             });
         }
 
         var tile = new Border
         {
-            Height = 56,
-            Margin = new Thickness(0, 0, 7, 7),
-            CornerRadius = new CornerRadius(10),
-            Background = Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            Height = 72,
+            Margin = new Thickness(0, 0, 8, 8),
+            CornerRadius = new CornerRadius(IslandTokens.Ri),
+            Background = IslandTokens.Surface1,
             ClipToBounds = true,
             Cursor = System.Windows.Input.Cursors.Hand,
             Child = grid,
@@ -288,8 +288,8 @@ public partial class NotchWindow
             ToolTip = item.IsImage ? Tr.Text("Gambar", "Image") : item.Text!.Length > 400 ? item.Text[..400] + "…" : item.Text
         };
         System.Windows.Automation.AutomationProperties.SetName(tile, item.IsImage ? Tr.Text("Gambar", "Image") : item.Text!);
-        tile.MouseEnter += (_, _) => tile.Background = Frozen(Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF));
-        tile.MouseLeave += (_, _) => tile.Background = Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+        tile.MouseEnter += (_, _) => tile.Background = IslandTokens.Surface2;
+        tile.MouseLeave += (_, _) => tile.Background = IslandTokens.Surface1;
         tile.MouseLeftButtonDown += (_, e) => _clipDragStart = e.GetPosition(this);
         tile.MouseLeftButtonUp += (_, _) => CopyClip(item);
         tile.MouseMove += (_, e) => DragClip(tile, item, e);
