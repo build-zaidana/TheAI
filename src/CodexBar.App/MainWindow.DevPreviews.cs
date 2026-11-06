@@ -234,6 +234,12 @@ public partial class MainWindow
             _notch.PreviewPalette(palette);
         }
 
+        // CODEXBAR_PREVIEW_SHUTDOWN=idle|run: the Matikan mode or a pending shutdown (nothing is scheduled).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SHUTDOWN") is { Length: > 0 } shutdownPreview && _notch is not null)
+        {
+            _notch.PreviewShutdown(shutdownPreview);
+        }
+
         // CODEXBAR_PREVIEW_SYSTEM=open|alert: the machine page (live numbers) or the low-memory HUD.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SYSTEM") is { Length: > 0 } systemPreview && _notch is not null)
         {

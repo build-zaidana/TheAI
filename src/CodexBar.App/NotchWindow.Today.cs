@@ -56,7 +56,9 @@ public partial class NotchWindow
         var culture = CultureInfo.CurrentCulture;
         TodayRows.Children.Clear();
         // D1: the date is the title; "Today" is implied.
-        TodayDate.Text = now.ToString("dddd, d MMMM", culture);
+        TodayDay.Text = culture.TextInfo.ToTitleCase(now.ToString("dddd", culture));
+        TodayDate.Text = now.ToString("d MMM", culture);
+        TodayMeta.Text = string.Empty;
 
         if (WeatherAvailable)
         {
@@ -91,6 +93,7 @@ public partial class NotchWindow
             var when = next.Start <= now ? Tr.Text("sekarang", "now")
                 : next.Start - now < TimeSpan.FromHours(1) ? string.Format(culture, Tr.Text("{0} mnt lagi", "in {0} min"), (int)Math.Ceiling((next.Start - now).TotalMinutes))
                 : next.Start.ToString("HH:mm", culture);
+            TodayMeta.Text = string.Format(culture, Tr.Text("Berikutnya {0}", "Next {0}"), when);
             AddTodayRow(CalendarGlyph, IslandTokens.Error, next.Title, Tr.Text("Kalender", "Calendar"), when, OpenCalendar);
         }
 
@@ -129,71 +132,58 @@ public partial class NotchWindow
         Content = text
     };
 
+    private void TodayAdd_Click(object sender, RoutedEventArgs e) => OpenReminders(focusInput: true);
+
     /// <summary>
-    /// A 56 row: a 40 item (R 20, surface/1) holding the feature's icon in its colour, a title and an
-    /// optional line under it, and a time or a 40 button on the right. Hover lights the row 8 in from the
-    /// island's side with R 28, concentric with RE 36, and lifts the item and button to surface/2.
+    /// A 40 row under a hairline (board 33), the same as the clipboard's: a 16 glyph in text/3, the title,
+    /// and a time or a small button on the right. The colour stays out of it; the page is one voice.
     /// </summary>
     private void AddTodayRow(Geometry glyph, System.Windows.Media.Color accent, string title, string? sub, object right, Action open, Brush? sideAccent = null)
     {
-        var grid = new Grid { Height = IslandTokens.Row, Background = Brushes.Transparent, Cursor = Cursors.Hand };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(IslandTokens.Btn + 12) });
+        var grid = new Grid { Height = IslandTokens.Btn - 1, Background = Brushes.Transparent, Cursor = Cursors.Hand };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var item = new Border
+        grid.Children.Add(new Path
         {
-            Width = IslandTokens.Btn,
-            Height = IslandTokens.Btn,
-            CornerRadius = new CornerRadius(IslandTokens.Ri),
-            Background = IslandTokens.Surface1,
-            VerticalAlignment = VerticalAlignment.Center,
+            Data = glyph,
+            Width = 16,
+            Height = 16,
+            Stretch = Stretch.Uniform,
+            Stroke = IslandTokens.Text3,
+            StrokeThickness = 1.8,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-            Child = new Path
-            {
-                Data = glyph,
-                Width = 20,
-                Height = 20,
-                Stretch = Stretch.Uniform,
-                Stroke = IslandTokens.Frozen(accent),
-                StrokeThickness = 1.8,
-                StrokeLineJoin = PenLineJoin.Round,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-        grid.Children.Add(item);
+            VerticalAlignment = VerticalAlignment.Center
+        });
 
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(new TextBlock
+        var body = new TextBlock
         {
             Text = title,
-            FontSize = 15,
+            FontSize = 14,
             FontWeight = FontWeights.Medium,
             Foreground = IslandTokens.Text1,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        });
-        if (!string.IsNullOrEmpty(sub))
-        {
-            text.Children.Add(new TextBlock
-            {
-                Text = sub,
-                FontSize = 13,
-                Foreground = IslandTokens.Text2,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            });
-        }
-        Grid.SetColumn(text, 1);
-        grid.Children.Add(text);
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(body, 1);
+        grid.Children.Add(body);
 
+        var label = right as string;
         FrameworkElement side = right as FrameworkElement ?? new TextBlock
         {
-            Text = right as string ?? string.Empty,
-            FontSize = 13,
-            Foreground = sideAccent ?? IslandTokens.Text2,
-            VerticalAlignment = VerticalAlignment.Center
+            Text = string.IsNullOrEmpty(label) ? sub ?? string.Empty : label,
+            FontSize = 12,
+            FontWeight = FontWeights.Medium,
+            Foreground = sideAccent ?? IslandTokens.Text3
         }.WithTabular();
+        if (side is Button small)
+        {
+            small.Style = (Style)FindResource("IslandChip");
+        }
+
         side.Margin = new Thickness(12, 0, 0, 0);
         side.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(side, 2);
@@ -208,32 +198,14 @@ public partial class NotchWindow
         };
         System.Windows.Automation.AutomationProperties.SetName(grid, title);
 
-        // The row sits 8 in from the island's side; its 8 padding puts the item at P 16.
         var row = new Border
         {
-            CornerRadius = new CornerRadius(IslandTokens.RowRadius),
-            Padding = new Thickness(8, 0, 8, 0),
-            Background = Brushes.Transparent,
+            BorderBrush = IslandTokens.Frozen(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(0, 1, 0, 0),
             Child = grid
         };
-        row.MouseEnter += (_, _) =>
-        {
-            row.Background = IslandTokens.Surface1;
-            item.Background = IslandTokens.Surface2;
-            if (side is Button button)
-            {
-                button.Background = IslandTokens.Surface2;
-            }
-        };
-        row.MouseLeave += (_, _) =>
-        {
-            row.Background = Brushes.Transparent;
-            item.Background = IslandTokens.Surface1;
-            if (side is Button button)
-            {
-                button.Background = IslandTokens.Surface1;
-            }
-        };
+        row.MouseEnter += (_, _) => body.Foreground = IslandTokens.Text2;
+        row.MouseLeave += (_, _) => body.Foreground = IslandTokens.Text1;
         TodayRows.Children.Add(row);
     }
 

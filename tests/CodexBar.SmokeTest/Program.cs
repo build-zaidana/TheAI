@@ -732,6 +732,14 @@ static async Task<int> RunDeterministicTestsAsync()
                threadStatus.Status == "active" && threadStatus.ActiveFlags.Contains("waitingOnApproval"),
             "Status thread dan attention flag harus diteruskan ke UI.");
 
+        Assert(ShutdownCommand.TryParse("shutdown -s -t 3600", out var power) && power is { Cancel: false, Seconds: 3600 }, "shutdown -s -t X");
+        Assert(ShutdownCommand.TryParse("SHUTDOWN /s /t 120", out power) && power.Seconds == 120, "shutdown /s /t X");
+        Assert(ShutdownCommand.TryParse("shutdown -s -t 0", out power) && power.Seconds == ShutdownCommand.MinSeconds, "0 seconds is raised to the minimum");
+        Assert(ShutdownCommand.TryParse("matikan 1 jam", out power) && power.Seconds == 3600, "matikan 1 jam");
+        Assert(ShutdownCommand.TryParse("shutdown 30m", out power) && power.Seconds == 1800, "shutdown 30m");
+        Assert(ShutdownCommand.TryParse("shutdown -a", out power) && power.Cancel, "shutdown -a");
+        Assert(!ShutdownCommand.TryParse("25m", out _) && !ShutdownCommand.TryParse("shutdown -r -t 5", out _) && !ShutdownCommand.TryParse("shutdown -s", out _), "other text is not a shutdown");
+        Console.WriteLine("PASS shutdown command");
         Console.WriteLine("PASS deterministic controller/settings/protocol tests");
         return 0;
     }

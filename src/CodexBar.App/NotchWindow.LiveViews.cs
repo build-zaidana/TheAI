@@ -121,40 +121,10 @@ public partial class NotchWindow
     private Color TimerColour() =>
         _timer.Mode == TimerMode.Pomodoro && _timer.Phase != PomodoroPhase.Focus ? IslandTokens.Agent : IslandTokens.Timer;
 
+    // Open pages carry no live object now (boards 31-34): the round things stay small, on the compact pill.
     private void ApplyTimerObject()
     {
-        if (_view == NotchView.TimerDone && _timerDone is { } done && done.Mode != TimerMode.Alarm)
-        {
-            // Time is up: the dial out at 72, full and pulsing at 00, the light at its brightest.
-            var colour = done.Mode == TimerMode.Pomodoro && done.Phase != PomodoroPhase.Focus ? IslandTokens.Agent : IslandTokens.Timer;
-            SetLiveObject(LiveKind.Dial, IslandTokens.ObjectSize / 2, IslandTokens.ObjectTop, IslandTokens.ObjectOut,
-                ("done", colour), r => BuildDial(r, 1, colour, pulse: true, "00"));
-            PlaceTimerText(LiveTextInset(IslandTokens.ObjectSize / 2, IslandTokens.ObjectOut));
-            return;
-        }
-
-        if (_view == NotchView.Timer && _timer.IsActive && _timer.IsCountdown)
-        {
-            var now = DateTimeOffset.Now;
-            var running = _timer.Run == TimerRun.Running;
-            var colour = TimerColour();
-            var arc = running ? colour : Color.FromRgb(0x7C, 0x7C, 0x80);
-            var left = _timer.Remaining(now);
-            var fraction = _timer.Duration > TimeSpan.Zero ? left / _timer.Duration : 0;
-            var text = ((int)Math.Ceiling(left.TotalMinutes)).ToString(System.Globalization.CultureInfo.CurrentCulture);
-            // Running: out 72, the arc drains, the light breathes. Paused: home to 20, grey, no light.
-            var outBy = running ? IslandTokens.ObjectOut : 20;
-            SetLiveObject(LiveKind.Dial, IslandTokens.ObjectSize / 2, IslandTokens.ObjectTop, outBy,
-                ("dial", colour), r => BuildDial(r, fraction, arc, pulse: false, text));
-            UpdateDial(fraction, arc, text);
-            PlaceTimerText(LiveTextInset(IslandTokens.ObjectSize / 2, outBy));
-            return;
-        }
-
-        if (_liveKind == LiveKind.Dial)
-        {
-            ClearLiveObject();
-        }
+        ClearLiveObject();
         PlaceTimerText(IslandTokens.P);
     }
 
@@ -176,32 +146,12 @@ public partial class NotchWindow
 
     private void ApplyAgentObject()
     {
-        if (_view is not (NotchView.Activity or NotchView.Request or NotchView.Quick))
+        if (_view != NotchView.Compact)
         {
-            if (_liveKind == LiveKind.Orb)
-            {
-                ClearLiveObject();
-            }
-            PlaceAgentText(IslandTokens.P);
-            return;
+            ClearLiveObject();
         }
 
-        var state = _view is NotchView.Request or NotchView.Quick ? OrbState.Wait : _state switch
-        {
-            NotchState.Working => OrbState.Working,
-            NotchState.Waiting => OrbState.Wait,
-            NotchState.Error => OrbState.Error,
-            _ => OrbState.Done
-        };
-        var colour = state switch
-        {
-            OrbState.Wait => IslandTokens.Wait,
-            OrbState.Error => IslandTokens.Error,
-            _ => IslandTokens.Agent
-        };
-        SetLiveObject(LiveKind.Orb, IslandTokens.ObjectSize / 2, IslandTokens.ObjectTop, IslandTokens.ObjectOut,
-            ("orb", state), r => BuildOrb(r, colour, state));
-        PlaceAgentText(LiveTextInset(IslandTokens.ObjectSize / 2, IslandTokens.ObjectOut));
+        PlaceAgentText(IslandTokens.P);
     }
 
     /// <summary>The agent's text starts 16 after the orb's edge (board 05), or at P 16 without it.</summary>
@@ -250,50 +200,10 @@ public partial class NotchWindow
 
     private void ApplyMusicObject()
     {
+        ClearLiveObject();
         var track = _media.Current;
-        if (_view != NotchView.Music || _musicMini || track is null)
-        {
-            if (_liveKind == LiveKind.Record)
-            {
-                ClearLiveObject();
-            }
-
-            return;
-        }
-
-        if (_musicColoursFor != track.TrackKey)
-        {
-            (_musicC1, _musicC2) = StrongColours(track.Art, IslandTokens.Music);
-            _musicColoursFor = track.TrackKey;
-        }
-
-        var playing = track.IsPlaying;
-        Brush label = track.Art is { } art
-            ? new ImageBrush(art) { Stretch = Stretch.UniformToFill }
-            : new LinearGradientBrush(_musicC1, _musicC2, 45);
-        // Playing: the record is out 86 and spins, its light on. Paused: it slides home to 24 and stops.
-        SetLiveObject(LiveKind.Record, 60, 68, playing ? 86 : 24, track.TrackKey,
-            r => BuildRecord(r, label, _musicC1, playing));
-        SpinRecord(playing);
-        MusicProgressFill.Background = playing ? IslandTokens.Frozen(_musicC1) : IslandTokens.Text3;
-    }
-
-    // Board 04, scrubbing: under the pointer the bar grows 4 -> 8; seeking only when the player allows it.
-    private void MusicProgress_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
-    {
-        if (_media.Current?.CanSeek != true)
-        {
-            return;
-        }
-
-        MusicProgressTrack.Height = MusicProgressFill.Height = 8;
-        MusicProgressTrack.CornerRadius = MusicProgressFill.CornerRadius = new CornerRadius(4);
-    }
-
-    private void MusicProgress_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
-    {
-        MusicProgressTrack.Height = MusicProgressFill.Height = 4;
-        MusicProgressTrack.CornerRadius = MusicProgressFill.CornerRadius = new CornerRadius(2);
+        MusicWave.Seed = track?.TrackKey ?? string.Empty;
+        MusicWave.Playing = _view == NotchView.Music && track is { IsPlaying: true };
     }
 
     /// <summary>A song to draw the page with when nothing is playing (snapshot runs only; nothing is played).</summary>

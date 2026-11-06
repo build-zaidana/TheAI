@@ -63,6 +63,7 @@ public partial class NotchWindow
         RequestTertiary.Visibility = Visibility.Visible;
         RequestLink.Content = Tr.Text("Tolak & hentikan", "Decline & stop");
         RequestLink.Visibility = Visibility.Visible;
+        ShowRequestRisk(LooksRisky(detail));
         _requestUrl = null;
         _requestDeadline = null;
 
@@ -95,6 +96,7 @@ public partial class NotchWindow
         RequestPrimary.Content = Tr.Text("Lanjutkan", "Continue");
         RequestSecondary.Content = Tr.Text("Batal", "Cancel");
         RequestTertiary.Visibility = Visibility.Collapsed;
+        ShowRequestRisk(false);
         _requestUrl = Uri.TryCreate(input.ActionUrl, UriKind.Absolute, out var url) && url.Scheme is "https" or "http" ? url : null;
         RequestLink.Content = _requestUrl is null ? string.Empty : Tr.Text($"Buka {_requestUrl.Host} ↗", $"Open {_requestUrl.Host} ↗");
         RequestLink.Visibility = _requestUrl is null ? Visibility.Collapsed : Visibility.Visible;
@@ -531,5 +533,27 @@ public partial class NotchWindow
         }
         ApplyView(animate: true);
         UpdateVisibility();
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex RiskyWords = new(
+        @"\brm\s+-\w*r|\b(rmdir|rd|del)\s+/s|Remove-Item\b.*-Recurse|\bformat\s+[a-z]:|git\s+push\b.*--force|git\s+reset\s+--hard|\bshutdown\b|\bdrop\s+(table|database)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static bool LooksRisky(string detail) => RiskyWords.IsMatch(detail);
+
+    /// <summary>Board 34: something that can't be taken back turns the page around: declining is the white button, allowing is red, and "for the session" isn't offered.</summary>
+    private void ShowRequestRisk(bool risky)
+    {
+        var red = IslandTokens.Frozen(IslandTokens.Error);
+        RequestDot.Fill = risky ? red : IslandTokens.Frozen(IslandTokens.Wait);
+        if (risky)
+        {
+            RequestKind.Text += Tr.Text(" · berisiko", " · risky");
+        }
+
+        RequestSecondary.Visibility = risky ? Visibility.Collapsed : Visibility.Visible;
+        RequestTertiary.Style = (Style)FindResource(risky ? "IslandPrimaryButton" : "IslandButton");
+        RequestPrimary.Background = risky ? IslandTokens.Frozen(System.Windows.Media.Color.FromArgb(0x2E, 0xFF, 0x45, 0x3A)) : IslandTokens.Text1;
+        RequestPrimary.Foreground = risky ? red : System.Windows.Media.Brushes.Black;
     }
 }

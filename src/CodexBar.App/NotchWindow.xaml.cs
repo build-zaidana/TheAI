@@ -168,8 +168,8 @@ public partial class NotchWindow : Window
     private const double IdleWidth = 150;
     private const double CompactWidth = 196;
     private const double LauncherWidth = 560;
-    private const double ActivityWidth = IslandTokens.WidthL;
-    private const double QuickWidth = 384;   // the orb takes 48 on the left (board 05)
+    private const double ActivityWidth = IslandTokens.WidthM;
+    private const double QuickWidth = IslandTokens.WidthM;
     private const int MaxSteps = 4;
     private const int MaxOutputChars = 700;
 

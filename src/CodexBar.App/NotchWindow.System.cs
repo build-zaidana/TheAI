@@ -23,7 +23,12 @@ public partial class NotchWindow
     private readonly DispatcherTimer _systemWatch = new() { Interval = TimeSpan.FromSeconds(30) };
     private readonly SystemAlerts _systemAlerts = new();
     private SystemMonitor? _monitor;
-    private (Border Fill, TextBlock Value, TextBlock Unit)[]? _systemBars;
+    private readonly List<double>[] _systemHistory = [[], [], [], []];
+    private (System.Windows.Controls.Button Button, TextBlock Value)[]? _systemFoot;
+    private int _systemPick;
+    private bool _systemPickedByHand;
+    private int _systemTicks;
+    private string? _systemHog;
 
     private bool SystemPageAvailable => _host.SystemMonitor;
 
@@ -111,70 +116,143 @@ public partial class NotchWindow
 
     private void RenderSystem()
     {
-        if (_systemBars is null)
+        if (_systemFoot is null)
         {
             SystemRows.Children.Clear();
-            _systemBars = new[] { "CPU", "GPU", Tr.Text("Memori", "Memory"), "C:" }.Select(AddSystemRow).ToArray();
+            _systemFoot = new[] { "CPU", "GPU", Tr.Text("Memori", "Memory"), "Disk C:" }.Select(AddSystemFoot).ToArray();
         }
 
         var sample = Monitor.Sample();
-        SetBar(0, sample.Cpu, sample.Cpu is { } cpu ? $"{cpu:0}%" : "—", string.Empty);
-        SetBar(1, sample.Gpu, sample.Gpu is { } gpu ? $"{gpu:0}%" : "—", string.Empty);
-        SetBar(2, sample.MemoryLoad, SystemAlerts.Bytes(sample.MemoryUsed), string.Format(Tr.Text("dari {0}", "of {0}"), SystemAlerts.Bytes(sample.MemoryTotal)));
         var diskUsed = sample.DiskTotal > 0 ? 100.0 * (sample.DiskTotal - sample.DiskFree) / sample.DiskTotal : (double?)null;
-        SetBar(3, diskUsed, SystemAlerts.Bytes(sample.DiskFree), Tr.Text("kosong", "free"));
-    }
-
-    private void SetBar(int index, double? percent, string value, string unit)
-    {
-        var (fill, text, small) = _systemBars![index];
-        var track = fill.Parent is Border bar && bar.ActualWidth > 0 ? bar.ActualWidth : 140;
-        fill.Width = Math.Max(4, track * Math.Clamp(percent ?? 0, 0, 100) / 100);
-        // Full memory or a full drive is the one red: a busy CPU or GPU is just busy.
-        var warn = index >= 2 && percent >= (index == 2 ? SystemAlerts.MemoryLimit : 100 - SystemAlerts.DiskPercentLimit);
-        fill.Background = warn ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
-        text.Text = value;
-        text.Foreground = warn ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
-        small.Text = unit;
-    }
-
-    /// <summary>A tile like an iPhone widget: the name, the number large, a thin bar of the load at the bottom.</summary>
-    private (Border Fill, TextBlock Value, TextBlock Unit) AddSystemRow(string label)
-    {
-        var stack = new StackPanel();
-        stack.Children.Add(new TextBlock { Text = label, FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = IslandTokens.Text2 });
-        var line = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
-        var value = new TextBlock
+        double?[] readings = [sample.Cpu, sample.Gpu, sample.MemoryLoad, diskUsed];
+        var values = new[]
         {
-            Style = (Style)FindResource("NotchDigits"),
-            FontSize = 24,
-            VerticalAlignment = VerticalAlignment.Bottom
+            sample.Cpu is { } cpu ? $"{cpu:0} %" : "— %",
+            sample.Gpu is { } gpu ? $"{gpu:0} %" : "— %",
+            SystemAlerts.Bytes(sample.MemoryUsed),
+            SystemAlerts.Bytes(sample.DiskFree)
         };
-        var unit = new TextBlock { FontSize = 13, Foreground = IslandTokens.Text3, Margin = new Thickness(6, 0, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
-        line.Children.Add(value);
-        line.Children.Add(unit);
-        stack.Children.Add(line);
-        var fill = new Border { CornerRadius = new CornerRadius(2), HorizontalAlignment = HorizontalAlignment.Left, Background = IslandTokens.Text1 };
-        stack.Children.Add(new Border
+
+        // Full memory or a full drive is the one red: a busy CPU or GPU is just busy.
+        var memoryFull = sample.MemoryLoad >= SystemAlerts.MemoryLimit;
+        var diskFull = diskUsed >= 100 - SystemAlerts.DiskPercentLimit;
+        var pick = _systemPickedByHand ? _systemPick : memoryFull ? 2 : diskFull ? 3 : _systemPick;
+        var warn = (pick == 2 && memoryFull) || (pick == 3 && diskFull);
+        var colour = warn ? IslandTokens.Error : System.Windows.Media.Color.FromRgb(0xF5, 0xF5, 0xF7);
+        var moved = pick != _systemPick || SystemLine.Colour != colour;
+        _systemPick = pick;
+
+        for (var i = 0; i < 4; i++)
         {
-            Height = 4,
-            Margin = new Thickness(0, 10, 0, 0),
-            CornerRadius = new CornerRadius(2),
-            Background = IslandTokens.Surface2,
-            Child = fill
-        });
-        SystemRows.Children.Add(new Border
+            var history = _systemHistory[i];
+            var reading = readings[i] ?? 0;
+            if (history.Count == 0)
+            {
+                history.AddRange(Enumerable.Repeat(reading, 40));   // the line starts level, then moves
+                moved = true;
+            }
+
+            history.Add(reading);
+            if (history.Count > 41)
+            {
+                history.RemoveAt(0);
+            }
+
+            var (button, value) = _systemFoot[i];
+            button.Tag = i == pick ? "selected" : null;
+            value.Text = values[i];
+            button.Foreground = i == pick && warn ? IslandTokens.Frozen(IslandTokens.Error) : null;
+            if (i != pick || !warn)
+            {
+                button.ClearValue(ForegroundProperty);
+            }
+        }
+
+        SystemLine.Colour = colour;
+        if (moved)
         {
-            Margin = new Thickness(0, 0, 8, 8),
-            Padding = new Thickness(16, 14, 16, 16),
-            CornerRadius = new CornerRadius(IslandTokens.Ri),
-            Background = IslandTokens.Surface1,
-            Child = stack
-        });
-        return (fill, value, unit);
+            SystemLine.Show(_systemHistory[pick]);
+        }
+        else
+        {
+            SystemLine.Push(_systemHistory[pick][^1]);
+        }
+
+        var parts = values[pick].Split(' ');
+        SystemValue.Text = parts[0];
+        SystemValue.Foreground = warn ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
+        SystemUnit.Text = parts.Length > 1 ? parts[1] : string.Empty;
+        SystemLabel.Text = new[] { "CPU", "GPU", Tr.Text("Memori", "Memory"), "Disk C:" }[pick];
+        if (pick == 2 && warn)
+        {
+            FindSystemHog();
+        }
+
+        SystemMeta.Text = pick switch
+        {
+            2 when warn && _systemHog is not null => _systemHog,
+            2 => string.Format(Tr.Text("dari {0}", "of {0}"), SystemAlerts.Bytes(sample.MemoryTotal)),
+            3 => Tr.Text("kosong", "free"),
+            _ => Tr.Text("Satu menit terakhir", "The last minute")
+        };
     }
 
-    // ---- Dev preview ---------------------------------------------------------------------
+    /// <summary>Which app holds the most memory: looked at every 15 s while memory is the problem.</summary>
+    private void FindSystemHog()
+    {
+        if (_systemTicks++ % 10 != 0)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            var usage = new Dictionary<string, long>();
+            foreach (var process in System.Diagnostics.Process.GetProcesses())
+            {
+                using (process)
+                {
+                    try
+                    {
+                        usage[process.ProcessName] = usage.GetValueOrDefault(process.ProcessName) + process.WorkingSet64;
+                    }
+                    catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+                    {
+                        // Gone already, or not ours to read.
+                    }
+                }
+            }
+
+            return usage.Count == 0 ? null : (KeyValuePair<string, long>?)usage.MaxBy(pair => pair.Value);
+        }).ContinueWith(task =>
+        {
+            if (task.Result is { } hog)
+            {
+                _systemHog = string.Format(Tr.Text("{0} memakai {1}", "{0} uses {1}"), hog.Key, SystemAlerts.Bytes((ulong)hog.Value));
+            }
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private (System.Windows.Controls.Button, TextBlock) AddSystemFoot(string label, int index)
+    {
+        var last = index == 3;
+        var align = last ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        var value = new TextBlock { Style = (Style)FindResource("IslandFootValue"), HorizontalAlignment = align };
+        var stack = new StackPanel();
+        stack.Children.Add(new TextBlock { Style = (Style)FindResource("IslandFootLabel"), Text = label, HorizontalAlignment = align });
+        stack.Children.Add(value);
+        var button = new System.Windows.Controls.Button { Style = (Style)FindResource("IslandFootButton"), Content = stack };
+        System.Windows.Automation.AutomationProperties.SetName(button, label);
+        button.Click += (_, _) =>
+        {
+            _systemPick = index;
+            _systemPickedByHand = true;
+            SystemLine.Show(_systemHistory[index]);
+            RenderSystem();
+        };
+        SystemRows.Children.Add(button);
+        return (button, value);
+    }
 
     internal async void PreviewSystem(string mode)
     {

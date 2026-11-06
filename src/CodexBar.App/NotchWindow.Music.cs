@@ -452,7 +452,7 @@ public partial class NotchWindow
         for (var element = e.OriginalSource as DependencyObject; element is not null and not NotchWindow;
              element = element is Visual ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element))
         {
-            if (element is TimeWheel)
+            if (element is RulerPicker)
             {
                 return;   // the time wheels turn under the mouse wheel
             }
@@ -587,7 +587,7 @@ public partial class NotchWindow
 
         MusicTitle.Text = track.Title.Length > 0 ? track.Title : track.Album;
         MusicArtist.Text = track.Artist;
-        MusicSource.Text = string.Format(Tr.Text("dari {0}", "from {0}"), track.AppName);
+        MusicSource.Text = track.AppName;
         if (track.Art is { } art)
         {
             MusicArt.Background = new ImageBrush(art) { Stretch = Stretch.UniformToFill };
@@ -641,11 +641,12 @@ public partial class NotchWindow
         if (_barDrag != MusicProgress)
         {
             MusicProgressFill.Width = Math.Max(0, MusicProgress.ActualWidth * fraction);
+            MusicWave.Progress = fraction;
         }
 
         MusicElapsed.Text = FormatTime(position);
         RenderVolume();   // the bars only have a width once laid out
-        MusicRemaining.Text = known ? "-" + FormatTime(track.Duration - position) : string.Empty;
+        MusicRemaining.Text = known ? FormatTime(track.Duration - position) : string.Empty;
 
         RenderLyrics(track, position);
     }
@@ -811,6 +812,7 @@ public partial class NotchWindow
         else
         {
             MusicProgressFill.Width = width * fraction;
+            MusicWave.Progress = fraction;
             MusicElapsed.Text = FormatTime(track.Duration * fraction);
             if (commit && track.Duration > TimeSpan.Zero)
             {

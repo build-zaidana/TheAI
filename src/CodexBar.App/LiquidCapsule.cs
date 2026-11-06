@@ -81,7 +81,7 @@ public sealed class LiquidCapsule : Grid
     {
         _enabled = enabled;
         Opacity = enabled ? 1 : 0.4;
-        if (spring)
+        if (spring && Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is not { Length: > 0 })
         {
             _surface.Level = percent / 100.0;
         }

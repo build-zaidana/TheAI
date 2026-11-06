@@ -27,15 +27,16 @@ namespace CodexBar.App;
 // skipped — and only pinned texts are written to disk; the rest is forgotten when TheAI quits.
 public partial class NotchWindow
 {
-    private const double ClipWidth = 440;   // P 16 + three cards and two 8 gaps + P 16
+    private const double ClipWidth = IslandTokens.WidthM;
     private const int WmClipboardUpdate = 0x031D;
-    private const int ClipShown = 12;
+    private const int ClipShown = 13;   // the newest as the title, twelve rows under it
 
     private readonly ClipboardHistory _clips = new();
     private readonly DispatcherTimer _clipRead = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private bool _clipListening;
     private string? _clipSelf;   // what TheAI just put on the clipboard itself
     private Point _clipDragStart;
+    private readonly Dictionary<string, string> _clipSources = [];   // item id -> the app it came from
 
     private static string ClipPinsPath => Path.Combine(
         CodexBar.Providers.AppPaths.DataRoot, "clipboard-pins.json");
@@ -160,6 +161,11 @@ public partial class NotchWindow
                 DiagnosticsLog.Info("Clipboard", $"kept {(_clips.Items[0].IsImage ? "image" : "text")}, {_clips.Items.Count} in history");
             }
 
+            if (ForegroundAppName() is { } source)
+            {
+                _clipSources[_clips.Items[0].Id] = source;
+            }
+
             if (_view == NotchView.Clipboard)
             {
                 RenderClipboard();
@@ -237,74 +243,163 @@ public partial class NotchWindow
     private void RenderClipboard()
     {
         ClipTiles.Children.Clear();
-        foreach (var item in _clips.Items.Take(ClipShown))
+        var items = _clips.Items.Take(ClipShown).ToList();
+        ClipCopyButton.Visibility = items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ClipThumb.Visibility = Visibility.Collapsed;
+        if (items.Count == 0)
         {
-            ClipTiles.Children.Add(BuildClipTile(item));
+            ClipTitle.Text = Tr.Text("Belum ada salinan", "Nothing copied yet");
+            ClipSub.Text = Tr.Text("Salin apa saja, nanti muncul di sini", "Copy anything, it shows up here");
+            ClipHint.Text = string.Empty;
+            RenderPageDots();
+            return;
         }
 
-        ClipEmpty.Visibility = _clips.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var newest = items[0];
+        var (title, sub) = ClipHeadline(newest);
+        ClipTitle.Text = title;
+        ClipSub.Text = sub;
+        ClipHint.Text = ClipOrigin(newest);
+        if (newest.IsImage)
+        {
+            ClipThumb.Background = new ImageBrush(DecodePng(newest.Png!, 128)) { Stretch = Stretch.UniformToFill };
+            ClipThumb.Visibility = Visibility.Visible;
+        }
+
+        foreach (var item in items.Skip(1))
+        {
+            ClipTiles.Children.Add(BuildClipRow(item));
+        }
+
         RenderPageDots();
     }
 
-    private FrameworkElement BuildClipTile(ClipItem item)
+    private void ClipCopy_Click(object sender, RoutedEventArgs e)
     {
-        FrameworkElement content = item.IsImage
-            ? new Image { Source = DecodePng(item.Png!, 240), Stretch = Stretch.UniformToFill }
-            : new TextBlock
-            {
-                Text = item.Text!.Trim(),
-                FontSize = 13,
-                LineHeight = 17,
-                Foreground = IslandTokens.Text1,
-                TextWrapping = TextWrapping.Wrap,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(12, 10, 12, 10)
-            };
-        var grid = new Grid();
-        grid.Children.Add(content);
-        if (item.Pinned)
+        if (_clips.Items.Count > 0)
         {
-            grid.Children.Add(new System.Windows.Shapes.Ellipse
-            {
-                Width = 6,
-                Height = 6,
-                Fill = TimerFocusBrush,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 10, 10, 0)
-            });
+            CopyClip(_clips.Items[0]);
+        }
+    }
+
+    private string ClipOrigin(ClipItem item)
+    {
+        var when = ClipAge(item.At);
+        return _clipSources.TryGetValue(item.Id, out var source) ? $"{source} · {when}" : when;
+    }
+
+    private static string ClipAge(DateTimeOffset at)
+    {
+        var age = DateTimeOffset.Now - at;
+        return age.TotalMinutes < 1 ? Tr.Text("baru saja", "just now")
+            : age.TotalHours < 1 ? string.Format(Tr.Text("{0} mnt", "{0} min"), (int)age.TotalMinutes)
+            : age.TotalDays < 1 ? string.Format(Tr.Text("{0} jam", "{0} h"), (int)age.TotalHours)
+            : Tr.Text("kemarin", "yesterday");
+    }
+
+    private (string Title, string Sub) ClipHeadline(ClipItem item)
+    {
+        if (item.IsImage)
+        {
+            return (Tr.Text("Gambar", "Image"), Tr.Text("Salin untuk menempelkannya", "Copy to paste it"));
         }
 
-        var tile = new Border
+        var text = item.Text!.Trim();
+        var line = text.Split('\n')[0].Trim();
+        if (Uri.TryCreate(line, UriKind.Absolute, out var url) && url.Scheme is "http" or "https")
         {
-            Height = 72,
-            Margin = new Thickness(0, 0, 8, 8),
-            CornerRadius = new CornerRadius(IslandTokens.Ri),
-            Background = IslandTokens.Surface1,
-            ClipToBounds = true,
-            Cursor = System.Windows.Input.Cursors.Hand,
-            Child = grid,
-            Tag = item.Id,
-            ToolTip = item.IsImage ? Tr.Text("Gambar", "Image") : item.Text!.Length > 400 ? item.Text[..400] + "…" : item.Text
+            var path = url.AbsolutePath.Trim('/');
+            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return (parts.Length >= 2 ? $"{parts[0]}/{parts[1]}" : parts.Length == 1 ? parts[0] : url.Host, url.Host + (parts.Length > 2 ? " · " + string.Join('/', parts.Skip(2)) : string.Empty));
+        }
+
+        return (line, ClipKindName(text));
+    }
+
+    private static string ClipKindName(string text) =>
+        IsClipColour(text) ? Tr.Text("Warna", "Colour")
+        : IsClipCommand(text) ? Tr.Text("Perintah", "Command")
+        : string.Format(Tr.Text("Teks · {0} karakter", "Text · {0} characters"), text.Length);
+
+    private static bool IsClipColour(string text) =>
+        text.Length is 4 or 7 or 9 && text[0] == '#' && text.Skip(1).All(Uri.IsHexDigit);
+
+    private static bool IsClipCommand(string text) =>
+        !text.Contains('\n') && new[] { "git ", "dotnet ", "npm ", "pnpm ", "cd ", "curl ", "python ", "winget ", "ssh " }.Any(start => text.StartsWith(start, StringComparison.Ordinal));
+
+    private FrameworkElement BuildClipRow(ClipItem item)
+    {
+        var text = item.IsImage ? Tr.Text("Gambar", "Image") : item.Text!.Trim().Split('\n')[0];
+        var grid = new Grid { Height = 39, Background = System.Windows.Media.Brushes.Transparent };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        FrameworkElement mark;
+        if (item.IsImage)
+        {
+            mark = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(5), Background = new ImageBrush(DecodePng(item.Png!, 48)) { Stretch = Stretch.UniformToFill } };
+        }
+        else if (IsClipColour(text) && System.Windows.Media.ColorConverter.ConvertFromString(text) is Color swatch)
+        {
+            mark = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(5), Background = IslandTokens.Frozen(swatch) };
+        }
+        else
+        {
+            mark = new System.Windows.Shapes.Ellipse { Width = 6, Height = 6, Margin = new Thickness(5, 0, 0, 0), Fill = item.Pinned ? TimerFocusBrush : IslandTokens.Text3 };
+        }
+
+        mark.HorizontalAlignment = HorizontalAlignment.Left;
+        mark.VerticalAlignment = VerticalAlignment.Center;
+        grid.Children.Add(mark);
+
+        var body = new TextBlock
+        {
+            Text = text,
+            FontSize = 14,
+            FontWeight = FontWeights.Medium,
+            Foreground = IslandTokens.Text1,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
         };
-        System.Windows.Automation.AutomationProperties.SetName(tile, item.IsImage ? Tr.Text("Gambar", "Image") : item.Text!);
-        tile.MouseEnter += (_, _) => tile.Background = IslandTokens.Surface2;
-        tile.MouseLeave += (_, _) => tile.Background = IslandTokens.Surface1;
-        tile.MouseLeftButtonDown += (_, e) => _clipDragStart = e.GetPosition(this);
-        tile.MouseLeftButtonUp += (_, _) => CopyClip(item);
-        tile.MouseMove += (_, e) => DragClip(tile, item, e);
-        tile.MouseRightButtonUp += (_, e) =>
+        if (IsClipCommand(text))
+        {
+            body.FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas");
+            body.FontSize = 13;
+        }
+
+        Grid.SetColumn(body, 1);
+        grid.Children.Add(body);
+        var when = new TextBlock { Text = ClipAge(item.At), FontSize = 12, FontWeight = FontWeights.Medium, Foreground = IslandTokens.Text3, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(when, 2);
+        grid.Children.Add(when);
+
+        var row = new Border
+        {
+            BorderBrush = IslandTokens.Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(0, 1, 0, 0),
+            Child = grid,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Tag = item.Id,
+            ToolTip = item.IsImage ? text : item.Text!.Length > 400 ? item.Text[..400] + "…" : item.Text
+        };
+        System.Windows.Automation.AutomationProperties.SetName(row, text);
+        row.MouseEnter += (_, _) => body.Foreground = IslandTokens.Text2;
+        row.MouseLeave += (_, _) => body.Foreground = IslandTokens.Text1;
+        row.MouseLeftButtonDown += (_, e) => _clipDragStart = e.GetPosition(this);
+        row.MouseLeftButtonUp += (_, _) => CopyClip(item);
+        row.MouseMove += (_, e) => DragClip(row, item, e);
+        row.MouseRightButtonUp += (_, e) =>
         {
             TogglePin(item);
             e.Handled = true;
         };
-        // From the keyboard too: Tab to a tile, Enter / Space copies it, P (or the menu key) pins it.
-        tile.Focusable = true;
-        tile.FocusVisualStyle = null;
-        tile.GotKeyboardFocus += (_, _) => tile.BorderThickness = new Thickness(1.5);
-        tile.LostKeyboardFocus += (_, _) => tile.BorderThickness = new Thickness(0);
-        tile.BorderBrush = TimerFocusBrush;
-        tile.KeyDown += (_, e) =>
+        // From the keyboard too: Tab to a row, Enter / Space copies it, P (or the menu key) pins it.
+        row.Focusable = true;
+        row.FocusVisualStyle = null;
+        row.GotKeyboardFocus += (_, _) => body.Foreground = TimerFocusBrush;
+        row.LostKeyboardFocus += (_, _) => body.Foreground = IslandTokens.Text1;
+        row.KeyDown += (_, e) =>
         {
             if (e.Key is Key.Enter or Key.Space)
             {
@@ -317,9 +412,25 @@ public partial class NotchWindow
                 e.Handled = true;
             }
         };
-        System.Windows.Automation.AutomationProperties.SetHelpText(tile,
+        System.Windows.Automation.AutomationProperties.SetHelpText(row,
             Tr.Text("Enter untuk menyalin, P untuk menyematkan", "Enter to copy, P to pin"));
-        return tile;
+        return row;
+    }
+
+    /// <summary>The app that was in front when something was copied, by its own name.</summary>
+    private static string? ForegroundAppName()
+    {
+        try
+        {
+            GetWindowThreadProcessId(GetForegroundWindow(), out int id);
+            using var process = System.Diagnostics.Process.GetProcessById(id);
+            var name = process.ProcessName;
+            return name.Length == 0 ? null : char.ToUpperInvariant(name[0]) + name[1..];
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
     }
 
     private void TogglePin(ClipItem item)
@@ -345,7 +456,7 @@ public partial class NotchWindow
                 Clipboard.SetText(item.Text!);
             }
 
-            ClipHint.Text = Tr.Text("Tersalin — tempel di mana saja", "Copied — paste anywhere");
+            ClipHint.Text = Tr.Text("Tersalin", "Copied");
         }
         catch (Exception exception) when (exception is COMException or ExternalException)
         {

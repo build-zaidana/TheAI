@@ -142,6 +142,9 @@ public sealed class GooSurface : FrameworkElement
 
     private static bool ReducedMotion => !SystemParameters.ClientAreaAnimation;
 
+    // Snapshot runs draw even when the notch is hidden (a full-screen app in front), and without the spring.
+    private static readonly bool SnapshotRun = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 };
+
     private double Edge(double along)
     {
         var at = Span.Empty + ((Span.Full - Span.Empty) * _level);
@@ -248,7 +251,7 @@ public sealed class GooSurface : FrameworkElement
     {
         var w = ActualWidth;
         var h = ActualHeight;
-        if (w < 1 || h < 1 || !IsVisible)
+        if (w < 1 || h < 1 || (!IsVisible && !SnapshotRun))
         {
             return;
         }

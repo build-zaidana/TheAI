@@ -18,7 +18,7 @@ namespace CodexBar.App;
 // no supported way to flip them from an app.
 public partial class NotchWindow
 {
-    private const double ControlWidth = IslandTokens.WidthS;
+    private const double ControlWidth = IslandTokens.WidthM;
 
     private sealed record ControlTile(string Label, string Caption, Geometry Glyph, Color On, Func<bool> IsOn, Func<Task> Tap);
 
@@ -36,7 +36,7 @@ public partial class NotchWindow
             ToggleMicMute();
             return Task.CompletedTask;
         }),
-        new(Tr.Text("Timer 25 menit", "25-minute timer"), "Timer 25", Icons.Timer, Color.FromRgb(0xFF, 0x6B, 0x5E), () => TimerShowing, () =>
+        new(Tr.Text("Timer 25 menit", "25-minute timer"), "Timer 25", Icons.Timer, Color.FromRgb(0xFF, 0x6B, 0x5E), () => _timer.IsActive, () =>
         {
             _timer.StartTimer(TimeSpan.FromMinutes(25), DateTimeOffset.Now);
             return Task.CompletedTask;
@@ -103,25 +103,14 @@ public partial class NotchWindow
         }
 
         _controlBuilt = true;
-        // Tile columns: 52, gap, 52, gap, 52, gap, 52 across the 328 inside P 16.
-        var gap = (IslandTokens.WidthS - (2 * IslandTokens.P) - (4 * IslandTokens.Tile)) / 3;
-        for (var c = 0; c < 7; c++)
-        {
-            ControlTiles.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(c % 2 == 0 ? IslandTokens.Tile : gap) });
-        }
-        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = new GridLength(12) });
-        ControlTiles.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-        var index = 0;
         foreach (var tile in ControlTileList())
         {
             var scale = new ScaleTransform();
             var button = new Border
             {
-                Width = IslandTokens.Tile,
-                Height = IslandTokens.Tile,
-                CornerRadius = new CornerRadius(IslandTokens.Tile / 2),
+                Width = IslandTokens.Btn,
+                Height = IslandTokens.Btn,
+                CornerRadius = new CornerRadius(IslandTokens.Ri),
                 Cursor = System.Windows.Input.Cursors.Hand,
                 Background = IslandTokens.Surface1,
                 ToolTip = tile.Label,
@@ -130,8 +119,8 @@ public partial class NotchWindow
                 Child = new Path
                 {
                     Data = tile.Glyph,
-                    Width = 20,
-                    Height = 20,
+                    Width = 18,
+                    Height = 18,
                     Stretch = Stretch.Uniform,
                     Stroke = System.Windows.Media.Brushes.White,
                     StrokeThickness = 1.8,
@@ -144,13 +133,18 @@ public partial class NotchWindow
                 }
             };
             System.Windows.Automation.AutomationProperties.SetName(button, tile.Label);
-            // Pressed: 52 -> 48 while the pointer is down; leaving the tile cancels.
+            // Pressed: 40 -> 36 while the pointer is down; leaving the tile cancels. Hover names it in the label.
             button.MouseLeftButtonDown += (_, e) =>
             {
                 e.Handled = true;
-                scale.ScaleX = scale.ScaleY = 48.0 / IslandTokens.Tile;
+                scale.ScaleX = scale.ScaleY = 36.0 / IslandTokens.Btn;
             };
-            button.MouseLeave += (_, _) => scale.ScaleX = scale.ScaleY = 1;
+            button.MouseEnter += (_, _) => ControlLabel.Text = tile.Caption;
+            button.MouseLeave += (_, _) =>
+            {
+                scale.ScaleX = scale.ScaleY = 1;
+                ControlLabel.Text = Tr.Text("Kontrol", "Control");
+            };
             button.MouseLeftButtonUp += async (_, e) =>
             {
                 e.Handled = true;
@@ -160,41 +154,35 @@ public partial class NotchWindow
             };
             _controlButtons[button] = tile;
 
-            var cell = new StackPanel();
-            cell.Children.Add(button);
-            cell.Children.Add(new TextBlock
-            {
-                Text = tile.Caption,
-                FontSize = 11,
-                Foreground = IslandTokens.Text2,
-                Margin = new Thickness(-24, 4, -24, 0),
-                TextAlignment = TextAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                IsHitTestVisible = false
-            });
-            Grid.SetColumn(cell, index % 4 * 2);
-            Grid.SetRow(cell, index / 4 * 2);
-            ControlTiles.Children.Add(cell);
-            index++;
+            ControlTiles.Children.Add(button);
         }
 
-        _brightnessSlider = new LiquidCapsule(Icons.Brightness, IslandTokens.Btn, warm: true);
-        _volumeSlider = new LiquidCapsule(Icons.Volume, IslandTokens.Btn) { Margin = new Thickness(0, 8, 0, 0) };
+        _volumeSlider = new LiquidCapsule(Icons.Volume, 32);
+        _brightnessSlider = new LiquidCapsule(Icons.Brightness, 32, warm: true) { Margin = new Thickness(0, 8, 0, 0) };
         System.Windows.Automation.AutomationProperties.SetName(_brightnessSlider, Tr.Text("Kecerahan", "Brightness"));
         System.Windows.Automation.AutomationProperties.SetName(_volumeSlider, "Volume");
         _brightnessSlider.Changed += percent => _ = SystemControls.SetBrightnessAsync(percent);
         _volumeSlider.Changed += percent => SystemControls.SetVolume(percent);
-        ControlSliders.Children.Add(_brightnessSlider);
         ControlSliders.Children.Add(_volumeSlider);
+        ControlSliders.Children.Add(_brightnessSlider);
     }
 
-    /// <summary>On: the tile fills with its colour. Off: surface/1. No outline, no glow.</summary>
+    /// <summary>On: the tile is white with a black glyph. Off: surface/1. One voice, like the other pages.</summary>
     private void RefreshControl()
     {
         foreach (var (button, tile) in _controlButtons)
         {
-            button.Background = tile.IsOn() ? new SolidColorBrush(tile.On) : IslandTokens.Surface1;
+            var on = tile.IsOn();
+            button.Background = on ? IslandTokens.Text1 : IslandTokens.Surface1;
+            ((Path)button.Child).Stroke = on ? System.Windows.Media.Brushes.Black : IslandTokens.Text1;
         }
+
+        ControlTitle.Text = _wifiOn == false ? Tr.Text("Wi-Fi mati", "Wi-Fi off") : Tr.Text("Wi-Fi aktif", "Wi-Fi on");
+        ControlSub.Text = _bluetoothOn == true ? Tr.Text("Bluetooth aktif", "Bluetooth on") : Tr.Text("Bluetooth mati", "Bluetooth off");
+        var power = System.Windows.Forms.SystemInformation.PowerStatus;
+        ControlMeta.Text = power.BatteryChargeStatus.HasFlag(System.Windows.Forms.BatteryChargeStatus.NoSystemBattery)
+            ? string.Empty
+            : string.Format(Tr.Text("Baterai {0:0}%", "Battery {0:0}%"), power.BatteryLifePercent * 100);
 
         var volume = SystemControls.GetVolume();
         _volumeSlider?.Set(volume ?? 0, enabled: volume is not null);

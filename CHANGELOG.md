@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed — one family of pages
+
+- **Every open page is 420 × 248** with one template: a label, one big number or title, the middle, a footer. System has a live sparkline and jumps to the reading at fault; Timer sets its length on a ruler; Clipboard shows the newest large with where it came from; Music has the song as a waveform; Today, Control Center and the agent follow.
+- Open pages no longer carry the round objects; those stay small on the compact pill.
+- Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
+
+### Added — turn the PC off later
+
+- **Matikan** mode on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `matikan 1 jam`; `shutdown -a` calls it off. It runs Windows' own `shutdown /s /t X`, which **closes open apps by force**, so the page says so. The time left shows on the compact pill, and the notch opens by itself a minute before. Anything under 30 seconds is raised to 30.
+
 ## 1.6.0 — 2026-10-22 · Today, water, lyrics
 
 ### Added — fewer pages, if you like
