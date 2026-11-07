@@ -153,7 +153,9 @@ public partial class NotchWindow
         }
         else
         {
-            width = TargetWidth;
+            // Side docks and the floating island draw a 1 px outline inside the shape: widen the shape by it,
+            // so a page's 16 + content + 16 still fits and its right edge isn't clipped.
+            width = TargetWidth + Shell.BorderThickness.Left + Shell.BorderThickness.Right;
             height = MeasureHeight(incoming, width);
         }
 
