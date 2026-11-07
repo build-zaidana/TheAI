@@ -87,6 +87,7 @@ public partial class NotchWindow
         // Radios and brightness answer asynchronously; the page is already up while they do.
         _wifiOn = await SystemControls.GetRadioAsync(RadioKind.WiFi);
         _bluetoothOn = await SystemControls.GetRadioAsync(RadioKind.Bluetooth);
+        _wifiName = await Task.Run(ConnectedWifiName);
         var brightness = await SystemControls.GetBrightnessAsync();
         if (_view == NotchView.Control)
         {
@@ -177,8 +178,11 @@ public partial class NotchWindow
             ((Path)button.Child).Stroke = on ? System.Windows.Media.Brushes.Black : IslandTokens.Text1;
         }
 
-        ControlTitle.Text = _wifiOn == false ? Tr.Text("Wi-Fi mati", "Wi-Fi off") : Tr.Text("Wi-Fi aktif", "Wi-Fi on");
-        ControlSub.Text = _bluetoothOn == true ? Tr.Text("Bluetooth aktif", "Bluetooth on") : Tr.Text("Bluetooth mati", "Bluetooth off");
+        // The network's own name when Windows will say it (it may need location access); else just on/off.
+        ControlTitle.Text = _wifiOn == false ? Tr.Text("Wi-Fi mati", "Wi-Fi off") : _wifiName ?? Tr.Text("Wi-Fi aktif", "Wi-Fi on");
+        var wifi = _wifiOn == false ? null : _wifiName is null ? null : Tr.Text("Tersambung", "Connected");
+        var bluetooth = _bluetoothOn == true ? Tr.Text("Bluetooth aktif", "Bluetooth on") : Tr.Text("Bluetooth mati", "Bluetooth off");
+        ControlSub.Text = wifi is null ? bluetooth : $"{wifi} · {bluetooth}";
         var power = System.Windows.Forms.SystemInformation.PowerStatus;
         ControlMeta.Text = power.BatteryChargeStatus.HasFlag(System.Windows.Forms.BatteryChargeStatus.NoSystemBattery)
             ? string.Empty
@@ -186,6 +190,22 @@ public partial class NotchWindow
 
         var volume = SystemControls.GetVolume();
         _volumeSlider?.Set(volume ?? 0, enabled: volume is not null);
+    }
+
+    private string? _wifiName;
+
+    private static string? ConnectedWifiName()
+    {
+        try
+        {
+            var profile = global::Windows.Networking.Connectivity.NetworkInformation.GetInternetConnectionProfile();
+            var name = profile is { IsWlanConnectionProfile: true } ? profile.WlanConnectionProfileDetails.GetConnectedSsid() : null;
+            return string.IsNullOrWhiteSpace(name) ? null : name;
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException or System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     internal async void PreviewControl()

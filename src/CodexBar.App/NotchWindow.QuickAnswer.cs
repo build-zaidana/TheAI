@@ -121,6 +121,14 @@ public partial class NotchWindow
 
     private void QuickMore_Click(object sender, RoutedEventArgs e) => ShowFullRequest();
 
+    /// <summary>Snapshot runs: the full request page instead of the short answer.</summary>
+    internal async void PreviewFullRequest()
+    {
+        await Task.Delay(900);
+        ShowFullRequest();
+        _pinned = true;
+    }
+
     private void ShowFullRequest()
     {
         _view = NotchView.Request;

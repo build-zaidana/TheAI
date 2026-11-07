@@ -28,6 +28,7 @@ public partial class NotchWindow
     private int _systemPick;
     private bool _systemPickedByHand;
     private int _systemTicks;
+    private readonly bool[] _systemSettled = new bool[4];   // Windows' first CPU reading is 0: level the line on the second
     private string? _systemHog;
 
     private bool SystemPageAvailable => _host.SystemMonitor;
@@ -146,8 +147,10 @@ public partial class NotchWindow
         {
             var history = _systemHistory[i];
             var reading = readings[i] ?? 0;
-            if (history.Count == 0)
+            if (history.Count == 0 || !_systemSettled[i])
             {
+                _systemSettled[i] = history.Count > 0;
+                history.Clear();
                 history.AddRange(Enumerable.Repeat(reading, 40));   // the line starts level, then moves
                 moved = true;
             }

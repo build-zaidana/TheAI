@@ -275,7 +275,7 @@ public sealed class Sparkline : IslandLive
         double width = ActualWidth, height = ActualHeight;
         var low = _values.Min();
         var spread = _values.Max() - low;
-        var range = Math.Max(spread, Math.Max(Math.Abs(low) * 0.02, 0.5));
+        var range = Math.Max(spread, Math.Max(Math.Abs(low) * 0.1, 2));   // small wobbles stay small
         var bottom = low - (range * 0.14) - ((range - spread) / 2);   // a level line sits in the middle
         var top = bottom + (range * 1.28);
         double Y(double value) => height - 2 - ((value - bottom) / (top - bottom) * (height - 4));

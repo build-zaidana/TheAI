@@ -53,7 +53,8 @@ public partial class MainWindow
             });
         }
 
-        // CODEXBAR_PREVIEW_REQUEST=approval|input[+launcher]: show a sample request in the notch (no provider involved);
+        // CODEXBAR_PREVIEW_REQUEST=approval|full|risky|input[+launcher]: show a sample request in the notch (no provider involved);
+        // "full" and "risky" open the whole request page instead of the short answer;
         // "+launcher" then opens the launcher with the request under "Menunggu kamu".
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REQUEST") is { Length: > 0 } request && _notch is not null)
         {
@@ -76,10 +77,15 @@ public partial class MainWindow
             }
             else
             {
+                var command = request == "risky" ? "rm -rf artifacts/win-x64" : "npm install --save-dev vitest";
                 _ = _notch.RequestApprovalAsync(new ProviderApprovalEvent("item/commandExecution/requestApproval",
-                    string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", "npm install --save-dev vitest",
+                    string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", command,
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
+                if (request is "full" or "risky")
+                {
+                    _notch.PreviewFullRequest();
+                }
             }
         }
 

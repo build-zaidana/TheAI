@@ -47,7 +47,15 @@ public partial class NotchWindow
             "item/permissions/requestApproval" => Tr.Text("Akses tambahan", "Extra access"),
             _ => Tr.Text("Jalankan perintah", "Run a command")
         };
-        RequestTitle.Text = title;
+        // Board 34: the title is the question in a few words; the agent's own sentence is in the tooltip.
+        RequestTitle.Text = approval.Method switch
+        {
+            "item/fileChange/requestApproval" => Tr.Text("Ubah file?", "Change files?"),
+            "item/permissions/requestApproval" => Tr.Text("Beri akses?", "Give access?"),
+            "item/commandExecution/requestApproval" => Tr.Text("Jalankan perintah?", "Run this command?"),
+            _ => title
+        };
+        RequestTitle.ToolTip = title;
         RequestMessage.Visibility = Visibility.Collapsed;
         RequestDetail.Text = detail;
         RequestDetailBox.Visibility = detail.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -58,7 +66,7 @@ public partial class NotchWindow
             string.Format(Tr.Text("{0} minta izin", "{0} needs permission"), _activity.IsMain ? _host.ProviderName : _activity.Provider),
             detail.Length > 0 ? detail.Split('\n')[0].Trim() : title);
         RequestPrimary.Content = Tr.Text("Izinkan sekali", "Allow once");
-        RequestSecondary.Content = Tr.Text("Izinkan sesi", "Allow for session");
+        RequestSecondary.Content = Tr.Text("Izinkan sesi", "This session");
         RequestTertiary.Content = Tr.Text("Tolak", "Decline");
         RequestTertiary.Visibility = Visibility.Visible;
         RequestLink.Content = Tr.Text("Tolak & hentikan", "Decline & stop");
