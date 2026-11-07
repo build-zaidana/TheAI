@@ -1,0 +1,20 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- The island's tokens (canvas Page 2, board 00), the same values as IslandTokens.cs. One inset
+         everywhere (P 16); a corner item's radius plus its inset is the island's corner (R 20 + 16 = RE 36). -->
+    <sys:Double x:Key="IslandP">16</sys:Double>       <!-- the one inset -->
+    <sys:Double x:Key="IslandRe">36</sys:Double>      <!-- island corner -->
+    <sys:Double x:Key="IslandRi">20</sys:Double>      <!-- corner item radius = RE - P -->
+    <sys:Double x:Key="IslandBtn">40</sys:Double>     <!-- buttons and row items -->
+    <sys:Double x:Key="IslandChip">28</sys:Double>
+    <sys:Double x:Key="IslandRow">56</sys:Double>
+    <sys:Double x:Key="IslandTile">52</sys:Double>
+
+    <SolidColorBrush x:Key="IslandSurface1" Color="#1C1C1E" />
+    <SolidColorBrush x:Key="IslandSurface2" Color="#2C2C2E" />
+    <SolidColorBrush x:Key="IslandText1" Color="#F5F5F7" />
+    <SolidColorBrush x:Key="IslandText2" Color="#98989F" />
+    <SolidColorBrush x:Key="IslandText3" Color="#7C7C80" />
+</ResourceDictionary>

@@ -43,9 +43,16 @@ public sealed class Localization : INotifyPropertyChanged
 
     public void SetLanguage(AppLanguage language) => Language = language;
 
-    /// <summary>Parse a settings code ("id"/"en") to a language; unknown values fall back to Indonesian.</summary>
-    public static AppLanguage Parse(string? code) =>
-        string.Equals(code, "en", StringComparison.OrdinalIgnoreCase) ? AppLanguage.En : AppLanguage.Id;
+    /// <summary>
+    /// A settings code to a language: "id", "en", or "auto" (and anything unknown) = Windows' own
+    /// display language — Indonesian when that is Indonesian, English otherwise.
+    /// </summary>
+    public static AppLanguage Parse(string? code) => code?.ToLowerInvariant() switch
+    {
+        "en" => AppLanguage.En,
+        "id" => AppLanguage.Id,
+        _ => System.Globalization.CultureInfo.InstalledUICulture.TwoLetterISOLanguageName == "id" ? AppLanguage.Id : AppLanguage.En
+    };
 
     public static string ToCode(AppLanguage language) => language == AppLanguage.En ? "en" : "id";
 
@@ -204,12 +211,12 @@ public static class Strings
         ["sandbox.fullAccess"] = ("danger-full-access: sandbox file dinonaktifkan. Gunakan hanya pada workspace tepercaya.", "danger-full-access: the file sandbox is disabled. Use only with trusted workspaces."),
         ["sandbox.workspaceWrite"] = ("workspace-write: Codex dapat mengubah file di workspace; akses lain tetap meminta approval.", "workspace-write: Codex can modify workspace files; other access still requires approval."),
         ["notification.responseDone"] = ("Respons Codex sudah selesai.", "The Codex response is complete."),
-        ["notification.hotkeyInactive"] = ("Hotkey CodexBar tidak aktif", "CodexBar hotkey is inactive"),
+        ["notification.hotkeyInactive"] = ("Hotkey TheAI tidak aktif", "TheAI hotkey is inactive"),
         ["notification.attentionTitle"] = ("Agent membutuhkan perhatian", "Agent needs attention"),
         ["notification.attentionApproval"] = ("Thread lain membutuhkan izin. Klik untuk membuka daftar.", "Another thread needs permission. Click to open the list."),
         ["notification.attentionAnswer"] = ("Thread lain membutuhkan jawaban. Klik untuk membuka daftar.", "Another thread needs an answer. Click to open the list."),
         ["notification.contextTitle"] = ("Context Codex hampir penuh", "Codex context is almost full"),
-        ["notification.contextBody"] = ("Klik indikator Ctx di CodexBar untuk memadatkan percakapan.", "Click the Ctx indicator in CodexBar to compact the conversation."),
+        ["notification.contextBody"] = ("Klik indikator Ctx di TheAI untuk memadatkan percakapan.", "Click the Ctx indicator in TheAI to compact the conversation."),
         ["attention.needs"] = ("{0} perlu perhatian · {1} aktif", "{0} need attention · {1} active"),
         ["attention.errors"] = ("{0} thread error", "{0} thread error(s)"),
         ["attention.active"] = ("{0} agent sedang bekerja", "{0} agent(s) working"),
@@ -253,7 +260,7 @@ public static class Strings
         ["sidebar.activeAccount"] = ("Akun Codex aktif", "Active Codex account"),
         ["sidebar.activePlan"] = ("aktif", "active"),
         ["sidebar.opening"] = ("Membuka percakapan…", "Opening conversation…"),
-        ["sidebar.opened"] = ("Percakapan aktif di CodexBar", "Conversation active in CodexBar"),
+        ["sidebar.opened"] = ("Percakapan aktif di TheAI", "Conversation active in TheAI"),
         ["sidebar.creating"] = ("Membuat percakapan…", "Creating conversation…"),
         ["sidebar.noResults"] = ("Tidak ada hasil untuk “{0}”", "No results for “{0}”"),
         ["sidebar.results"] = ("{0} hasil untuk “{1}”", "{0} result(s) for “{1}”"),
@@ -291,7 +298,7 @@ public static class Strings
         ["approval.acceptSession"] = ("Izinkan sesi", "Allow for session"),
         ["approval.acceptOnce"] = ("Izinkan sekali", "Allow once"),
         ["approval.notificationTitle"] = ("Codex membutuhkan izin", "Codex needs permission"),
-        ["approval.notificationBody"] = ("Buka CodexBar untuk meninjau permintaan agent.", "Open CodexBar to review the agent request."),
+        ["approval.notificationBody"] = ("Buka TheAI untuk meninjau permintaan agent.", "Open TheAI to review the agent request."),
         ["dialog.openPrefix"] = ("Buka", "Open"),
         ["dialog.linkError"] = ("Tautan tidak dapat dibuka", "Link cannot be opened"),
         ["dialog.cancel"] = ("Batal", "Cancel"),
@@ -310,7 +317,7 @@ public static class Strings
         ["provider.mcp.inputMessage"] = ("Tool membutuhkan informasi tambahan.", "The tool needs additional information."),
         ["provider.mcp.invalidUrl"] = ("MCP mengirim tautan yang tidak valid atau tidak aman.", "MCP returned an invalid or unsafe link."),
         ["provider.mcp.connectTitle"] = ("Hubungkan {0}", "Connect {0}"),
-        ["provider.mcp.connectMessage"] = ("Selesaikan langkah pada browser lalu kembali ke CodexBar.", "Complete the steps in your browser, then return to CodexBar."),
+        ["provider.mcp.connectMessage"] = ("Selesaikan langkah pada browser lalu kembali ke TheAI.", "Complete the steps in your browser, then return to TheAI."),
         ["provider.mcp.confirmHeader"] = ("Konfirmasi", "Confirmation"),
         ["provider.mcp.confirmQuestion"] = ("Setelah langkah di browser selesai, pilih konfirmasi berikut.", "After completing the browser steps, confirm below."),
         ["provider.mcp.confirmDone"] = ("Saya sudah selesai", "I'm finished"),
@@ -349,7 +356,7 @@ public static class Strings
         ["provider.error.notInitialized"] = ("CodexProvider belum diinisialisasi.", "CodexProvider is not initialized."),
         ["dialog.dangerWarning"] = ("danger-full-access memungkinkan Codex membaca dan mengubah file di luar workspace serta menjalankan perintah tanpa batas sandbox. Approval tetap on-request, tetapi mode ini tetap berisiko. Aktifkan?", "danger-full-access lets Codex read and modify files outside the workspace and run commands without sandbox limits. Approval stays on-request, but this mode is still risky. Enable?"),
         ["dialog.dangerTitle"] = ("Konfirmasi danger-full-access", "Confirm danger-full-access"),
-        ["settings.about"] = ("CodexBar v{0} · aplikasi komunitas tidak resmi. Codex CLI memproses workspace lokal dan mengirim konteks yang diperlukan ke layanan OpenAI sesuai metode login serta kebijakan akun kamu.", "CodexBar v{0} · unofficial community app. The Codex CLI processes your local workspace and sends the necessary context to OpenAI services per your login method and account policies."),
+        ["settings.about"] = ("TheAI v{0} · aplikasi komunitas tidak resmi. Codex CLI memproses workspace lokal dan mengirim konteks yang diperlukan ke layanan OpenAI sesuai metode login serta kebijakan akun kamu.", "TheAI v{0} · unofficial community app. The Codex CLI processes your local workspace and sends the necessary context to OpenAI services per your login method and account policies."),
         ["dialog.apiKeyWarning"] = ("Codex CLI sedang login menggunakan API key. Penggunaan akan ditagihkan ke akun OpenAI Platform dan tidak memakai kuota paket ChatGPT. Lanjutkan?", "The Codex CLI is logged in with an API key. Usage will be billed to your OpenAI Platform account and does not use your ChatGPT plan quota. Continue?"),
         ["dialog.apiKeyTitle"] = ("Konfirmasi metode login", "Confirm login method"),
         ["dialog.chooseWorkspace"] = ("Pilih workspace Codex", "Choose Codex workspace"),
@@ -370,7 +377,7 @@ public static class Strings
         ["onboard.copied"] = ("Tersalin", "Copied"),
         ["onboard.docs"] = ("Buka panduan", "Open guide"),
         ["onboard.install.title"] = ("Codex CLI belum terpasang", "Codex CLI not installed"),
-        ["onboard.install.body"] = ("CodexBar memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, lalu jalankan \"codex login\", kemudian klik Coba lagi.", "CodexBar uses a logged-in Codex CLI. Install it via PowerShell/Terminal, run \"codex login\", then click Try again."),
+        ["onboard.install.body"] = ("TheAI memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, lalu jalankan \"codex login\", kemudian klik Coba lagi.", "TheAI uses a logged-in Codex CLI. Install it via PowerShell/Terminal, run \"codex login\", then click Try again."),
         ["onboard.install.action"] = ("Pasang otomatis", "Auto-install"),
         ["onboard.install.status"] = ("Codex belum terpasang", "Codex not installed"),
         ["onboard.login.title"] = ("Belum login ke Codex", "Not logged in to Codex"),
@@ -381,11 +388,11 @@ public static class Strings
         ["onboard.install.progress"] = ("Menyiapkan Codex CLI… Jendela ini boleh tetap terbuka.", "Setting up Codex CLI… You may leave this window open."),
         ["onboard.install.statusProgress"] = ("Memasang Codex CLI…", "Installing Codex CLI…"),
         ["onboard.install.nodeMissing"] = ("Node.js belum terpasang dan Windows Package Manager tidak ditemukan. Buka panduan untuk instalasi manual.", "Node.js is not installed and Windows Package Manager was not found. Open the guide for manual installation."),
-        ["onboard.install.npmMissing"] = ("Node.js selesai dipasang tetapi npm belum dapat ditemukan. Tutup dan buka CodexBar, lalu coba lagi.", "Node.js was installed, but npm could not be found. Restart CodexBar and try again."),
+        ["onboard.install.npmMissing"] = ("Node.js selesai dipasang tetapi npm belum dapat ditemukan. Tutup dan buka TheAI, lalu coba lagi.", "Node.js was installed, but npm could not be found. Restart TheAI and try again."),
         ["onboard.install.success"] = ("Codex CLI sudah terpasang. Klik Buka login untuk menghubungkan akun ChatGPT/Codex.", "Codex CLI is installed. Click Open login to connect your ChatGPT/Codex account."),
         ["onboard.install.failed"] = ("Instalasi otomatis gagal: {0}", "Automatic installation failed: {0}"),
         ["onboard.workspace.title"] = ("Pilih workspace", "Choose workspace"),
-        ["onboard.workspace.body"] = ("Pilih folder proyek yang boleh dibaca dan diubah Codex. CodexBar tidak memakai folder instalasi atau System32 sebagai workspace otomatis.", "Choose a project folder Codex may read and modify. CodexBar does not auto-use the install folder or System32 as a workspace."),
+        ["onboard.workspace.body"] = ("Pilih folder proyek yang boleh dibaca dan diubah Codex. TheAI tidak memakai folder instalasi atau System32 sebagai workspace otomatis.", "Choose a project folder Codex may read and modify. TheAI does not auto-use the install folder or System32 as a workspace."),
         ["onboard.workspace.pick"] = ("Pilih folder", "Choose folder"),
         ["onboard.workspace.status"] = ("Workspace belum dipilih", "No workspace selected"),
         ["onboard.error.title"] = ("Gagal menghubungkan Codex", "Failed to connect to Codex"),
@@ -418,7 +425,7 @@ public static class Strings
         ["onboard.claude.install.success"] = ("Claude Code sudah terpasang. Klik Buka login untuk menghubungkan langganan Claude.", "Claude Code is installed. Click Open login to connect your Claude subscription."),
         ["onboard.claude.login.title"] = ("Belum login ke Claude", "Not logged in to Claude"),
         ["onboard.claude.login.body"] = ("Claude Code sudah terpasang tetapi belum login. Jalankan perintah ini, pilih akun langganan Claude di browser, lalu klik Coba lagi.", "Claude Code is installed but not logged in. Run this command, sign in with your Claude subscription in the browser, then click Try again."),
-        ["tray.show"] = ("Buka CodexBar", "Open CodexBar"),
+        ["tray.show"] = ("Buka TheAI", "Open TheAI"),
         ["tray.displayMode"] = ("Mode tampilan", "Display mode"),
         ["tray.settings"] = ("Pengaturan…", "Settings…"),
         ["tray.newThread"] = ("Thread baru", "New thread"),

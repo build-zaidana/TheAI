@@ -3,14 +3,15 @@ using Microsoft.Win32;
 namespace CodexBar.App;
 
 /// <summary>
-/// Registers CodexBar to launch at Windows sign-in via the per-user Run key, so it is
+/// Registers TheAI to launch at Windows sign-in via the per-user Run key, so it is
 /// always waiting in the tray — summoning it with the hotkey is then instant, avoiding the
 /// cold process-start cost of launching from a shortcut. Best-effort: failures are ignored.
 /// </summary>
 internal static class StartupRegistration
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "CodexBar";
+    private const string ValueName = "TheAI";
+    private const string LegacyValueName = "CodexBar";
 
     public static void Apply(bool enabled)
     {
@@ -21,6 +22,9 @@ internal static class StartupRegistration
             {
                 return;
             }
+
+            // Before the rename the entry was called CodexBar.
+            key.DeleteValue(LegacyValueName, throwOnMissingValue: false);
 
             if (enabled)
             {

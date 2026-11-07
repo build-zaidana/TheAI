@@ -1,5 +1,138 @@
 # Changelog
 
+## Unreleased
+
+### Changed — one family of pages
+
+- **Every open page is 420 × 248** with one template: a label, one big number or title, the middle, a footer. System has a live sparkline and jumps to the reading at fault; Timer sets its length on a ruler; Clipboard shows the newest large with where it came from; Music has the song as a waveform; Today, Control Center and the agent follow.
+- Open pages no longer carry the round objects; those stay small on the compact pill.
+- Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
+
+### Added — turn the PC off later
+
+- **Matikan** mode on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `matikan 1 jam`; `shutdown -a` calls it off. It runs Windows' own `shutdown /s /t X`, which **closes open apps by force**, so the page says so. The time left shows on the compact pill, and the notch opens by itself a minute before. Anything under 30 seconds is raised to 30.
+
+## 1.6.0 — 2026-10-22 · Today, water, lyrics
+
+### Added — fewer pages, if you like
+
+- **Two page modes.** Combined: weather, the next meeting, water and reminders share one **Today** page of short rows (a row opens the full page; `/today` opens it). Separate: a page per feature, as before. New users start combined; Settings → Appearance switches it.
+
+### Added — prayer times, microphone and camera
+
+- **Prayer times** (optional): the next prayer for your weather city, worked out on your PC with Kemenag's angles (Fajr 20°, Isha 18°, Shafi'i Asr, 2 minutes of ihtiyat), on the Today and weather pages, with a quiet note in the notch when it begins.
+- **Microphone & camera indicator** (optional): a dot at the notch's edge while an app uses the microphone (orange) or the camera (green), and its name when it starts. It reads what Windows itself records for its privacy indicator.
+- **`/mute`** mutes or unmutes the microphone; while the microphone is in use, the Today page has a Mute button too.
+
+### Added — small things in the notch
+
+- **Caps Lock and keyboard language** in the HUD (optional): the notch says when Caps Lock goes on or off and which language you switched to.
+- **Internet lost / back online** joins the volume, brightness and battery HUD, from Windows' own network event.
+- **Water reminder** (optional): a daily goal, +1 glass in one click, the last seven days, and a gentle nudge during your active hours until the goal is met. `/water` opens it.
+- **Synced lyrics beside the player**: the line being sung is highlighted; click any line to jump there.
+- **Idle companion** (optional): two small eyes in the compact notch that blink, and doze off after five minutes away.
+
+### Changed — lighter at rest
+
+- At rest TheAI now uses under 0.5% of one CPU core (from about 0.8%): the compact equalizer stands still, fullscreen apps are noticed through Windows events instead of a poll, and timers run only while their feature needs them.
+
+### Changed — quicker and clearer
+
+- The notch opens faster: it reacts to the pointer in 150 ms (from 280) and the page settles sooner.
+- The first-start feature picker shows a picture of each feature in the notch as you go through the list.
+- Settings: the water reminder has its own fields (goal, glass, minutes, hours) and the page mode has a switch.
+- Uninstalling asks whether to delete your TheAI data too (kept unless you say yes).
+
+### Fixed
+
+- The lyric placeholder note and the "…" for cut-off text showed as garbled characters.
+
+## 1.5.0 — 2026-10-21 · CodexBar is now TheAI
+
+### Changed — a new name
+
+- **CodexBar is now TheAI** (there's another app called CodexBar, and "Codex" is OpenAI's name). Upgrading keeps everything: settings, conversations, the shelf, timers and saved keys move over on the first start, and the installer replaces the old app.
+- The interface follows Windows' language by default (Indonesian or English); either can still be chosen in Settings.
+- Windows 10 (1809 and later) is supported again.
+
+### Changed — only what you want
+
+- **Every notch feature is optional.** A new user starts with the agent and the launcher; the first start shows a short tour and a feature picker (music, timer and the HUD suggested). Settings → Notch → Choose features changes it any time. Existing users keep what they had.
+- A new **TheAI icon**: the notch at the top of a screen.
+- The release also has a **portable zip** for running TheAI without installing it.
+
+### Added — reminders, weather, selection
+
+- **Reminders & to-do:** `/remind 15m stretch`, `/remind 14:30 call`, `/remind besok 9.00 standup`, `/todo buy milk`, or the page's own field. When one is due the notch opens on it (Snooze 10m / Done) and Windows shows a notification.
+- **Weather & world clock:** today's weather for your city (Open-Meteo, no key) and up to four other time zones.
+- **Select anything, ask about it:** the quick-capture hotkey now offers Translate / Explain / Summarize / Fix writing / Ask… for the selected text, with the answer in the notch. The older modes stay in Settings. New `/proofread` command.
+
+### Added — command palette & smart commands
+
+- **Type `/` in the launcher** to see what TheAI can do and run it from the keyboard: `/review` the uncommitted changes, `/explain`, `/summarize` or `/translate [language]` text or the clipboard, `/fix` the last failed command, `/test`, `/commit`, `/docs` — plus `/focus 25`, `/timer 10`, `/clipboard`, `/recap`, `/standup`, `/system`, `/new`, `/settings`, and your own templates as `/their-name`. ↑/↓ choose, Tab completes, Enter runs.
+- **Search what was said** in past conversations, not only their titles, right from the launcher.
+
+### Added — updates and crash reports
+
+- **Update from inside the app**: "Update now" downloads the new installer, checks it against the release's SHA-256, installs it quietly and restarts TheAI.
+- If TheAI ever closes unexpectedly, the next start offers to **report it** as a pre-filled GitHub issue you read before sending. Nothing is sent automatically.
+
+### Changed — faster start
+
+- The notch shows ~0.2 s sooner (precompiled code), and checking the sign-in no longer holds up the rest of startup.
+
+
+### Added — live activities from scripts
+
+- **Any script can show itself in the notch**: `TheAI.exe activity build --title "npm run build" --progress 0.4`, then `--done` or `--failed "exit 1"` (or a JSON line written to the user's named pipe `\\.\pipe\theai-<user>`). The compact notch shows a progress ring, the name and the percent (a spinner and the time when there's no percent), a check and the duration when it finishes, and the one red cross when it fails.
+- The **activities page** (scroll the open notch) lists up to four jobs with bars or what they say they're doing; a row with a link opens it; a failed job has **Ask Claude/Codex**, which hands the failure to the agent in the current folder.
+- Local only: no port, no network; the pipe accepts only the same Windows user's processes, links are http(s) only, and silent jobs expire after 10 minutes. Can be turned off in Settings → Notch.
+
+### Added — long terminal commands, automatically
+
+- **PowerShell commands that run 10 seconds or more show up in the notch by themselves** (Settings → Notch, adds one marked line to `$PROFILE`, a backup is kept, switching it off takes it out): the command and its time while it runs, then a check and the duration or a cross and the exit code; "Ask Claude" tells the agent which command failed and in which folder. Quick commands never appear. Prompt themes keep their `$?` and `$LASTEXITCODE`.
+
+### Added — pull request CI
+
+- **The current branch's PR checks in the notch** (Settings → Notch, on when the GitHub CLI is signed in): a ring with how many checks are done while CI runs, then a check — or a cross with the failed checks and "Ask Claude"; the row opens the PR's checks on GitHub. Read with `gh` (no token of CodexBar's own) in the folder of the last terminal command or the workspace, every 30 s while CI runs, every 5 min otherwise, and right after a `git push`. Runs that ended before CodexBar started aren't announced.
+
+### Added — today's recap
+
+- **A recap of the day** as a page of the open notch: focus sessions and time, what the agents finished, files they changed, long terminal commands (and how many failed), PR runs. It opens by itself once at 5 pm (Settings → Notch) and copies as a few lines of Markdown for a standup. Kept in a small local file per day, 30 days.
+
+### Added — clipboard history
+
+- **What you copied lately** as a page of the open notch (Settings → Notch): the last 30 texts and 5 images; click one to copy it again, drag it into an app or the prompt, right-click to pin it. Copies marked private (password managers, the Windows "keep out of history" flags) are skipped; only pinned texts are saved, the rest is forgotten when CodexBar quits.
+
+### Added — downloads on the shelf
+
+- **Finished downloads go on the file shelf for two hours** (Settings → Notch), with a short check and the file's name in the notch. The real Downloads folder is watched; partial files (.crdownload, .part…) are ignored and a file is taken only once it has stopped growing. Files put on the shelf by hand stay as before.
+
+### Added — system monitor
+
+- **The machine as a page of the open notch** (Settings → Notch): CPU and GPU the way Task Manager counts them, memory used of total, free space on the system drive — read only while the page is shown. A short HUD warning when memory stays at 90 % or more, or the drive drops under 5 % / 5 GB, then quiet for 10 minutes; a busy CPU or GPU is never a warning. No temperatures: Windows has no standard way to read them without admin rights or a vendor SDK.
+
+### Added — agents × focus × calendar
+
+- **Hold agents during focus and meetings** (Settings → Notch, on by default): while a pomodoro focus session runs or a calendar event is under way, an agent finishing or asking for permission doesn't open the notch, toast or chime — the compact notch shows a count. When the break starts or the meeting ends, everything that waited opens together ("While you focused"), with Answer / View for each.
+
+### Added — Gemini CLI
+
+- **Gemini CLI sessions in the notch** next to Claude Code (Settings → Claude Code): CodexBar adds a relay hook to `~/.gemini/settings.json` (removed again when switched off; a backup is kept) and shows each session's prompt, tool steps and answer. Gemini's permission prompts are shown but answered in its terminal.
+
+### Changed — lighter
+
+- **About a third of the memory**: idle private memory goes from ~430 MB to ~125 MB (working set ~610 → ~230 MB). The app is no longer a compressed single file (that unpacked every assembly into memory at each start; the installer compresses it now, and is smaller for it), the startup garbage is collected once a minute in, and listing Claude Code sessions skips their tool output as bytes instead of reading 100 MB transcripts into strings (1.9 s → 0.35 s).
+- **No memory spike at launch**: the last Claude Code conversation's transcript is read when it's opened or continued, not at startup (it used to allocate ~270 MB in the first seconds); memory now stays around 110–125 MB from the start.
+
+### Fixed
+
+- A media player that reports no playback or timeline info yet (a browser tab still loading) no longer breaks the music page.
+
+### Added — out of the way
+
+- **Hide in fullscreen**: a game, a video or a presentation covering the notch's monitor hides the notch until it ends (other monitors keep it). On by default.
+
 ## 1.4.0 — 2026-10-10
 
 ### Added — music in the notch

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -42,8 +42,63 @@ internal interface INotchHost
     /// <summary>Volume, brightness, battery and headphones shown in the notch as a short HUD.</summary>
     bool SystemHud { get; }
 
+    /// <summary>Caps Lock and keyboard-language changes in the HUD.</summary>
+    bool KeyboardHud { get; }
+
+    /// <summary>The idle companion's eyes in the compact notch.</summary>
+    bool CompanionEyes { get; }
+
+    /// <summary>Weather, the next meeting, water and reminders on one "Today" page.</summary>
+    bool CombinedPages { get; }
+
+    /// <summary>The microphone / camera dot and prayer times.</summary>
+    bool PrivacyDot { get; }
+    bool PrayerTimes { get; }
+
     /// <summary>Where today's events come from: "off", "outlook" or "ics" (a pasted iCal link).</summary>
     string CalendarSource { get; }
+
+    /// <summary>Hide the notch while a fullscreen app (game, video, presentation) covers its monitor.</summary>
+    bool HideInFullscreen { get; }
+
+    /// <summary>Scripts may report live activities (TheAI.exe activity …) to the notch.</summary>
+    bool LiveActivities { get; }
+
+    /// <summary>The current branch's pull request checks in the notch (through the signed-in GitHub CLI).</summary>
+    bool GitHubChecks { get; }
+
+    /// <summary>Today's recap opens by itself once in the late afternoon.</summary>
+    bool RecapEvening { get; }
+
+    /// <summary>Keep what was copied lately as a page of the notch (memory only; pins on disk).</summary>
+    bool ClipboardHistory { get; }
+
+    /// <summary>Finished downloads go on the shelf for two hours.</summary>
+    bool DownloadsToShelf { get; }
+
+    /// <summary>The machine page (CPU, GPU, memory, drive) and warnings when memory or the drive runs short.</summary>
+    bool SystemMonitor { get; }
+
+    /// <summary>The timer page (and its chip in the launcher).</summary>
+    bool TimerInNotch { get; }
+
+    /// <summary>Reminders and to-dos as a page of the notch.</summary>
+    bool RemindersEnabled { get; }
+
+    /// <summary>Weather (Open-Meteo) and the world clock as a page; the city and the extra zones.</summary>
+    bool WeatherEnabled { get; }
+
+    /// <summary>The water page and its gentle reminder.</summary>
+    bool WaterEnabled { get; }
+    WaterPlan Water { get; }
+    string WeatherCity { get; }
+    string WorldClocks { get; }
+
+    /// <summary>A reminder is due: a Windows notification (it shows even when the notch is hidden).</summary>
+    void ShowReminder(string text, int more);
+
+    /// <summary>During a focus session or a meeting, agents' results and requests wait for the break.</summary>
+    bool HoldDuringFocus { get; }
 
     /// <summary>Screen edge the notch is docked to: top, bottom, left or right (persisted).</summary>
     string NotchEdge { get; set; }
@@ -88,6 +143,14 @@ internal interface INotchHost
     Task<string> TranscribeAsync(byte[] pcm);
     Task StopFromNotchAsync();
     Task<IReadOnlyList<ProviderThreadSummary>> ListRecentThreadsAsync();
+
+    /// <summary>Past conversations whose content matches (what was said, not only titles).</summary>
+    Task<IReadOnlyList<ProviderThreadSummary>> SearchThreadsAsync(string query);
+
+    /// <summary>Start a fresh conversation in the chat.</summary>
+    Task NewConversationAsync();
+
+    void OpenSettings();
     Task OpenThreadFromNotchAsync(ProviderThreadSummary thread);
     void OpenConversationWindow();
 }
@@ -99,14 +162,14 @@ internal interface INotchHost
 /// </summary>
 public partial class NotchWindow : Window
 {
-    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar }
+    private enum NotchView { Compact, Launcher, Activity, Request, Quick, Music, Timer, TimerDone, Hud, Shelf, Calendar, Jobs, Held, Recap, Clipboard, System, Reminders, Weather, Water, Today, Selection, Control }
     private enum NotchState { Idle, Working, Done, Waiting, Error }
 
     private const double IdleWidth = 150;
     private const double CompactWidth = 196;
     private const double LauncherWidth = 560;
-    private const double ActivityWidth = 600;
-    private const double QuickWidth = 352;
+    private const double ActivityWidth = IslandTokens.WidthM;
+    private const double QuickWidth = IslandTokens.WidthM;
     private const int MaxSteps = 4;
     private const int MaxOutputChars = 700;
 
@@ -118,7 +181,7 @@ public partial class NotchWindow : Window
 
     private readonly INotchHost _host;
     private readonly DispatcherTimer _collapseTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
-    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(280) };
+    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private readonly DispatcherTimer _doneTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly Storyboard _spinner;
 
@@ -180,6 +243,19 @@ public partial class NotchWindow : Window
         InitHud();
         InitShelf();
         InitCalendar();
+        InitFullscreen();
+        InitJobs();
+        InitFocus();
+        InitGitHub();
+        InitRecap();
+        InitClipboard();
+        InitDownloads();
+        InitSystem();
+        InitCommands();
+        InitReminders();
+        InitWeather();
+        InitWater();
+        InitPrivacy();
         ApplyView(animate: false);
         ApplyState();
     }
@@ -193,6 +269,21 @@ public partial class NotchWindow : Window
         {
             RestartCalendar();
         }
+
+        RestartJobs();
+        ApplyClipboardListener();
+        ApplyDownloadWatcher();
+        RestartWeather();
+        ScheduleWaterNudge();
+        RestartSystem();
+        RestartGitHub();
+        ApplyKeyboardWatcher();
+        ApplyCompanion();
+        ApplyPrivacyWatcher();
+        SchedulePrayer();
+        ScheduleFullscreenCheck();
+        ScheduleRecap();
+        UpdateQuietCheck();
 
         ApplyView(animate: false);
         UpdateVisibility();
@@ -262,6 +353,7 @@ public partial class NotchWindow : Window
                 CompleteSteps(activity);
                 if (completed.Status == "completed")
                 {
+                    RecordDay(day => day.AgentTask(activity.IsMain ? _host.ProviderName : activity.Provider, activity.Prompt));
                     AddStep(activity, L("notch.step.done"));
                     CompleteSteps(activity);
                     SetActivityState(activity, NotchState.Done);
@@ -388,8 +480,8 @@ public partial class NotchWindow : Window
 
     // Notch: hangs from the screen edge, only the bottom corners round. Dynamic Island: a pill
     // floating just below the edge, every corner round (half the height when compact).
-    private double CompactRadius => _island ? 15 : 14;
-    private double ExpandedRadius => _island ? 30 : 26;
+    private double CompactRadius => _island ? 16 : 15;
+    private double ExpandedRadius => IslandTokens.Re;   // RE 36: a 40 corner item at P 16 sits concentric (R 20 + 16)
 
     // Notch: only the corners facing away from its edge are round. Island: all four.
     private void ApplyRadius(double radius)
@@ -478,7 +570,7 @@ public partial class NotchWindow : Window
 
     private const double SnapDistance = 28;
     private const double DragThreshold = 4;
-    private const double CompactThickness = 30;
+    private const double CompactThickness = 32;
     private bool _pressed;
     private bool _dragging;
     private System.Windows.Point _pressCursor;
@@ -512,7 +604,7 @@ public partial class NotchWindow : Window
             return _state == NotchState.Idle && !CompactLive ? (132, 96) : (172, 112);
         }
 
-        var length = _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth;
+        var length = _state == NotchState.Idle && !CompactLive ? (IdleFaceShowingFor(_view) ? IdleFaceWidth : IdleWidth) : CompactWidth;
         return Vertical ? (CompactThickness, length) : (length, CompactThickness);
     }
 
@@ -595,7 +687,7 @@ public partial class NotchWindow : Window
         PlaceCompactChatButton();
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -618,7 +710,7 @@ public partial class NotchWindow : Window
             "left" or "right" => VerticalAlignment.Center,
             _ => VerticalAlignment.Top
         };
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel })
         {
             panel.HorizontalAlignment = horizontal;
             panel.VerticalAlignment = vertical;
@@ -650,7 +742,7 @@ public partial class NotchWindow : Window
 
         ApplyOutline();
         ApplyRadius(Radius);
-        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, CompactPanel })
+        foreach (var panel in new[] { LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel, CompactPanel })
         {
             panel.RenderTransformOrigin = ContentOrigin();
         }
@@ -1027,13 +1119,24 @@ public partial class NotchWindow : Window
         UpdateVisibility();
     }
 
+    private static readonly Brush WaitingRim = Frozen(System.Windows.Media.Color.FromArgb(0xC0, 0xFF, 0x9F, 0x0A));
+
     private void ApplyState()
     {
+        if (_view is NotchView.Activity or NotchView.Request or NotchView.Quick)
+        {
+            ApplyAgentObject();   // the orb says the state
+        }
+        else if (_view == NotchView.Compact)
+        {
+            QueueCompactObject();
+        }
         CompactGlyph.Visibility = _state == NotchState.Idle ? Visibility.Collapsed : Visibility.Visible;
         PlaceCompactChatButton();
         SpinnerIndicator.Visibility = _state == NotchState.Working ? Visibility.Visible : Visibility.Collapsed;
         DoneIndicator.Visibility = _state == NotchState.Done ? Visibility.Visible : Visibility.Collapsed;
         WaitIndicator.Visibility = _state == NotchState.Waiting ? Visibility.Visible : Visibility.Collapsed;
+        ApplyKeyline();
         ErrorIndicator.Visibility = _state == NotchState.Error ? Visibility.Visible : Visibility.Collapsed;
         ApplyQuotaRing();
         ApplyQueueState();
@@ -1078,6 +1181,12 @@ public partial class NotchWindow : Window
             return;
         }
 
+        if (_fullscreenHidden)
+        {
+            Hide();   // a game or a video has the screen; back when it ends
+            return;
+        }
+
         var hide = _view == NotchView.Compact && _state == NotchState.Idle && !CompactLive && _host.HideNotchWhenIdle;
         if (hide)
         {
@@ -1106,9 +1215,10 @@ public partial class NotchWindow : Window
         ApplyOutline();
     }
 
-    // No rim on the side that meets the screen edge (the island floats, so it gets all four).
+    // No rim on the side that meets the screen edge (the island floats, so it gets all four). The
+    // top-centre island (Page 2) has none at all, like the iPhone's: clean black, nothing around it.
     private void ApplyOutline() =>
-        Shell.BorderThickness = IsCorner && !_floating ? new Thickness(0) : _island || _floating ? new Thickness(1) : Edge switch
+        Shell.BorderThickness = (IsCorner && !_floating) || (Edge == "top" && !_floating) ? new Thickness(0) : _island || _floating ? new Thickness(1) : Edge switch
         {
             "bottom" => new Thickness(1, 1, 1, 0),
             "left" => new Thickness(0, 1, 1, 1),
@@ -1180,7 +1290,10 @@ public partial class NotchWindow : Window
         var matches = string.IsNullOrEmpty(query)
             ? _recent.Take(3)
             : _recent.Where(t => t.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                                 t.Preview.Contains(query, StringComparison.OrdinalIgnoreCase)).Take(4);
+                                 t.Preview.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Concat(query == _searched ? _searchHits : [])
+                .DistinctBy(t => t.Id)
+                .Take(6);
 
         var items = matches.Where(t => _recentFilter is null || t.Source == _recentFilter).Select(t => new RecentItem(
             t,
@@ -1207,7 +1320,12 @@ public partial class NotchWindow : Window
             ChipPanel.Children.Add(chip);
         }
 
-        // The notch's own timer, next to the prompt templates.
+        // The notch's own timer, next to the prompt templates (when the timer is one of the features).
+        if (!_host.TimerInNotch)
+        {
+            return;
+        }
+
         var timer = new Button
         {
             Content = _timer.IsActive ? $"⏱ {NotchTimer.Format(_timer.Display(DateTimeOffset.Now))}" : "⏱ Timer",
@@ -1298,11 +1416,31 @@ public partial class NotchWindow : Window
         LauncherPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
         RenderSuggestion();
         UpdateLauncherSendState();
+        if (CommandMode)
+        {
+            RenderCommands();
+            return;
+        }
+
+        CommandPanel.Visibility = Visibility.Collapsed;
+        RecentFilters.Visibility = Visibility.Visible;
+        ScheduleHistorySearch();
         RenderRecent();
     }
 
     private async void LauncherInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (e.Key is Key.Up or Key.Down or Key.Tab or Key.Enter && CommandMode && _voice != VoiceState.Recording)
+        {
+            e.Handled = true;
+            if (await CommandKeyAsync(e))
+            {
+                return;
+            }
+
+            e.Handled = false;
+        }
+
         if (e.Key == Key.Enter && _voice == VoiceState.Recording)
         {
             // Enter ends a hands-free voice take instead of sending.
@@ -1497,7 +1635,7 @@ public partial class NotchWindow : Window
     }
 
     private static string Truncate(string value, int max) =>
-        value.Length <= max ? value : value[..max] + "â€¦";
+        value.Length <= max ? value : value[..max] + "…";
 
     private static string FormatAge(DateTimeOffset updatedAt)
     {

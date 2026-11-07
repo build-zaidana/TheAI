@@ -27,7 +27,7 @@ public partial class NotchWindow
     private const int ShelfLimit = 24;
 
     private static readonly string ShelfFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "shelf.json");
+        CodexBar.Providers.AppPaths.DataRoot, "shelf.json");
 
     private readonly List<string> _shelf = [];
     private Point _shelfDragStart;
@@ -43,6 +43,10 @@ public partial class NotchWindow
             {
                 // Files moved or deleted since leave the shelf quietly.
                 _shelf.AddRange(saved.Where(path => File.Exists(path) || Directory.Exists(path)).Distinct(StringComparer.OrdinalIgnoreCase).Take(ShelfLimit));
+                if (_shelf.Count != saved.Count)
+                {
+                    SaveShelf();
+                }
             }
         }
         catch (Exception exception)

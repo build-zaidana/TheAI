@@ -9,13 +9,13 @@ namespace CodexBar.App;
 /// </summary>
 public sealed record BranchGroup(string Anchor, List<string> Sessions);
 
-/// <summary>The version groups, kept in %LOCALAPPDATA%\CodexBar\branches.json.</summary>
+/// <summary>The version groups, kept in %LOCALAPPDATA%\TheAI\branches.json.</summary>
 internal static class BranchStore
 {
     private static readonly object Gate = new();
 
     private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "branches.json");
+        CodexBar.Providers.AppPaths.DataRoot, "branches.json");
 
     // Read once, then kept in memory (every prompt asks for its versions on each render).
     private static List<BranchGroup>? _groups;
@@ -75,7 +75,7 @@ internal static class BranchStore
         }
     }
 
-    /// <summary>Forgets sessions that no longer exist (deleted outside CodexBar).</summary>
+    /// <summary>Forgets sessions that no longer exist (deleted outside TheAI).</summary>
     public static void Forget(string session)
     {
         lock (Gate)

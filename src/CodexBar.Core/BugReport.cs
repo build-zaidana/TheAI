@@ -19,7 +19,7 @@ public static class BugReport
         var reportsDirectory = Path.Combine(baseDirectory, "reports");
         Directory.CreateDirectory(reportsDirectory);
 
-        var zipPath = Path.Combine(reportsDirectory, $"codexbar-bugreport-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
+        var zipPath = Path.Combine(reportsDirectory, $"theai-bugreport-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
         using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
 
         var infoEntry = archive.CreateEntry("info.txt");

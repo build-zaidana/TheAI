@@ -5,7 +5,7 @@ namespace CodexBar.Core;
 
 /// <summary>
 /// Detects provider "usage limit / rate limit" errors and works out when to retry, so
-/// CodexBar can auto-resume a prompt once the quota resets. Pure and dependency-free so
+/// TheAI can auto-resume a prompt once the quota resets. Pure and dependency-free so
 /// the parsing (the tricky part) is fully unit-testable without ever hitting a real limit.
 /// </summary>
 public static partial class RateLimit

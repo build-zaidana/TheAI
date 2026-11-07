@@ -47,7 +47,15 @@ public partial class NotchWindow
             "item/permissions/requestApproval" => Tr.Text("Akses tambahan", "Extra access"),
             _ => Tr.Text("Jalankan perintah", "Run a command")
         };
-        RequestTitle.Text = title;
+        // Board 34: the title is the question in a few words; the agent's own sentence is in the tooltip.
+        RequestTitle.Text = approval.Method switch
+        {
+            "item/fileChange/requestApproval" => Tr.Text("Ubah file?", "Change files?"),
+            "item/permissions/requestApproval" => Tr.Text("Beri akses?", "Give access?"),
+            "item/commandExecution/requestApproval" => Tr.Text("Jalankan perintah?", "Run this command?"),
+            _ => title
+        };
+        RequestTitle.ToolTip = title;
         RequestMessage.Visibility = Visibility.Collapsed;
         RequestDetail.Text = detail;
         RequestDetailBox.Visibility = detail.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -58,11 +66,12 @@ public partial class NotchWindow
             string.Format(Tr.Text("{0} minta izin", "{0} needs permission"), _activity.IsMain ? _host.ProviderName : _activity.Provider),
             detail.Length > 0 ? detail.Split('\n')[0].Trim() : title);
         RequestPrimary.Content = Tr.Text("Izinkan sekali", "Allow once");
-        RequestSecondary.Content = Tr.Text("Izinkan sesi", "Allow for session");
+        RequestSecondary.Content = Tr.Text("Izinkan sesi", "This session");
         RequestTertiary.Content = Tr.Text("Tolak", "Decline");
         RequestTertiary.Visibility = Visibility.Visible;
         RequestLink.Content = Tr.Text("Tolak & hentikan", "Decline & stop");
         RequestLink.Visibility = Visibility.Visible;
+        ShowRequestRisk(LooksRisky(detail));
         _requestUrl = null;
         _requestDeadline = null;
 
@@ -95,6 +104,7 @@ public partial class NotchWindow
         RequestPrimary.Content = Tr.Text("Lanjutkan", "Continue");
         RequestSecondary.Content = Tr.Text("Batal", "Cancel");
         RequestTertiary.Visibility = Visibility.Collapsed;
+        ShowRequestRisk(false);
         _requestUrl = Uri.TryCreate(input.ActionUrl, UriKind.Absolute, out var url) && url.Scheme is "https" or "http" ? url : null;
         RequestLink.Content = _requestUrl is null ? string.Empty : Tr.Text($"Buka {_requestUrl.Host} ↗", $"Open {_requestUrl.Host} ↗");
         RequestLink.Visibility = _requestUrl is null ? Visibility.Collapsed : Visibility.Visible;
@@ -130,6 +140,11 @@ public partial class NotchWindow
 
     private void OpenRequestView()
     {
+        if (HoldIfQuiet(_activity.Key, ask: true, RequestTitle.Text))
+        {
+            return;   // during focus / a meeting: counted on the compact notch, answered at the break or on hover
+        }
+
         RequestError.Visibility = Visibility.Collapsed;
         RequestCountdown.Text = string.Empty;
         RequestContext.Text = _activity.IsMain
@@ -526,5 +541,27 @@ public partial class NotchWindow
         }
         ApplyView(animate: true);
         UpdateVisibility();
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex RiskyWords = new(
+        @"\brm\s+-\w*r|\b(rmdir|rd|del)\s+/s|Remove-Item\b.*-Recurse|\bformat\s+[a-z]:|git\s+push\b.*--force|git\s+reset\s+--hard|\bshutdown\b|\bdrop\s+(table|database)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static bool LooksRisky(string detail) => RiskyWords.IsMatch(detail);
+
+    /// <summary>Board 34: something that can't be taken back turns the page around: declining is the white button, allowing is red, and "for the session" isn't offered.</summary>
+    private void ShowRequestRisk(bool risky)
+    {
+        var red = IslandTokens.Frozen(IslandTokens.Error);
+        RequestDot.Fill = risky ? red : IslandTokens.Frozen(IslandTokens.Wait);
+        if (risky)
+        {
+            RequestKind.Text += Tr.Text(" · berisiko", " · risky");
+        }
+
+        RequestSecondary.Visibility = risky ? Visibility.Collapsed : Visibility.Visible;
+        RequestTertiary.Style = (Style)FindResource(risky ? "IslandPrimaryButton" : "IslandButton");
+        RequestPrimary.Background = risky ? IslandTokens.Frozen(System.Windows.Media.Color.FromArgb(0x2E, 0xFF, 0x45, 0x3A)) : IslandTokens.Text1;
+        RequestPrimary.Foreground = risky ? red : System.Windows.Media.Brushes.Black;
     }
 }

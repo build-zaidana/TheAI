@@ -16,12 +16,13 @@ internal static class Program
     [STAThread]
     private static int Main()
     {
+        Environment.SetEnvironmentVariable("THEAI_DATA_DIR", System.IO.Path.Combine(System.IO.Path.GetTempPath(), "theai-uitests", Environment.ProcessId.ToString()));
         try
         {
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary
             {
-                Source = new Uri("pack://application:,,,/CodexBar.App;component/Theme.xaml")
+                Source = new Uri("pack://application:,,,/TheAI;component/Theme.xaml")
             });
             TestConversationPanel();
             TestMarkdownFormatting();

@@ -57,6 +57,7 @@ public partial class NotchWindow
 
     private void AddChangedFiles(Activity activity, IReadOnlyList<ProviderFileChange> changes)
     {
+        RecordDay(day => day.ChangedFiles(changes.Select(change => change.MovePath is { Length: > 0 } moved ? moved : change.Path)));
         var files = activity.Files;
         foreach (var change in changes)
         {

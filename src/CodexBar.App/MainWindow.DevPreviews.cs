@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -53,7 +53,8 @@ public partial class MainWindow
             });
         }
 
-        // CODEXBAR_PREVIEW_REQUEST=approval|input[+launcher]: show a sample request in the notch (no provider involved);
+        // CODEXBAR_PREVIEW_REQUEST=approval|full|risky|input[+launcher]: show a sample request in the notch (no provider involved);
+        // "full" and "risky" open the whole request page instead of the short answer;
         // "+launcher" then opens the launcher with the request under "Menunggu kamu".
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REQUEST") is { Length: > 0 } request && _notch is not null)
         {
@@ -76,11 +77,34 @@ public partial class MainWindow
             }
             else
             {
+                var command = request == "risky" ? "rm -rf artifacts/win-x64" : "npm install --save-dev vitest";
                 _ = _notch.RequestApprovalAsync(new ProviderApprovalEvent("item/commandExecution/requestApproval",
-                    string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", "npm install --save-dev vitest",
+                    string.Join('\n', "Izinkan Codex menjalankan perintah berikut?", "", command,
                         @"Folder: C:\Users\adria\AgentPlayground\ClaudeCode"),
                     decision => { DiagnosticsLog.Info("PreviewRequest", $"decision={decision}"); return Task.CompletedTask; }, raw));
+                if (request is "full" or "risky")
+                {
+                    _notch.PreviewFullRequest();
+                }
             }
+        }
+
+        // CODEXBAR_PREVIEW_WORK=1|compact: a sample turn still running (steps streaming), on the agent page or in the pill.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WORK") is { Length: > 0 } work && _notch is not null)
+        {
+            _notch.OnTurnStarted("Rapikan token desain di NotchWindow");
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Membaca NotchWindow.Glass.cs"));
+            _notch.HandleProviderEvent(new ProviderStatusEvent("Mengubah Tokens.xaml"));
+            if (work != "compact")
+            {
+                _notch.PreviewAgent(NotchWindow.MainActivityKey);
+            }
+        }
+
+        // CODEXBAR_SNAPSHOT_AS=<name>: with CODEXBAR_SNAPSHOT_DIR, the whole notch area to <name>.png after 3 s.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_AS") is { Length: > 0 } snapshotName && _notch is not null)
+        {
+            _notch.SnapshotLater(snapshotName, TimeSpan.FromSeconds(3));
         }
 
         // CODEXBAR_PREVIEW_SUGGESTION=activity|launcher: a finished sample turn with habit guesses.
@@ -139,13 +163,120 @@ public partial class MainWindow
             _notch.PreviewCalendar(calendarPreview);
         }
 
+        // CODEXBAR_PREVIEW_JOBS=compact|open|done|failed|spinner: sample live activities from scripts.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_JOBS") is { Length: > 0 } jobsPreview && _notch is not null)
+        {
+            _notch.PreviewJobs(jobsPreview);
+        }
+
+        // CODEXBAR_PREVIEW_SELECTION=1: what the quick-capture hotkey offers for a selection.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SELECTION") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewSelection();
+        }
+
+        // CODEXBAR_TEST_MUTE=1: mute and unmute the microphone once, logging each state.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_MUTE") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.TestMute();
+        }
+
+        // CODEXBAR_PREVIEW_PRIVACY=mic|camera: the microphone / camera dot and its HUD (a sample app).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PRIVACY") is { Length: > 0 } privacyPreview && _notch is not null)
+        {
+            _notch.PreviewPrivacy(privacyPreview);
+        }
+
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_MOTION") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.RunMotionProbe();
+        }
+
+        // CODEXBAR_PREVIEW_TODAY=1: the combined Today page with sample weather, water and reminders (never saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_TODAY") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewToday();
+        }
+
+        // CODEXBAR_PREVIEW_CONTROL=1: the Control Center page (reads volume and radios, changes nothing).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CONTROL") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewControl();
+        }
+
+        // CODEXBAR_PREVIEW_IDLE=1: the closed notch at rest (time and a sample temperature).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_IDLE") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewIdleFace();
+        }
+
+        // CODEXBAR_PREVIEW_EYES=awake|asleep: the idle companion in the compact notch.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_EYES") is { Length: > 0 } eyesPreview && _notch is not null)
+        {
+            _notch.PreviewCompanion(eyesPreview);
+        }
+
+        // CODEXBAR_PREVIEW_WATER=1|nudge: the water page with a sample week (never saved), or the reminder.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WATER") is { Length: > 0 } waterPreview && _notch is not null)
+        {
+            _notch.PreviewWater(waterPreview);
+        }
+
+        // CODEXBAR_PREVIEW_WEATHER=1: the weather page with a sample report (nothing is fetched).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_WEATHER") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewWeather();
+        }
+
+        // CODEXBAR_PREVIEW_REMINDERS=open|due: sample reminders (never saved), or one ringing.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_REMINDERS") is { Length: > 0 } remindersPreview && _notch is not null)
+        {
+            _notch.PreviewReminders(remindersPreview);
+        }
+
+        // CODEXBAR_PREVIEW_PALETTE=/re: the launcher with that typed (the command palette for "/…").
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_PALETTE") is { Length: > 0 } palette && _notch is not null)
+        {
+            _notch.PreviewPalette(palette);
+        }
+
+        // CODEXBAR_PREVIEW_SHUTDOWN=idle|run: the Matikan mode or a pending shutdown (nothing is scheduled).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SHUTDOWN") is { Length: > 0 } shutdownPreview && _notch is not null)
+        {
+            _notch.PreviewShutdown(shutdownPreview);
+        }
+
+        // CODEXBAR_PREVIEW_SYSTEM=open|alert: the machine page (live numbers) or the low-memory HUD.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SYSTEM") is { Length: > 0 } systemPreview && _notch is not null)
+        {
+            _notch.PreviewSystem(systemPreview);
+        }
+
+        // CODEXBAR_PREVIEW_CLIPBOARD=1: the clipboard page with sample copies (nothing is read or saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_CLIPBOARD") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewClipboard();
+        }
+
+        // CODEXBAR_PREVIEW_RECAP=1: today's recap with sample numbers (nothing is saved).
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_RECAP") is { Length: > 0 } && _notch is not null)
+        {
+            _notch.PreviewRecap();
+        }
+
+        // CODEXBAR_PREVIEW_HELD=compact|open: agents held during focus — the count, then the break panel.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HELD") is { Length: > 0 } heldPreview && _notch is not null)
+        {
+            _notch.PreviewHeld(heldPreview);
+        }
+
         // CODEXBAR_PREVIEW_SHELF=compact|open|drop: the file shelf with a few sample files (not saved).
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_SHELF") is { Length: > 0 } shelfPreview && _notch is not null)
         {
             _notch.PreviewShelf(shelfPreview);
         }
 
-        // CODEXBAR_PREVIEW_HUD=volume|mute|brightness|charging|low|headphones|buds: the notch's system HUD.
+        // CODEXBAR_PREVIEW_HUD=volume|mute|brightness|charging|low|headphones|buds|caps|language|offline: the notch's system HUD.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_HUD") is { Length: > 0 } hudPreview && _notch is not null)
         {
             _notch.PreviewHud(hudPreview);
@@ -157,7 +288,7 @@ public partial class MainWindow
             _notch.PreviewTimer(timerPreview);
         }
 
-        // CODEXBAR_PREVIEW_MUSIC=1|toast|compact: the music page, the track-change toast or the compact notch for what plays now.
+        // CODEXBAR_PREVIEW_MUSIC=1|toast|compact|lyrics: the music page, the track-change toast or the compact notch for what plays now.
         if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_MUSIC") is { Length: > 0 } musicPreview && _notch is not null)
         {
             _notch.PreviewMusic(musicPreview);

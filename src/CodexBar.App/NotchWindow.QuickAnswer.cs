@@ -85,10 +85,12 @@ public partial class NotchWindow
         if (_approvalSource is not null)
         {
             QuickText.FontFamily = new System.Windows.Media.FontFamily("Cascadia Mono, Consolas");
+            QuickText.FontSize = 17;
         }
         else
         {
             QuickText.ClearValue(TextBlock.FontFamilyProperty);
+            QuickText.ClearValue(TextBlock.FontSizeProperty);
         }
         QuickPrimary.Content = CheckLabel(_quickLabel ?? string.Empty, Brushes.Black);
         if (_approvalSource is not null)
@@ -118,6 +120,14 @@ public partial class NotchWindow
     }
 
     private void QuickMore_Click(object sender, RoutedEventArgs e) => ShowFullRequest();
+
+    /// <summary>Snapshot runs: the full request page instead of the short answer.</summary>
+    internal async void PreviewFullRequest()
+    {
+        await Task.Delay(900);
+        ShowFullRequest();
+        _pinned = true;
+    }
 
     private void ShowFullRequest()
     {

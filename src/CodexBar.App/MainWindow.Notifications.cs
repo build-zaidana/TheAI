@@ -17,6 +17,11 @@ public partial class MainWindow
     private void NotifyCompletion(string activityKey, string provider, string workspace, string answer, TimeSpan duration)
     {
         _notifiedAnswers[activityKey] = answer;
+        if (_notch?.HoldIfQuiet(activityKey, ask: false) == true)
+        {
+            return;   // focus or a meeting: no toast, no chime; the notch shows it at the break
+        }
+
         var looking = _notch?.IsVisible == true && duration < LongTurn;
 
         if (!looking && _settings.CompletionNotification)
@@ -42,6 +47,34 @@ public partial class MainWindow
         if (action == "update-download")
         {
             OpenUpdateDownload();
+            return;
+        }
+
+        if (action is "reminder-done" or "reminder-snooze")
+        {
+            _notch?.AnswerRingingReminder(done: action == "reminder-done");
+            return;
+        }
+
+        if (activityKey == "reminder")
+        {
+            return;
+        }
+
+        if (action == "update-install")
+        {
+            _ = InstallUpdateAsync();
+            return;
+        }
+
+        if (action == "crash-report" || action.Length == 0 && activityKey == "crash")
+        {
+            ReportCrash();
+            return;
+        }
+
+        if (action == "crash-dismiss" || activityKey == "crash")
+        {
             return;
         }
 

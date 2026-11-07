@@ -162,6 +162,7 @@ public partial class NotchWindow
         var running = _activities.Count(a => a.IsBusy);
         CompactCount.Text = running.ToString();
         CompactCount.Visibility = running > 1 ? Visibility.Visible : Visibility.Collapsed;
+        ApplyHeldBadge();
     }
 
     /// <summary>Bring one conversation up in the activity view (from a notification).</summary>

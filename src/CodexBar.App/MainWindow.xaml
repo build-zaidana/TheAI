@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CodexBar.App"
-        Title="CodexBar"
+        Title="TheAI"
         Icon="codexbar.ico"
         Width="640"
         MinWidth="500"
@@ -223,7 +223,7 @@
                     </StackPanel>
                     <TextBlock x:Name="OnboardingBody" TextWrapping="Wrap" FontSize="12.5"
                                Foreground="{DynamicResource TextMuted}" Margin="0,0,0,10"
-                               Text="CodexBar memerlukan Codex CLI yang sudah login." />
+                               Text="TheAI memerlukan Codex CLI yang sudah login." />
 
                     <Border x:Name="OnboardingCommandBox" CornerRadius="9" Padding="12,9" Margin="0,0,0,12"
                             Background="#1E000000" BorderBrush="#26000000" BorderThickness="1">
@@ -379,6 +379,7 @@
                             <TextBlock x:Name="LanguageLabel" Text="Bahasa" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource SettingsLabelBrush}" />
                             <ComboBox x:Name="LanguageCombo" Width="120" SelectionChanged="SettingsControl_Changed"
                                       AutomationProperties.Name="Bahasa antarmuka">
+                                <ComboBoxItem Content="Windows" Tag="auto" />
                                 <ComboBoxItem Content="Indonesia" Tag="id" />
                                 <ComboBoxItem Content="English" Tag="en" />
                             </ComboBox>
@@ -423,6 +424,7 @@
                                 <ComboBoxItem Content="Buka saat kirim" Tag="capture" />
                                 <ComboBoxItem Content="Buka saat selesai" Tag="done" />
                                 <ComboBoxItem Content="Ke clipboard" Tag="clipboard" />
+                                <ComboBoxItem Content="Pilihan di notch" Tag="notch" />
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,3,12,3" VerticalAlignment="Center">
@@ -443,7 +445,7 @@
                         <CheckBox x:Name="LaunchAtLoginCheck" Content="Jalan saat login" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
                                   ToolTip="Otomatis jalan dan standby di tray saat login, agar buka via hotkey selalu instan." />
                         <CheckBox x:Name="DiagnosticsLoggingCheck" Content="Log diagnostik" Margin="0,3,12,3" Checked="SettingsControl_Changed" Unchecked="SettingsControl_Changed"
-                                  ToolTip="Simpan log ke %LOCALAPPDATA%\CodexBar\logs untuk pelaporan bug. Default mati." />
+                                  ToolTip="Simpan log ke %LOCALAPPDATA%\TheAI\logs untuk pelaporan bug. Default mati." />
                     </WrapPanel>
 
                     <WrapPanel Grid.Row="10" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,10,0,0">
@@ -467,7 +469,7 @@
                         <Button x:Name="ExportCheckpointButton" Content="Export checkpoint" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ExportCheckpointButton_Click"
                                 ToolTip="Simpan percakapan aktif sebagai Markdown lokal" />
                         <Button x:Name="OpenLogsButton" Content="Buka folder log" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="OpenLogsButton_Click"
-                                ToolTip="Buka folder log diagnostik (%LOCALAPPDATA%\CodexBar\logs)" AutomationProperties.Name="Buka folder log diagnostik" />
+                                ToolTip="Buka folder log diagnostik (%LOCALAPPDATA%\TheAI\logs)" AutomationProperties.Name="Buka folder log diagnostik" />
                         <Button x:Name="ReportBugButton" Content="Laporkan bug" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ReportBugButton_Click"
                                 ToolTip="Kumpulkan log jadi satu zip untuk dilampirkan ke laporan bug" AutomationProperties.Name="Buat laporan bug" />
                         <Button x:Name="ResetLayoutButton" Content="Reset layout" Style="{StaticResource GlassPillButton}" Margin="0,0,8,6" Click="ResetLayoutButton_Click" />
@@ -501,7 +503,7 @@
                             </StackPanel>
                             <TextBlock x:Name="ProviderRestartNote" VerticalAlignment="Center"
                                        FontSize="11" Foreground="{DynamicResource TextMuted}"
-                                       Text="Restart CodexBar setelah mengubah provider." />
+                                       Text="Restart TheAI setelah mengubah provider." />
                         </WrapPanel>
                         <StackPanel x:Name="ApiKeyPanel" Orientation="Horizontal" Margin="0,10,0,0" Visibility="Collapsed">
                             <TextBlock x:Name="ApiKeyLabel" Text="API Key" VerticalAlignment="Center"

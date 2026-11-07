@@ -13,7 +13,7 @@ namespace CodexBar.App.Voice;
 
 /// <summary>
 /// Offline speech-to-text with whisper.cpp. The engine (whisper-server + its DLLs, ~10 MB) and a
-/// model are downloaded once on the user's say-so into %LOCALAPPDATA%\CodexBar\whisper, from
+/// model are downloaded once on the user's say-so into %LOCALAPPDATA%\TheAI\whisper, from
 /// pinned URLs and checked against pinned SHA-256 hashes. The server then runs hidden on a
 /// loopback port with the model kept in memory, so a push-to-talk clip is only encoded and
 /// decoded: about 0.6 s for 10 s of speech on an 8-core laptop CPU with these settings
@@ -43,7 +43,7 @@ internal sealed class WhisperEngine : IDisposable
     private string? _serverLanguage;
 
     public static string Folder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "whisper");
+        CodexBar.Providers.AppPaths.DataRoot, "whisper");
 
     private static string EngineFolder => Path.Combine(Folder, "bin");
 
@@ -381,7 +381,7 @@ internal sealed class WhisperEngine : IDisposable
 }
 
 /// <summary>
-/// A job object that kills its processes when CodexBar exits for any reason (including a crash
+/// A job object that kills its processes when TheAI exits for any reason (including a crash
 /// or being killed), so no whisper-server is left holding a model in memory.
 /// </summary>
 internal static class ChildProcessJob

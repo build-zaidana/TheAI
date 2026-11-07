@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -52,13 +52,31 @@ public partial class NotchWindow
     private TimeSpan _motionLastFrame;
     private NotchView _shownView = NotchView.Compact;
 
+    // CODEXBAR_TEST_MOTION=1: open and close the notch a few times and log each animation's frame pacing.
+    private readonly bool _motionProbe = Environment.GetEnvironmentVariable("CODEXBAR_TEST_MOTION") is { Length: > 0 };
+    private int _probeFrames;
+    private int _probeSlow;
+    private double _probeWorst;
+
+    internal async void RunMotionProbe()
+    {
+        await Task.Delay(3000);
+        for (var i = 0; i < 6; i++)
+        {
+            OpenToday();
+            await Task.Delay(1400);
+            Collapse();
+            await Task.Delay(1200);
+        }
+    }
+
     private readonly DropShadowEffect _shadow = new()
     {
-        BlurRadius = 40,
-        ShadowDepth = 10,
+        BlurRadius = 48,
+        ShadowDepth = 6,
         Direction = 270,
         Opacity = 0,
-        Color = Colors.Black
+        Color = System.Windows.Media.Color.FromRgb(0x4B, 0x3C, 0xC8)   // a violet glow, like the site
     };
 
     private FrameworkElement PanelFor(NotchView view) => view switch
@@ -73,6 +91,17 @@ public partial class NotchWindow
         NotchView.Hud => HudPanel,
         NotchView.Shelf => ShelfPanel,
         NotchView.Calendar => CalendarPanel,
+        NotchView.Jobs => JobsPanel,
+        NotchView.Held => HeldPanel,
+        NotchView.Recap => RecapPanel,
+        NotchView.Clipboard => ClipPanel,
+        NotchView.System => SystemPanel,
+        NotchView.Control => ControlPanel,
+        NotchView.Reminders => ReminderPanel,
+        NotchView.Weather => WeatherPanel,
+        NotchView.Water => WaterPanel,
+        NotchView.Today => TodayPanel,
+        NotchView.Selection => SelectionPanel,
         _ => CompactPanel
     };
 
@@ -81,13 +110,23 @@ public partial class NotchWindow
         NotchView.Launcher => LauncherWidth,
         NotchView.Activity or NotchView.Request => ActivityWidth,
         NotchView.Quick => QuickWidth,
-        NotchView.Music => _musicMini ? MusicMiniWidth : MusicWidth,
+        NotchView.Music => MusicPageWidth,
         NotchView.Timer => TimerWidth,
         NotchView.TimerDone => TimerDoneWidth,
-        NotchView.Hud => HudWidth,
+        NotchView.Hud => _hudShownIconOnly ? HudIconOnlyWidth : _liquidHud != LiquidHudKind.None ? LiquidHudWidth : HudWidth,
         NotchView.Shelf => ShelfWidth,
         NotchView.Calendar => CalendarWidth,
-        _ => _state == NotchState.Idle && !CompactLive ? IdleWidth : CompactWidth
+        NotchView.Jobs or NotchView.Held => JobsWidth,
+        NotchView.Recap => RecapWidth,
+        NotchView.Clipboard => ClipWidth,
+        NotchView.System => SystemWidth,
+        NotchView.Control => ControlWidth,
+        NotchView.Reminders => RemindersWidth,
+        NotchView.Weather => WeatherWidth,
+        NotchView.Water => WaterWidth,
+        NotchView.Today => TodayWidth,
+        NotchView.Selection => SelectionWidth,
+        _ => _state == NotchState.Idle && !CompactLive ? IdleFaceWidth : CompactWidth
     };
 
     private static double MeasureHeight(FrameworkElement panel, double width)
@@ -119,13 +158,15 @@ public partial class NotchWindow
         }
 
         // The HUD is the compact notch made a little wider: it keeps the compact corners.
-        var radius = expanded && _view != NotchView.Hud ? ExpandedRadius : CompactRadius;
+        // The HUD's corners follow its capsule (half the capsule's height plus the 4 px inset), so the
+        // two curves run parallel instead of the capsule looking cut off at the ends.
+        var radius = _view == NotchView.Hud ? HudRadius : expanded ? ExpandedRadius : CompactRadius;
         var (armH, armV) = expanded ? (height, width) : (CompactThickness, CompactThickness);
         var (left, top) = ComputePlacement(width, height);
 
         if (!animate || !IsVisible)
         {
-            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel })
+            foreach (var panel in new[] { CompactPanel, LauncherPanel, (FrameworkElement)ActivityPanel, RequestPanel, QuickPanel, MusicPanel, TimerPanel, TimerDonePanel, HudPanel, ShelfPanel, CalendarPanel, JobsPanel, HeldPanel, RecapPanel, ClipPanel, SystemPanel, ReminderPanel, WeatherPanel, WaterPanel, TodayPanel, ControlPanel, SelectionPanel })
             {
                 panel.BeginAnimation(OpacityProperty, null);
                 panel.Opacity = 1;
@@ -145,18 +186,19 @@ public partial class NotchWindow
             ApplyShape();
             Left = left;
             Top = top;
-            Shell.Effect = expanded ? _shadow : null;
-            _shadow.Opacity = expanded ? 0.45 : 0;
+            Shell.Effect = null;
             _shownView = _view;
             UpdateWindowStyle();
             ApplyKeyline();
+            ApplyLiquidHud();
+            ApplyLiveObject();
             return;
         }
 
         // Opening: a lively spring that overshoots a hair. Closing: quicker and calmer.
         var opening = expanded && _shownView == NotchView.Compact ||
                       width > _shapeWidth.Value + 0.5 || height > _shapeHeight.Value + 0.5;
-        var (response, damping) = opening ? (0.52, 0.72) : (0.36, 0.94);
+        var (response, damping) = opening ? (_island ? (0.28, 0.76) : (0.27, 0.86)) : (0.2, 1.0);
         Retarget(_shapeWidth, width, response, damping);
         Retarget(_shapeHeight, height, response, damping);
         Retarget(_shapeRadius, radius, response, damping);
@@ -165,18 +207,20 @@ public partial class NotchWindow
         Retarget(_windowLeft, left, response, 1);
         Retarget(_windowTop, top, response, 1);
         _moveWindow = true;
-        Shell.Effect = null;   // re-rasterising the blur each frame costs more than everything else
+        Shell.Effect = null;   // no effects on the shape: in a transparent window they flicker and cost frames
         StartMotion();
 
         if (outgoing != incoming)
         {
             FadeOut(outgoing);
-            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 110 : 50), blur: expanded);
+            FadeIn(incoming, delay: TimeSpan.FromMilliseconds(expanded ? 90 : 40), blur: false);
         }
 
         _shownView = _view;
         UpdateWindowStyle();
         ApplyKeyline();
+        ApplyLiquidHud();
+        ApplyLiveObject();
     }
 
     private static void Retarget(Spring spring, double target, double response, double damping)
@@ -256,8 +300,15 @@ public partial class NotchWindow
             return;
         }
 
-        var dt = Math.Min((now - _motionLastFrame).TotalSeconds, 1.0 / 20);
+        var gap = (now - _motionLastFrame).TotalMilliseconds;
+        var dt = Math.Min(gap / 1000, 1.0 / 20);
         _motionLastFrame = now;
+        if (_motionProbe)
+        {
+            _probeFrames++;
+            _probeSlow += gap > 25 ? 1 : 0;
+            _probeWorst = Math.Max(_probeWorst, gap);
+        }
 
         // Small fixed substeps keep the integration stable whatever the frame time is.
         var springs = new[] { _shapeWidth, _shapeHeight, _shapeRadius, _armH, _armV, _windowLeft, _windowTop };
@@ -275,7 +326,7 @@ public partial class NotchWindow
             _moveWindow = false;
         }
 
-        var settled = springs.All(s => s.Settled(0.25));
+        var settled = springs.All(s => s.Settled(1.0));   // within a pixel: the rest is invisible
         if (settled)
         {
             foreach (var spring in springs)
@@ -293,12 +344,14 @@ public partial class NotchWindow
 
         if (settled)
         {
-            StopMotion();
-            if (_view != NotchView.Compact)
+            if (_motionProbe && _probeFrames > 0)
             {
-                Shell.Effect = _shadow;
-                _shadow.BeginAnimation(DropShadowEffect.OpacityProperty, new DoubleAnimation(0, 0.45, TimeSpan.FromMilliseconds(180)));
+                CodexBar.Core.DiagnosticsLog.Info("Motion", $"{_view}: {_probeFrames} frames, {_probeSlow} over 25 ms, worst {_probeWorst:0} ms");
+                (_probeFrames, _probeSlow, _probeWorst) = (0, 0, 0);
             }
+
+            StopMotion();
+
         }
     }
 
@@ -309,6 +362,7 @@ public partial class NotchWindow
         Radius = Math.Max(0, _shapeRadius.Value);
         CornerShape.ArmH = Math.Max(1, _armH.Value);
         CornerShape.ArmV = Math.Max(1, _armV.Value);
+        UpdateLiveObject();   // the live object rides the island's left edge as it grows
     }
 
     // ---- Content cross-fade -------------------------------------------------------------------
@@ -336,7 +390,7 @@ public partial class NotchWindow
     private void FadeIn(FrameworkElement panel, TimeSpan delay, bool blur)
     {
         panel.Opacity = 0;
-        panel.BeginAnimation(OpacityProperty, Frame(new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260))
+        panel.BeginAnimation(OpacityProperty, Frame(new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
         {
             BeginTime = delay,
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -344,18 +398,18 @@ public partial class NotchWindow
 
         var (scale, slide) = ContentTransform(panel);
         var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
-        var grow = Frame(new DoubleAnimation(0.94, 1, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease });
+        var grow = Frame(new DoubleAnimation(0.94, 1, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease });
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
         var away = EdgeAwayDirection() * 10;
-        slide.BeginAnimation(TranslateTransform.XProperty, Frame(new DoubleAnimation(-away.X, 0, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease }));
-        slide.BeginAnimation(TranslateTransform.YProperty, Frame(new DoubleAnimation(-away.Y, 0, TimeSpan.FromMilliseconds(460)) { BeginTime = delay, EasingFunction = ease }));
+        slide.BeginAnimation(TranslateTransform.XProperty, Frame(new DoubleAnimation(-away.X, 0, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease }));
+        slide.BeginAnimation(TranslateTransform.YProperty, Frame(new DoubleAnimation(-away.Y, 0, TimeSpan.FromMilliseconds(340)) { BeginTime = delay, EasingFunction = ease }));
 
         if (blur)
         {
             var effect = new BlurEffect { Radius = 10, RenderingBias = RenderingBias.Performance };
             panel.Effect = effect;
-            var sharpen = Frame(new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(300)) { BeginTime = delay, EasingFunction = ease });
+            var sharpen = Frame(new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(220)) { BeginTime = delay, EasingFunction = ease });
             sharpen.Completed += (_, _) =>
             {
                 if (panel.Effect == effect)

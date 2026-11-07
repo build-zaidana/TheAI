@@ -115,6 +115,7 @@ public partial class NotchWindow
     // Every 20 s: the countdown moves, the compact notch appears / goes, and a minute before an event it opens.
     private void CalendarClock()
     {
+        UpdateQuietCheck();   // a meeting starting soon: the focus hold starts watching
         var was = CompactCalendar.Visibility == Visibility.Visible;
         ApplyMusicCompact();
         if (_view == NotchView.Compact && was != CalendarShowing)

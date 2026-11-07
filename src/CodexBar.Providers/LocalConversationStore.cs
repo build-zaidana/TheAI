@@ -6,7 +6,7 @@ namespace CodexBar.Providers;
 /// Persists conversations for providers with no server-side thread storage (Anthropic,
 /// OpenAI, OpenRouter) so history survives an app restart instead of living only in the
 /// provider's in-memory message list. One JSON file per thread under
-/// <c>%LOCALAPPDATA%\CodexBar\conversations\{providerId}\{threadId}.json</c>.
+/// <c>%LOCALAPPDATA%\TheAI\conversations\{providerId}\{threadId}.json</c>.
 /// </summary>
 public static class LocalConversationStore
 {
@@ -119,8 +119,7 @@ public static class LocalConversationStore
         value.Length <= max ? value : value[..max] + "…";
 
     private static string ProviderDirectory(string providerId) => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "CodexBar", "conversations", providerId);
+        CodexBar.Providers.AppPaths.DataRoot, "conversations", providerId);
 
     private static string FilePath(string providerId, string threadId) =>
         Path.Combine(ProviderDirectory(providerId), $"{Sanitize(threadId)}.json");

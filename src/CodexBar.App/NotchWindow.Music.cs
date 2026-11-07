@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -15,12 +15,15 @@ using Rectangle = System.Windows.Shapes.Rectangle;
 namespace CodexBar.App;
 
 // Now playing: whatever app plays through Windows' media controls shows up in the notch like on
-// a hardware notch â€” album art and an equalizer while compact, a player when opened, a short toast
+// a hardware notch — album art and an equalizer while compact, a player when opened, a short toast
 // when the track changes. Music and the agent are two pages of the open notch; scrolling switches.
 public partial class NotchWindow
 {
-    private const double MusicWidth = 436;
+    private const double MusicWidth = IslandTokens.WidthM;
     private const double MusicMiniWidth = 340;
+    private const double MusicLyricsWidth = 254;   // the lyrics column and its gap
+    private const int LyricsBefore = 1;
+    private const int LyricsAfter = 4;
     private static readonly TimeSpan PausedLinger = TimeSpan.FromMinutes(5);
     private static readonly Brush PageDotOn = Frozen(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly Brush PageDotOff = Frozen(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
@@ -36,7 +39,14 @@ public partial class NotchWindow
     private bool _musicWasShowing;
     private NotchView _lastPage = NotchView.Music;
     private IReadOnlyList<LyricLine> _lyrics = [];
+    private int _lyricShown = int.MinValue;
+
+    /// <summary>The music page has synced lyrics for this track, shown in their own column.</summary>
+    private bool LyricsSplit => !_musicMini && _lyrics.Count > 0 && _lyricsKey == _media.Current?.TrackKey;
+
+    private double MusicPageWidth => _musicMini ? MusicMiniWidth : MusicWidth + (LyricsSplit ? MusicLyricsWidth : 0);
     private string _lyricsKey = string.Empty;
+    private bool _lyricsPreview;
     private float? _volume;
     private FrameworkElement? _barDrag;
     private DateTime _lastFlip;
@@ -144,6 +154,7 @@ public partial class NotchWindow
 
     private void ApplyMusicCompact()
     {
+        QueueCompactObject();
         var music = MusicShowing;
         var track = _media.Current;
         CompactArt.HorizontalAlignment = CompactGlyph.HorizontalAlignment;
@@ -165,28 +176,51 @@ public partial class NotchWindow
 
         ApplyTimerCompact();
         UpdateEqTimer();
+        ApplyCompanion();
+        ApplyIdleFace();
         RenderPageDots();
     }
 
+    // The equalizer moves only on the open music page. In the compact notch it stands still (tall
+    // bars = playing, low = paused): a notch redrawing 9 times a second all day costs CPU for nothing.
     private void UpdateEqTimer()
     {
         var playing = MusicShowing && _media.Current?.IsPlaying == true && IsVisible && !_suspendedForChat;
-        var shown = (_view == NotchView.Compact && CompactEq.Visibility == Visibility.Visible) || _view == NotchView.Music;
-        if (playing && shown)
+        if (playing && _view == NotchView.Music)
         {
             _eqTick.Start();
         }
         else
         {
             _eqTick.Stop();
-            SetEq(CompactEq, playing ? null : 0.3);
-            SetEq(MusicEq, playing ? null : 0.3);
+            SetEqStill(MusicEq, playing);
+        }
+
+        SetEqStill(CompactEq, playing);
+    }
+
+    private static void SetEqStill(Panel bars, bool playing)
+    {
+        double[] levels = playing ? [0.55, 0.9, 0.7] : [0.3, 0.3, 0.3];
+        var i = 0;
+        foreach (var bar in bars.Children.OfType<Rectangle>())
+        {
+            if (bar.RenderTransform is ScaleTransform scale)
+            {
+                scale.ScaleY = levels[i++ % levels.Length];
+            }
         }
     }
 
     private void AnimateEq()
     {
-        SetEq(_view == NotchView.Compact ? CompactEq : MusicEq, null);
+        if (_view != NotchView.Music)
+        {
+            UpdateEqTimer();
+            return;
+        }
+
+        SetEq(MusicEq, null);
     }
 
     private void SetEq(Panel bars, double? level)
@@ -242,11 +276,27 @@ public partial class NotchWindow
             NotchView.Timer => TimerShowing,
             NotchView.Shelf => ShelfShowing,
             NotchView.Calendar => CalendarShowing,
+            NotchView.Jobs => JobsShowing,
+            NotchView.Recap => false,
+            NotchView.Clipboard => false,
+            NotchView.System => false,
+            NotchView.Control => false,
+            NotchView.Reminders => false,
+            NotchView.Weather => false,
+            NotchView.Water => false,
+            NotchView.Today => false,
             _ => _state != NotchState.Idle
         };
+        if (_held.Count > 0 && !Quiet)
+        {
+            OpenHeld();
+            return;
+        }
+
         var page = live ? _lastPage
             : _state != NotchState.Idle ? NotchView.Activity
             : TimerShowing ? NotchView.Timer
+            : JobsShowing ? NotchView.Jobs
             : CalendarShowing ? NotchView.Calendar
             : MusicShowing ? NotchView.Music
             : ShelfShowing ? NotchView.Shelf
@@ -269,6 +319,33 @@ public partial class NotchWindow
                 break;
             case NotchView.Calendar:
                 OpenCalendar();
+                break;
+            case NotchView.Jobs:
+                OpenJobs();
+                break;
+            case NotchView.Recap:
+                OpenRecap();
+                break;
+            case NotchView.Clipboard:
+                OpenClipboard();
+                break;
+            case NotchView.System:
+                OpenSystem();
+                break;
+            case NotchView.Control:
+                OpenControl();
+                break;
+            case NotchView.Reminders:
+                OpenReminders();
+                break;
+            case NotchView.Weather:
+                OpenWeather();
+                break;
+            case NotchView.Water:
+                OpenWater();
+                break;
+            case NotchView.Today:
+                OpenToday();
                 break;
             case NotchView.Activity:
                 _lastPage = NotchView.Activity;
@@ -296,8 +373,26 @@ public partial class NotchWindow
             pages.Add(NotchView.Activity);
         }
 
-        pages.Add(NotchView.Timer);
-        if (CalendarPageAvailable)
+        if (_jobs.Visible(DateTimeOffset.Now).Count > 0)
+        {
+            pages.Add(NotchView.Jobs);
+        }
+
+        if (_host.TimerInNotch || TimerShowing)
+        {
+            pages.Add(NotchView.Timer);
+        }
+        var combined = TodayAvailable;
+        if (combined)
+        {
+            pages.Add(NotchView.Today);
+            if (FoldedIntoToday(_view))
+            {
+                pages.Add(_view);   // a row's full page, one scroll from Today
+            }
+        }
+
+        if (CalendarPageAvailable && !combined)
         {
             pages.Add(NotchView.Calendar);
         }
@@ -307,6 +402,40 @@ public partial class NotchWindow
             pages.Add(NotchView.Shelf);
         }
 
+        if (!combined)
+        {
+            if (WeatherAvailable)
+            {
+                pages.Add(NotchView.Weather);
+            }
+
+            if (RemindersAvailable)
+            {
+                pages.Add(NotchView.Reminders);
+            }
+
+            if (WaterAvailable)
+            {
+                pages.Add(NotchView.Water);
+            }
+        }
+
+        if (ClipboardAvailable)
+        {
+            pages.Add(NotchView.Clipboard);
+        }
+
+        if (RecapAvailable)
+        {
+            pages.Add(NotchView.Recap);
+        }
+
+        if (SystemPageAvailable)
+        {
+            pages.Add(NotchView.System);
+        }
+
+        pages.Add(NotchView.Control);   // the last page: toggles and sliders are always one scroll away
         return pages;
     }
 
@@ -323,7 +452,7 @@ public partial class NotchWindow
         for (var element = e.OriginalSource as DependencyObject; element is not null and not NotchWindow;
              element = element is Visual ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element))
         {
-            if (element is TimeWheel)
+            if (element is RulerPicker)
             {
                 return;   // the time wheels turn under the mouse wheel
             }
@@ -367,11 +496,14 @@ public partial class NotchWindow
         PageDots.Children.Clear();
         foreach (var page in pages)
         {
-            PageDots.Children.Add(new System.Windows.Shapes.Ellipse
+            // Board 13: the page indicator is a lit segment of the notch's bottom outline, so it takes no room inside.
+            PageDots.Children.Add(new System.Windows.Shapes.Rectangle
             {
-                Width = 5,
-                Height = 5,
-                Margin = new Thickness(0, 2, 0, 2),
+                Width = page == _view ? 22 : 14,
+                Height = 2,
+                RadiusX = 1,
+                RadiusY = 1,
+                Margin = new Thickness(3, 0, 3, 0),
                 Fill = page == _view ? PageDotOn : PageDotOff
             });
         }
@@ -384,8 +516,29 @@ public partial class NotchWindow
             await Task.Delay(100);   // the media session arrives asynchronously
         }
 
+        if (!MusicShowing && Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 })
+        {
+            _media.ShowSample(SampleTrack());   // nothing playing: draw the page with a sample song
+            await Task.Delay(300);
+        }
+
         if (MusicShowing)
         {
+            if (mode == "lyrics")
+            {
+                await Task.Delay(2500);   // browsers fill in the title and artist a moment later
+            }
+
+            if (mode == "lyrics" && _media.Current is { } playing)
+            {
+                // Sample lines around where the song is now (nothing is fetched).
+                var at = playing.EstimatedPosition;
+                string[] sample = ["Seperti hujan di bulan Juni", "Kau datang tanpa suara", "Membawa cerita yang lama", "", "Dan aku masih di sini", "Menunggu pagi yang sama", "Di jalan yang kita kenal"];
+                _lyricsKey = playing.TrackKey;
+                _lyricsPreview = true;
+                _lyrics = sample.Select((text, i) => new LyricLine(at + TimeSpan.FromSeconds((i - 2) * 4 - 1), text)).ToList();
+            }
+
             if (mode != "compact")
             {
                 OpenMusic(mini: mode == "toast");
@@ -395,7 +548,7 @@ public partial class NotchWindow
             if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } dir)
             {
                 await Task.Delay(1500);   // let the spring settle
-                SnapshotShell(System.IO.Path.Combine(dir, $"notch-music-{mode}.png"));
+                SnapshotShell(System.IO.Path.Combine(dir, $"notch-music-{mode}.png"), Root);
             }
         }
     }
@@ -412,7 +565,8 @@ public partial class NotchWindow
         using (var context = visual.RenderOpen())
         {
             context.DrawRectangle(System.Windows.Media.Brushes.DimGray, null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
-            context.DrawRectangle(new VisualBrush(target), null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
+            // Absolute viewbox: the element exactly as laid out (a relative one stretches its content bounds to fill).
+            context.DrawRectangle(new VisualBrush(target) { Viewbox = new Rect(target.RenderSize), ViewboxUnits = BrushMappingMode.Absolute }, null, new Rect(0, 0, target.ActualWidth, target.ActualHeight));
         }
         bitmap.Render(visual);
         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
@@ -433,7 +587,7 @@ public partial class NotchWindow
 
         MusicTitle.Text = track.Title.Length > 0 ? track.Title : track.Album;
         MusicArtist.Text = track.Artist;
-        MusicSource.Text = string.Format(Tr.Text("dari {0}", "from {0}"), track.AppName);
+        MusicSource.Text = track.AppName;
         if (track.Art is { } art)
         {
             MusicArt.Background = new ImageBrush(art) { Stretch = Stretch.UniformToFill };
@@ -456,13 +610,21 @@ public partial class NotchWindow
         MusicProgress.Cursor = track.CanSeek ? Cursors.Hand : null;
 
         MusicFull.Visibility = _musicMini ? Visibility.Collapsed : Visibility.Visible;
-        MusicPanel.Width = (_musicMini ? MusicMiniWidth : MusicWidth) - MusicPanel.Margin.Left - MusicPanel.Margin.Right;
-        MusicVolumeRow.Visibility = _volume is null ? Visibility.Collapsed : Visibility.Visible;
+        var width = MusicPageWidth - MusicPanel.Margin.Left - MusicPanel.Margin.Right;
+        if (Math.Abs(MusicPanel.Width - width) > 0.5)
+        {
+            MusicPanel.Width = width;
+            if (_view == NotchView.Music)
+            {
+                ApplyView(animate: true);   // a new track without lyrics: the column goes
+            }
+        }
         MusicVolumeLabel.Text = string.Format(Tr.Text("Volume {0}", "{0} volume"), track.AppName);
         RenderVolume();
         LoadLyrics(track);
         RenderMusicProgress();
         RenderPageDots();
+        ApplyMusicObject();
     }
 
     private void RenderMusicProgress()
@@ -479,20 +641,68 @@ public partial class NotchWindow
         if (_barDrag != MusicProgress)
         {
             MusicProgressFill.Width = Math.Max(0, MusicProgress.ActualWidth * fraction);
+            MusicWave.Progress = fraction;
         }
 
         MusicElapsed.Text = FormatTime(position);
         RenderVolume();   // the bars only have a width once laid out
-        MusicRemaining.Text = known ? "-" + FormatTime(track.Duration - position) : string.Empty;
+        MusicRemaining.Text = known ? FormatTime(track.Duration - position) : string.Empty;
 
-        var showLyrics = _lyrics.Count > 0 && _lyricsKey == track.TrackKey;
-        MusicLyrics.Visibility = showLyrics ? Visibility.Visible : Visibility.Collapsed;
-        if (showLyrics)
+        RenderLyrics(track, position);
+    }
+
+    private void RenderLyrics(MediaSnapshot track, TimeSpan position)
+    {
+        var split = LyricsSplit;
+        MusicLyricsSide.Visibility = split ? Visibility.Visible : Visibility.Collapsed;
+        if (!split)
         {
-            var index = SyncedLyrics.IndexAt(_lyrics, position);
-            MusicLyricNow.Text = index >= 0 && _lyrics[index].Text.Length > 0 ? _lyrics[index].Text : "â™ª";
-            MusicLyricNext.Text = index + 1 < _lyrics.Count ? _lyrics[index + 1].Text : string.Empty;
+            _lyricShown = int.MinValue;
+            return;
         }
+
+        var index = SyncedLyrics.IndexAt(_lyrics, position);
+        if (index == _lyricShown)
+        {
+            return;   // redrawn only when the sung line moves on
+        }
+
+        _lyricShown = index;
+        MusicLyricLines.Children.Clear();
+        for (var i = index - LyricsBefore; i <= index + LyricsAfter; i++)
+        {
+            MusicLyricLines.Children.Add(BuildLyricLine(i, i == index, track.CanSeek));
+        }
+    }
+
+    private TextBlock BuildLyricLine(int i, bool current, bool canSeek)
+    {
+        var line = i >= 0 && i < _lyrics.Count ? _lyrics[i] : null;
+        var block = new TextBlock
+        {
+            Text = line is null ? " " : line.Text.Length > 0 ? line.Text : "♪",
+            FontSize = current ? 15 : 13,
+            FontWeight = current ? FontWeights.SemiBold : FontWeights.Normal,
+            Foreground = (Brush)FindResource(current ? "NotchText" : "NotchText3"),
+            Opacity = line is null ? 0 : i < _lyricShown ? 0.55 : 1,
+            TextWrapping = current ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxHeight = current ? 44 : double.PositiveInfinity,
+            Margin = new Thickness(0, 3, 0, 3)
+        };
+        if (line is not null && canSeek)
+        {
+            block.Cursor = Cursors.Hand;
+            block.ToolTip = FormatTime(line.Start);
+            block.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;   // not the start of dragging the notch around
+                _media.Seek(line.Start);
+                _lyricShown = int.MinValue;
+            };
+        }
+
+        return block;
     }
 
     private static string FormatTime(TimeSpan time) =>
@@ -500,6 +710,12 @@ public partial class NotchWindow
 
     private async void LoadLyrics(MediaSnapshot track)
     {
+        if (_lyricsPreview)
+        {
+            _lyricsKey = track.TrackKey;   // the sample lines stay, whatever the browser renames the tab to
+            return;
+        }
+
         if (!_host.MusicLyrics || _lyricsKey == track.TrackKey)
         {
             if (!_host.MusicLyrics)
@@ -515,7 +731,12 @@ public partial class NotchWindow
         if (_lyricsKey == track.TrackKey)
         {
             _lyrics = lines;
-            RenderMusicProgress();
+            _lyricShown = int.MinValue;
+            if (_view == NotchView.Music && LyricsSplit)
+            {
+                RenderMusic();
+                ApplyView(animate: true);   // the page widens for the lyrics column
+            }
         }
     }
 
@@ -591,6 +812,7 @@ public partial class NotchWindow
         else
         {
             MusicProgressFill.Width = width * fraction;
+            MusicWave.Progress = fraction;
             MusicElapsed.Text = FormatTime(track.Duration * fraction);
             if (commit && track.Duration > TimeSpan.Zero)
             {
