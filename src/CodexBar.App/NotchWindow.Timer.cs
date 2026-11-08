@@ -89,7 +89,11 @@ public partial class NotchWindow
         TimerWheel.Value = _timer.LastTimer;
         TimerWheel.Changed += length =>
         {
-            if (_idleShutdown)
+            if (_idleShutdown && _shutdownByClock)
+            {
+                _shutdownClock = length;
+            }
+            else if (_idleShutdown)
             {
                 _shutdownLength = length;
             }
@@ -454,11 +458,12 @@ public partial class NotchWindow
             TimerIdle.Margin = new Thickness(0, _timer.AlarmAt is null ? 0 : 8, 0, 0);
             // The ruler sets a timer or the shutdown; a pomodoro shows its focus length; a stopwatch has none.
             TimerWheel.MaxMinutes = _idleShutdown ? 1440 : 180;
+            TimerWheel.ClockFace = _idleShutdown && _shutdownByClock;
             TimerWheel.IsHitTestVisible = _idleShutdown || _idleMode == TimerMode.Timer;
             TimerWheel.Visibility = !_idleShutdown && _idleMode == TimerMode.Stopwatch ? Visibility.Hidden : Visibility.Visible;
             if (!TimerWheel.IsMouseCaptured)
             {
-                TimerWheel.Value = _idleShutdown ? _shutdownLength : _idleMode == TimerMode.Pomodoro ? _timer.FocusLength : _timer.LastTimer;
+                TimerWheel.Value = _idleShutdown ? (_shutdownByClock ? _shutdownClock : _shutdownLength) : _idleMode == TimerMode.Pomodoro ? _timer.FocusLength : _timer.LastTimer;
             }
 
             System.Windows.Automation.AutomationProperties.SetName(TimerStartButton, _idleMode switch
@@ -467,14 +472,14 @@ public partial class NotchWindow
                 TimerMode.Stopwatch => Tr.Text("Mulai stopwatch", "Start the stopwatch"),
                 _ => Tr.Text("Mulai timer", "Start the timer")
             });
-            var shown = _idleShutdown ? NotchTimer.Format(_shutdownLength) : _idleMode switch
+            var shown = _idleShutdown ? (_shutdownByClock ? ClockText(_shutdownClock) : NotchTimer.Format(_shutdownLength)) : _idleMode switch
             {
                 TimerMode.Pomodoro => NotchTimer.Format(_timer.FocusLength),
                 TimerMode.Stopwatch => NotchTimer.FormatPrecise(TimeSpan.Zero),
                 _ => NotchTimer.Format(TimerWheel.Value)
             };
             TimerIdleDigits.Text = result ?? shown;
-            var name = _idleShutdown ? Tr.Text("Matikan PC", "Shut down") : _idleMode switch
+            var name = _idleShutdown ? ShutdownCaption(now) : _idleMode switch
             {
                 TimerMode.Pomodoro => Tr.Text("Fokus", "Focus"),
                 TimerMode.Stopwatch => "Stopwatch",
@@ -493,7 +498,9 @@ public partial class NotchWindow
             TimerModePomodoroValue.Text = MinutesText(_timer.FocusLength);
             TimerModeStopwatchValue.Text = "0:00";
             TimerModeAlarmValue.Text = Tr.Text("Ketik @", "Type @");
-            TimerModeShutdownValue.Text = MinutesText(_shutdownLength);
+            TimerModeShutdownValue.Text = _shutdownByClock ? ClockText(_shutdownClock) : MinutesText(_shutdownLength);
+            ShutdownKind.Visibility = _idleShutdown ? Visibility.Visible : Visibility.Collapsed;
+            ShutdownKind.Content = _shutdownByClock ? Tr.Text("Pakai durasi", "Use a length") : Tr.Text("Pakai jam", "Use a time");
             TimerModeTimer.Tag = !_idleShutdown && _idleMode == TimerMode.Timer ? "selected" : null;
             TimerModePomodoro.Tag = !_idleShutdown && _idleMode == TimerMode.Pomodoro ? "selected" : null;
             TimerModeStopwatch.Tag = !_idleShutdown && _idleMode == TimerMode.Stopwatch ? "selected" : null;
@@ -588,7 +595,9 @@ public partial class NotchWindow
 
         if (_idleShutdown)
         {
-            _ = StartShutdown((int)_shutdownLength.TotalSeconds);
+            _ = StartShutdown(_shutdownByClock
+                ? ShutdownCommand.SecondsUntil(TimeOnly.FromTimeSpan(_shutdownClock), DateTimeOffset.Now)
+                : (int)_shutdownLength.TotalSeconds);
             return;
         }
 
@@ -700,7 +709,8 @@ public partial class NotchWindow
         if (ShutdownCommand.TryParse(TimerInput.Text, out var power))
         {
             TimerInput.Clear();
-            _ = power.Cancel ? CancelShutdown() : StartShutdown(power.Seconds);
+            _ = power.Cancel ? CancelShutdown()
+                : StartShutdown(power.At is { } at ? ShutdownCommand.SecondsUntil(at, DateTimeOffset.Now) : power.Seconds);
             return;
         }
 

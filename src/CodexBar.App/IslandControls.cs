@@ -105,6 +105,9 @@ public sealed class RulerPicker : IslandLive
 
     public double MaxMinutes { get; set; } = 180;
 
+    /// <summary>A time of day: the scale reads H:mm, turns past midnight, and the mouse wheel moves 5 minutes.</summary>
+    public bool ClockFace { get; set; }
+
     public event Action<TimeSpan>? Changed;
 
     private static Pen Line(Color colour, double thickness)
@@ -118,7 +121,7 @@ public sealed class RulerPicker : IslandLive
 
     private void ValueMoved()
     {
-        if (Math.Abs(_shown - Value.TotalMinutes) < 0.5 || IsMouseCaptured || !IsVisible)
+        if (Math.Abs(_shown - Value.TotalMinutes) < 0.5 || IsMouseCaptured || !IsVisible || (ClockFace && Math.Abs(_shown - Value.TotalMinutes) > 720))
         {
             _shown = Value.TotalMinutes;
         }
@@ -141,7 +144,7 @@ public sealed class RulerPicker : IslandLive
 
     private void Pick(double minutes)
     {
-        var picked = TimeSpan.FromMinutes(Math.Clamp(Math.Round(minutes), 1, MaxMinutes));
+        var picked = TimeSpan.FromMinutes(ClockFace ? ((Math.Round(minutes) % 1440) + 1440) % 1440 : Math.Clamp(Math.Round(minutes), 1, MaxMinutes));
         if (picked != Value)
         {
             Value = picked;
@@ -169,7 +172,8 @@ public sealed class RulerPicker : IslandLive
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        Pick(Math.Round(Value.TotalMinutes) + (e.Delta > 0 ? 1 : -1));
+        var step = ClockFace ? 5 : 1;
+        Pick(Math.Round(Value.TotalMinutes) + (e.Delta > 0 ? step : -step));
         e.Handled = true;
     }
 
@@ -180,8 +184,14 @@ public sealed class RulerPicker : IslandLive
         var middle = width / 2;
         dc.DrawRectangle(System.Windows.Media.Brushes.Transparent, null, new Rect(0, 0, width, ActualHeight));
         var dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        var first = (int)Math.Max(0, Math.Floor(_shown - (middle / PerMinute)));
-        var last = (int)Math.Min(MaxMinutes, Math.Ceiling(_shown + (middle / PerMinute)));
+        var first = (int)Math.Floor(_shown - (middle / PerMinute));
+        var last = (int)Math.Ceiling(_shown + (middle / PerMinute));
+        if (!ClockFace)
+        {
+            first = Math.Max(0, first);
+            last = (int)Math.Min(MaxMinutes, last);
+        }
+
         for (var minute = first; minute <= last; minute++)
         {
             var x = middle + ((minute - _shown) * PerMinute);
@@ -192,11 +202,13 @@ public sealed class RulerPicker : IslandLive
             }
 
             dc.PushOpacity(fade);
-            var major = minute % 5 == 0;
+            var major = ((minute % 5) + 5) % 5 == 0;
             dc.DrawLine(major ? Large : Small, new Point(x, 8), new Point(x, major ? 28 : 18));
             if (major)
             {
-                var text = new FormattedText(minute.ToString(CultureInfo.CurrentCulture), CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Face, 12, IslandTokens.Text3, dip);
+                var day = ((minute % 1440) + 1440) % 1440;
+                var label = ClockFace ? $"{day / 60}:{day % 60:00}" : minute.ToString(CultureInfo.CurrentCulture);
+                var text = new FormattedText(label, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Face, 12, IslandTokens.Text3, dip);
                 dc.DrawText(text, new Point(x - (text.Width / 2), 40));
             }
 

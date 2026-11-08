@@ -926,6 +926,8 @@
                         </Grid>
                         <Grid Height="64" Margin="0,4,0,0">
                             <TextBlock x:Name="TimerIdleDigits" Style="{StaticResource IslandHero}" Text="25:00" />
+                            <Button x:Name="ShutdownKind" Style="{StaticResource IslandChip}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,52,0"
+                                    Visibility="Collapsed" Click="ShutdownKind_Click" />
                             <Button x:Name="TimerStartButton" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
                                     Click="TimerStart_Click" AutomationProperties.Name="Mulai">
                                 <Path Fill="Black" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />

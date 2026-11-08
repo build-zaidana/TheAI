@@ -4,8 +4,8 @@ using CodexBar.Core;
 
 namespace CodexBar.App;
 
-// Turning the PC off later: Windows' "shutdown /s /t X", set on the Timer page (the Matikan mode, or
-// typed: "shutdown -s -t 3600", "shutdown 30m", "shutdown -a"). Windows closes open apps by force, so
+// Turning the PC off later: Windows' "shutdown /s /t X", set on the Timer page (the Matikan mode, by a
+// length or a time of day, or typed: "shutdown -s -t 3600", "shutdown 30m", "shutdown 22:30", "shutdown -a"). Windows closes open apps by force, so
 // the page says so, and the notch opens by itself a minute before, with the way to call it off.
 public partial class NotchWindow
 {
@@ -14,6 +14,8 @@ public partial class NotchWindow
     private SystemShutdown.Saved? _shutdown;
     private TimeSpan _shutdownLength = TimeSpan.FromMinutes(30);
     private bool _idleShutdown;
+    private bool _shutdownByClock;
+    private TimeSpan _shutdownClock = TimeSpan.FromHours(22);
     private bool _shutdownWarned;
     private string? _shutdownProblem;
 
@@ -53,6 +55,38 @@ public partial class NotchWindow
     }
 
     private void ShutdownCancel_Click(object sender, RoutedEventArgs e) => _ = CancelShutdown();
+
+    private void ShutdownKind_Click(object sender, RoutedEventArgs e)
+    {
+        _shutdownByClock = !_shutdownByClock;
+        if (_shutdownByClock)
+        {
+            // Starts an hour from now, on a round five minutes.
+            var soon = DateTime.Now.AddHours(1);
+            _shutdownClock = new TimeSpan(soon.Hour, soon.Minute / 5 * 5, 0);
+        }
+
+        RenderTimer();
+    }
+
+    private static string ClockText(TimeSpan time) => $"{(int)time.TotalHours}:{time.Minutes:00}";
+
+    /// <summary>The label over the number: by the clock it says how long that is, and when it means tomorrow.</summary>
+    private string ShutdownCaption(DateTimeOffset now)
+    {
+        if (!_shutdownByClock)
+        {
+            return Tr.Text("Matikan PC", "Shut down");
+        }
+
+        var seconds = ShutdownCommand.SecondsUntil(TimeOnly.FromTimeSpan(_shutdownClock), now);
+        var left = TimeSpan.FromSeconds(seconds);
+        var inTime = left.TotalHours >= 1
+            ? string.Format(CultureInfo.CurrentCulture, Tr.Text("{0} j {1} mnt lagi", "in {0} h {1} min"), (int)left.TotalHours, left.Minutes)
+            : string.Format(CultureInfo.CurrentCulture, Tr.Text("{0} mnt lagi", "in {0} min"), (int)Math.Ceiling(left.TotalMinutes));
+        var tomorrow = now.AddSeconds(seconds).Date > now.Date ? Tr.Text("besok, ", "tomorrow, ") : string.Empty;
+        return Tr.Text("Mati ", "Off ") + tomorrow + inTime;
+    }
 
     private void TickShutdown(DateTimeOffset now)
     {
@@ -110,6 +144,11 @@ public partial class NotchWindow
         else
         {
             _idleShutdown = true;
+            if (mode == "clock")
+            {
+                _shutdownByClock = true;
+                _shutdownClock = new TimeSpan(22, 30, 0);
+            }
         }
 
         OpenTimer(focus: false);

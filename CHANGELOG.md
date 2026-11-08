@@ -14,7 +14,7 @@
 
 ### Added — turn the PC off later
 
-- **Matikan** mode on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `matikan 1 jam`; `shutdown -a` calls it off. It runs Windows' own `shutdown /s /t X`, which **closes open apps by force**, so the page says so. The time left shows on the compact pill, and the notch opens by itself a minute before. Anything under 30 seconds is raised to 30.
+- **Matikan** mode on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `matikan 1 jam`; `shutdown 22:30`, `matikan jam 22`; `shutdown -a` calls it off. **Pakai jam** on the page picks the time of day on the ruler (past that time, it means tomorrow). It runs Windows' own `shutdown /s /t X`, which **closes open apps by force**, so the page says so. The time left shows on the compact pill, and the notch opens by itself a minute before. Anything under 30 seconds is raised to 30.
 
 ## 1.6.0 — 2026-10-22 · Today, water, lyrics
 

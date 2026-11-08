@@ -103,11 +103,12 @@ Gunakan tombol `☰` untuk membuka menu/riwayat. Tombol **template prompt** (iko
 
 ## Mematikan PC nanti
 
-Di halaman Timer, pilih mode **Matikan**, atur durasinya di penggaris, lalu tekan tombol merah. Bisa juga diketik di halaman itu:
+Di halaman Timer, pilih mode **Matikan**, atur durasinya di penggaris (atau tekan **Pakai jam** untuk memilih pukul berapa), lalu tekan tombol merah. Bisa juga diketik di halaman itu:
 
 ```text
 shutdown -s -t 3600   # mati dalam 3600 detik
 shutdown 30m          # atau: matikan 1 jam
+shutdown 22:30        # mati pukul 22:30; kalau sudah lewat, besok. Atau: matikan jam 22
 shutdown -a           # batalkan
 ```
 

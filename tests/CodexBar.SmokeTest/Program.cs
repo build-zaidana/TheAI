@@ -741,6 +741,16 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(!ShutdownCommand.TryParse("25m", out _) && !ShutdownCommand.TryParse("shutdown -r -t 5", out _) && !ShutdownCommand.TryParse("shutdown -s", out _), "other text is not a shutdown");
         Assert(CodexBar.Core.WeatherClient.ParseForecast("{\"current\":{\"temperature_2m\":31,\"weather_code\":2,\"is_day\":1},\"daily\":{\"temperature_2m_max\":[33],\"temperature_2m_min\":[25],\"precipitation_probability_max\":[70]},\"hourly\":{\"temperature_2m\":[25,26,27]}}") is { Hourly.Count: 3 }, "hourly temperatures are read");
         Console.WriteLine("PASS weather hours");
+        Assert(ShutdownCommand.TryParse("shutdown 22:30", out power) && power.At == new TimeOnly(22, 30), "shutdown 22:30");
+        Assert(ShutdownCommand.TryParse("matikan jam 22", out power) && power.At == new TimeOnly(22, 0), "matikan jam 22");
+        Assert(ShutdownCommand.TryParse("matikan pukul 7.15", out power) && power.At == new TimeOnly(7, 15), "matikan pukul 7.15");
+        Assert(ShutdownCommand.TryParse("shutdown @23:05", out power) && power.At == new TimeOnly(23, 5), "shutdown @23:05");
+        Assert(!ShutdownCommand.TryParse("shutdown 25:00", out _) && !ShutdownCommand.TryParse("shutdown 22:75", out _), "not a time of day");
+        Assert(ShutdownCommand.TryParse("matikan 1 jam", out power) && power is { At: null, Seconds: 3600 }, "a length is still a length");
+        var evening = new DateTimeOffset(2026, 11, 8, 21, 0, 0, TimeSpan.FromHours(7));
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(22, 30), evening) == 5400, "later today");
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(6, 0), evening) == 32400, "passed already: tomorrow");
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(21, 0), evening) == 86400, "right now means tomorrow");
         Console.WriteLine("PASS shutdown command");
         Console.WriteLine("PASS deterministic controller/settings/protocol tests");
         return 0;
