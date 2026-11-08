@@ -137,6 +137,7 @@ public partial class NotchWindow
 
     private void ApplyView(bool animate)
     {
+        UpdateLeaveWatch();
         var incoming = PanelFor(_view);
         var outgoing = PanelFor(_shownView);
         var expanded = _view != NotchView.Compact;

@@ -208,6 +208,7 @@ public partial class NotchWindow : Window
         _spinner.Children.Add(spin);
 
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); Collapse(); };
+        _leaveWatch.Tick += (_, _) => WatchPointerLeft();
         _hoverTimer.Tick += (_, _) =>
         {
             _hoverTimer.Stop();
@@ -1368,7 +1369,7 @@ public partial class NotchWindow : Window
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (_view == NotchView.Launcher && !_pinned)
+        if ((_view == NotchView.Launcher || ClosesWhenLeft) && !_pinned)
         {
             Collapse();
         }
@@ -1383,6 +1384,58 @@ public partial class NotchWindow : Window
             {
                 Collapse();
             }
+        }
+    }
+
+    // ---- Pages that close by themselves ------------------------------------------------------
+    // A page without a close button closes when the pointer has gone. Opened from a hotkey the pointer
+    // was never on it, so it gets longer to be read. The agent, music and timer pages have their own rule;
+    // questions wait for an answer; the launcher and selection go when the window loses focus.
+    private static readonly TimeSpan LeftGrace = TimeSpan.FromMilliseconds(450), NeverOverGrace = TimeSpan.FromSeconds(6);
+    private readonly DispatcherTimer _leaveWatch = new() { Interval = TimeSpan.FromMilliseconds(150) };
+    private DateTime? _pointerAwaySince;
+    private bool _pointerWasOver;
+    private NotchView _leaveWatchView = NotchView.Compact;
+
+    private bool ClosesWhenLeft => _view is NotchView.System or NotchView.Control or NotchView.Today or NotchView.Clipboard
+        or NotchView.Weather or NotchView.Water or NotchView.Reminders or NotchView.Calendar or NotchView.Jobs or NotchView.Recap;
+
+    private void UpdateLeaveWatch()
+    {
+        if (ClosesWhenLeft)
+        {
+            _leaveWatch.Start();
+        }
+        else
+        {
+            _leaveWatch.Stop();
+            _pointerWasOver = false;
+        }
+
+        _pointerAwaySince = null;
+        _leaveWatchView = _view;
+    }
+
+    private void WatchPointerLeft()
+    {
+        var busy = _pinned || _clipDragging || _dragging || Mouse.Captured is not null ||
+                   ReminderInput.IsKeyboardFocused;   // typing there: clicking elsewhere closes it instead
+        if (Shell.IsMouseOver)
+        {
+            _pointerWasOver = true;
+        }
+
+        if (busy || Shell.IsMouseOver)
+        {
+            _pointerAwaySince = null;
+            return;
+        }
+
+        _pointerAwaySince ??= DateTime.UtcNow;
+        if (DateTime.UtcNow - _pointerAwaySince >= (_pointerWasOver ? LeftGrace : NeverOverGrace))
+        {
+            DiagnosticsLog.Info("Notch", $"{_view} closed: the pointer left");
+            Collapse();
         }
     }
 

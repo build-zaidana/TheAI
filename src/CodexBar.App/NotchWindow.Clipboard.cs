@@ -36,6 +36,7 @@ public partial class NotchWindow
     private bool _clipListening;
     private string? _clipSelf;   // what TheAI just put on the clipboard itself
     private Point _clipDragStart;
+    private bool _clipDragging;
     private readonly Dictionary<string, string> _clipSources = [];   // item id -> the app it came from
 
     private static string ClipPinsPath => Path.Combine(
@@ -480,7 +481,15 @@ public partial class NotchWindow
         var data = item.IsImage
             ? new DataObject(DataFormats.Bitmap, DecodePng(item.Png!, 0))
             : new DataObject(DataFormats.UnicodeText, item.Text!);
-        DragDrop.DoDragDrop(tile, data, DragDropEffects.Copy);
+        _clipDragging = true;
+        try
+        {
+            DragDrop.DoDragDrop(tile, data, DragDropEffects.Copy);
+        }
+        finally
+        {
+            _clipDragging = false;
+        }
     }
 
     private void ClipClear_Click(object sender, RoutedEventArgs e)

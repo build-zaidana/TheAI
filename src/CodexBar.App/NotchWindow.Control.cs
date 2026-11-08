@@ -212,7 +212,8 @@ public partial class NotchWindow
     {
         await Task.Delay(400);
         OpenControl();
-        _pinned = true;
+        // CODEXBAR_TEST_LEAVE=1: left open and unpinned, to see the page close by itself (logged).
+        _pinned = Environment.GetEnvironmentVariable("CODEXBAR_TEST_LEAVE") is not { Length: > 0 };
         if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } dir)
         {
             await Task.Delay(1500);
