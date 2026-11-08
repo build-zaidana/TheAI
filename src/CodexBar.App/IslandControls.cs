@@ -223,6 +223,9 @@ public sealed class Sparkline : IslandLive
 
     public Sparkline() => Colour = Color.FromRgb(0xF5, 0xF5, 0xF7);
 
+    /// <summary>A whole series spread over the width, with the dot on this point (the hours of a day); null scrolls.</summary>
+    public int? Mark { get; set; }
+
     public Color Colour
     {
         get => _colour;
@@ -284,7 +287,9 @@ public sealed class Sparkline : IslandLive
         var slide = 1 - Math.Clamp((DateTime.UtcNow - _pushed).TotalMilliseconds / 300, 0, 1);
         slide *= slide;
         var count = _values.Count;
-        double X(int index) => width - ((count - 1 - index) * step) + (slide * step);
+        double X(int index) => Mark is null
+            ? width - ((count - 1 - index) * step) + (slide * step)
+            : index * width / (count - 1);
 
         var line = new StreamGeometry();
         var area = new StreamGeometry();
@@ -312,10 +317,11 @@ public sealed class Sparkline : IslandLive
         dc.DrawGeometry(null, _pen, line);
         dc.Pop();
 
-        var dotY = Y(_values[^1]) + ((Y(_values[^2]) - Y(_values[^1])) * slide);
+        var mark = Math.Clamp(Mark ?? count - 1, 0, count - 1);
+        var dotY = Mark is null ? Y(_values[^1]) + ((Y(_values[^2]) - Y(_values[^1])) * slide) : Y(_values[mark]);
         var beat = (DateTime.UtcNow - _born).TotalSeconds % 1.6 / 1.6;
         var ring = IslandTokens.Frozen(Color.FromArgb((byte)(128 * (1 - beat)), _colour.R, _colour.G, _colour.B));
-        var dot = new Point(width, dotY);
+        var dot = new Point(Mark is null ? width : X(mark), dotY);
         dc.DrawEllipse(ring, null, dot, 3 + (6 * beat), 3 + (6 * beat));
         dc.DrawEllipse(IslandTokens.Frozen(_colour), null, dot, 3, 3);
     }

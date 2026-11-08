@@ -8,7 +8,7 @@ namespace CodexBar.Core;
 public sealed record GeoPlace(string Name, string Country, double Latitude, double Longitude, string TimeZone);
 
 /// <summary>Now and today for one place.</summary>
-public sealed record WeatherReport(double Temperature, int Code, bool IsDay, double High, double Low, int? RainChance);
+public sealed record WeatherReport(double Temperature, int Code, bool IsDay, double High, double Low, int? RainChance, IReadOnlyList<double>? Hourly = null);
 
 public enum WeatherKind { Clear, PartlyCloudy, Cloudy, Fog, Drizzle, Rain, Snow, Storm }
 
@@ -37,7 +37,7 @@ public static class WeatherClient
     {
         var url = string.Format(CultureInfo.InvariantCulture,
             "https://api.open-meteo.com/v1/forecast?latitude={0:0.####}&longitude={1:0.####}" +
-            "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=1&timezone=auto",
+            "&current=temperature_2m,weather_code,is_day&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=1&timezone=auto",
             place.Latitude, place.Longitude);
         return ParseForecast(await Http.GetStringAsync(url, cancellationToken).ConfigureAwait(false));
     }
@@ -57,6 +57,17 @@ public static class WeatherClient
             first.GetProperty("latitude").GetDouble(),
             first.GetProperty("longitude").GetDouble(),
             Text(first, "timezone") ?? "UTC");
+    }
+
+    private static IReadOnlyList<double>? HourlyTemperatures(JsonElement root)
+    {
+        if (!root.TryGetProperty("hourly", out var hourly) || !hourly.TryGetProperty("temperature_2m", out var values) || values.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var hours = values.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.Number).Select(value => value.GetDouble()).ToList();
+        return hours.Count > 1 ? hours : null;
     }
 
     public static WeatherReport? ParseForecast(string json)
@@ -80,7 +91,8 @@ public static class WeatherClient
             !current.TryGetProperty("is_day", out var day) || day.GetInt32() == 1,
             First(daily, "temperature_2m_max"),
             First(daily, "temperature_2m_min"),
-            double.IsNaN(rain) ? null : (int)Math.Round(rain));
+            double.IsNaN(rain) ? null : (int)Math.Round(rain),
+            HourlyTemperatures(root));
     }
 
     /// <summary>WMO weather codes (what Open-Meteo returns) in a few kinds.</summary>

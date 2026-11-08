@@ -1184,7 +1184,7 @@
                 </Grid>
 
                 <!-- Today's calendar: the next event large (with a camera to join its call), then the rest. -->
-                <StackPanel x:Name="CalendarPanel" Margin="20,14,30,14" Width="370" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="CalendarPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Kalender">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
@@ -1193,7 +1193,7 @@
                 </StackPanel>
 
                 <!-- Live activities: every job a script reports, with its progress or what went wrong. -->
-                <StackPanel x:Name="JobsPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="JobsPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Aktivitas">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
@@ -1202,32 +1202,55 @@
                 </StackPanel>
 
                 <!-- The break after focus (or the end of a meeting): what the agents did meanwhile, all at once. -->
-                <StackPanel x:Name="HeldPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Selama fokus">
+                <StackPanel x:Name="HeldPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Selama fokus">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid Margin="0,0,0,6">
-                        <TextBlock x:Name="HeldTitle" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
-                        <TextBlock x:Name="HeldMeta" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <Grid Height="18">
+                        <TextBlock x:Name="HeldTitle" Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" />
+                        <TextBlock x:Name="HeldMeta" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" />
                     </Grid>
-                    <StackPanel x:Name="HeldRows" />
+                    <Grid Height="64" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="HeldHeroTitle" Style="{StaticResource IslandTitle}" />
+                            <TextBlock x:Name="HeldHeroSub" Style="{StaticResource IslandMeta}" FontWeight="Normal" Margin="1,2,0,0" />
+                        </StackPanel>
+                        <Button x:Name="HeldOpen" Grid.Column="1" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="HeldOpen_Click" AutomationProperties.Name="Lihat">
+                            <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,6 L 13,6 M 8,1 L 13,6 L 8,11" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer Height="120" Margin="0,10,0,0" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="HeldRows" />
+                    </ScrollViewer>
                 </StackPanel>
 
                 <!-- Today, recapped: tiles with the day's numbers, the latest things done, a copy for standup. -->
-                <StackPanel x:Name="RecapPanel" Margin="20,14,26,16" Width="414" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rekap hari ini">
+                <StackPanel x:Name="RecapPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rekap hari ini">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid Margin="0,0,0,10">
-                        <TextBlock x:Name="RecapTitle" Text="{local:Tr Hari ini, En=Today}" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" VerticalAlignment="Center" />
-                        <TextBlock x:Name="RecapDate" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <Grid Height="18">
+                        <TextBlock x:Name="RecapTitle" Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" Text="{local:Tr Hari ini, En=Today}" />
+                        <TextBlock x:Name="RecapDate" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" MaxWidth="290" />
                     </Grid>
-                    <UniformGrid x:Name="RecapTiles" Columns="4" Rows="1" Margin="0,0,0,10" />
-                    <StackPanel x:Name="RecapRows" />
-                    <Button x:Name="RecapCopy" Style="{StaticResource NotchPrimaryPill}" Height="28" FontSize="12" HorizontalAlignment="Right" Margin="0,8,0,0"
-                            Content="{local:Tr Salin untuk standup, En=Copy for standup}" Click="RecapCopy_Click" />
+                    <Grid Height="64" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="RecapValue" Style="{StaticResource IslandHero}" />
+                            <TextBlock x:Name="RecapUnit" Style="{StaticResource IslandHeroUnit}" />
+                        </StackPanel>
+                        <Button x:Name="RecapCopy" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center" Click="RecapCopy_Click"
+                                AutomationProperties.Name="Salin untuk standup" ToolTip="{local:Tr Salin untuk standup, En=Copy for standup}">
+                            <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform"
+                                  Data="M 8,8 L 20,8 Q 22,8 22,10 L 22,20 Q 22,22 20,22 L 10,22 Q 8,22 8,20 Z M 4,16 C 2.9,16 2,15.1 2,14 L 2,4 C 2,2.9 2.9,2 4,2 L 14,2 C 15.1,2 16,2.9 16,4" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer Height="120" Margin="0,10,0,0" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="RecapRows" />
+                    </ScrollViewer>
                 </StackPanel>
 
                 <!-- Clipboard history: tiles of what was copied lately (click = copy, drag = paste, right-click = pin). -->
@@ -1284,23 +1307,43 @@
                 </StackPanel>
 
                 <!-- Reminders & to-dos: the open ones (due first), and a field to add one. -->
-                <StackPanel x:Name="ReminderPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pengingat">
+                <StackPanel x:Name="ReminderPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pengingat">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid Margin="0,0,0,8">
-                        <TextBlock Text="{local:Tr Pengingat, En=Reminders}" FontSize="13" FontWeight="SemiBold" Foreground="#F5F5F7" />
-                        <TextBlock x:Name="ReminderCount" FontSize="12" Foreground="#99FFFFFF" HorizontalAlignment="Right" />
+                    <Grid Height="18">
+                        <TextBlock Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" Text="{local:Tr Pengingat, En=Reminders}" />
+                        <TextBlock x:Name="ReminderCount" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" />
                     </Grid>
-                    <StackPanel x:Name="ReminderRows" />
-                    <TextBlock x:Name="ReminderEmpty" Visibility="Collapsed" FontSize="12" Foreground="#99FFFFFF" Margin="0,2,0,6"
-                               Text="{local:Tr Belum ada — ketik di bawah atau /remind dari launcher., En=Nothing yet — type below or /remind from the launcher.}" />
-                    <Border Height="34" CornerRadius="12" Background="{StaticResource NotchFill}" Padding="12,0" Margin="0,8,0,0">
+                    <Grid Height="64" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="ReminderTitle" Style="{StaticResource IslandTitle}" />
+                            <TextBlock x:Name="ReminderSub" Style="{StaticResource IslandMeta}" FontWeight="Normal" Margin="1,2,0,0" />
+                        </StackPanel>
+                        <Button x:Name="ReminderSnooze" Grid.Column="1" Style="{StaticResource IslandChip}" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"
+                                Content="{local:Tr Tunda 10m, En=Snooze 10m}" Click="ReminderSnooze_Click" />
+                        <Button x:Name="ReminderDone" Grid.Column="2" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="ReminderDone_Click" AutomationProperties.Name="Selesai" ToolTip="{local:Tr Selesai, En=Done}">
+                            <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 1,7 L 5.5,11.5 L 14,2" />
+                        </Button>
+                    </Grid>
+                    <ScrollViewer Height="80" Margin="0,10,0,0" VerticalScrollBarVisibility="Hidden">
+                        <StackPanel x:Name="ReminderRows" />
+                    </ScrollViewer>
+                    <Border Height="40" BorderBrush="#14FFFFFF" BorderThickness="0,1,0,0">
                         <Grid>
-                            <TextBlock x:Name="ReminderHint" Foreground="#73FFFFFF" FontSize="12.5" VerticalAlignment="Center" IsHitTestVisible="False"
-                                       Text="{local:Tr Mis. 15m minum air · 14:30 telepon · beli susu, En=e.g. 15m drink water · 14:30 call · buy milk}" />
-                            <TextBox x:Name="ReminderInput" Style="{StaticResource NotchInput}" FontSize="12.5"
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Stroke="#7C7C80" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 7,0 L 7,14 M 0,7 L 14,7" VerticalAlignment="Center" Margin="1,0,0,0" />
+                            <TextBlock x:Name="ReminderHint" Grid.Column="1" Foreground="#7C7C80" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis"
+                                       Text="{local:Tr 15m minum air · 14:30 telepon · beli susu, En=15m drink water · 14:30 call · buy milk}" />
+                            <TextBox x:Name="ReminderInput" Grid.Column="1" Style="{StaticResource NotchInput}" FontSize="14" VerticalAlignment="Center"
                                      KeyDown="ReminderInput_KeyDown" TextChanged="ReminderInput_TextChanged"
                                      AutomationProperties.Name="Tambah pengingat" />
                         </Grid>
@@ -1308,29 +1351,26 @@
                 </StackPanel>
 
                 <!-- Weather where the user is, and other time zones. -->
-                <StackPanel x:Name="WeatherPanel" Margin="20,14,26,14" Width="374" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Cuaca dan jam dunia">
+                <StackPanel x:Name="WeatherPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Cuaca dan jam dunia">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid x:Name="WeatherNow" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Path x:Name="WeatherIcon" Width="34" Height="34" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.6"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center" />
-                        <TextBlock x:Name="WeatherTemp" Grid.Column="1" FontFamily="{StaticResource SoraFont}" FontSize="36" Foreground="#F5F5F7"
-                                   Margin="12,0,14,0" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                            <TextBlock x:Name="WeatherSummary" FontSize="14" FontWeight="SemiBold" Foreground="#F5F5F7" />
-                            <TextBlock x:Name="WeatherPlace" FontSize="12" Foreground="#99FFFFFF" />
-                            <TextBlock x:Name="WeatherRange" FontSize="12" Foreground="#99FFFFFF" />
-                        </StackPanel>
+                    <Grid Height="18">
+                        <TextBlock x:Name="WeatherPlace" Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" Text="{local:Tr Cuaca, En=Weather}" />
+                        <TextBlock x:Name="WeatherSummary" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" MaxWidth="240" />
                     </Grid>
-                    <TextBlock x:Name="WeatherMessage" FontSize="12.5" Foreground="#99FFFFFF" Margin="0,0,0,10" TextWrapping="Wrap" Visibility="Collapsed" />
-                    <StackPanel x:Name="WorldClockRows" />
+                    <Grid x:Name="WeatherNow" Height="64" Margin="0,4,0,0">
+                        <TextBlock x:Name="WeatherTemp" Style="{StaticResource IslandHero}" />
+                        <Border Width="40" Height="40" CornerRadius="20" Background="#1C1C1E" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Path x:Name="WeatherIcon" Width="20" Height="20" Stretch="Uniform" Stroke="#F5F5F7" StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                    <TextBlock x:Name="WeatherMessage" Style="{StaticResource IslandTitle}" FontSize="17" Height="64" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+                    <Grid Height="72" Margin="-16,8,0,0">
+                        <local:Sparkline x:Name="WeatherLine" />
+                    </Grid>
+                    <local:SpaceBetweenPanel x:Name="WorldClockRows" Height="38" Margin="0,12,0,0" />
                 </StackPanel>
 
                 <!-- Today (Page 2, board 02, D1): the date is the title; rows 56 with 40 items; P 16 all round, the last row ends 8 above the edge. -->
@@ -1375,50 +1415,52 @@
 
 
                 <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
-                <StackPanel x:Name="WaterPanel" Margin="20,14,20,12" Width="380" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">
+                <StackPanel x:Name="WaterPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Path x:Name="WaterIcon" Width="26" Height="26" Stretch="Uniform" Stroke="#2ECFDB" StrokeThickness="1.6"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"
-                              Data="{x:Static local:Icons.Droplet}" />
-                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock FontSize="14" Foreground="#F5F5F7">
-                                <Run x:Name="WaterToday" FontFamily="{StaticResource SoraFont}" FontSize="24" />
-                                <Run x:Name="WaterGoal" Foreground="#99FFFFFF" />
-                            </TextBlock>
-                            <TextBlock x:Name="WaterNext" FontSize="12" Foreground="#99FFFFFF" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button x:Name="WaterUndo" Style="{StaticResource NotchPill}" Height="28" FontSize="12" Click="WaterUndo_Click" />
-                            <Button x:Name="WaterAdd" Style="{StaticResource NotchPrimaryPill}" Height="28" FontSize="12" Click="WaterAdd_Click" />
-                        </StackPanel>
+                    <Grid Height="18">
+                        <TextBlock Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" Text="{local:Tr Air, En=Water}" />
+                        <TextBlock x:Name="WaterNext" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" MaxWidth="280" />
                     </Grid>
-                    <Border Height="6" CornerRadius="3" Background="#1FFFFFFF" Margin="0,2,0,12">
-                        <Border x:Name="WaterBar" HorizontalAlignment="Left" CornerRadius="3" Background="#2ECFDB" Width="0" />
-                    </Border>
-                    <Grid x:Name="WaterWeek" Height="62" />
+                    <Grid Height="64" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="WaterToday" Style="{StaticResource IslandHero}" />
+                            <TextBlock Style="{StaticResource IslandHeroUnit}" Text="ml" />
+                        </StackPanel>
+                        <Button x:Name="WaterAdd" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center" Click="WaterAdd_Click">
+                            <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 7,0 L 7,14 M 0,7 L 14,7" />
+                        </Button>
+                    </Grid>
+                    <Grid x:Name="WaterWeek" Height="66" Margin="-4,10,-4,0" />
+                    <local:SpaceBetweenPanel Height="38" Margin="0,16,0,0">
+                        <StackPanel><TextBlock Style="{StaticResource IslandFootLabel}" Foreground="#7C7C80" Text="{local:Tr Target, En=Goal}" /><TextBlock x:Name="WaterGoal" Style="{StaticResource IslandFootValue}" Foreground="#98989F" /></StackPanel>
+                        <StackPanel><TextBlock Style="{StaticResource IslandFootLabel}" Foreground="#7C7C80" Text="{local:Tr Sisa, En=Left}" /><TextBlock x:Name="WaterLeft" Style="{StaticResource IslandFootValue}" Foreground="#98989F" /></StackPanel>
+                        <StackPanel><TextBlock Style="{StaticResource IslandFootLabel}" Foreground="#7C7C80" Text="{local:Tr Gelas, En=Glasses}" /><TextBlock x:Name="WaterGlasses" Style="{StaticResource IslandFootValue}" Foreground="#98989F" /></StackPanel>
+                        <Button x:Name="WaterUndo" Style="{StaticResource IslandFootButton}" Click="WaterUndo_Click">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource IslandFootLabel}" HorizontalAlignment="Right" Text="{local:Tr Urungkan, En=Undo}" />
+                                <TextBlock x:Name="WaterUndoValue" Style="{StaticResource IslandFootValue}" HorizontalAlignment="Right" />
+                            </StackPanel>
+                        </Button>
+                    </local:SpaceBetweenPanel>
                 </StackPanel>
 
                 <!-- A selection caught by the quick-capture hotkey, and what to do with it. -->
-                <StackPanel x:Name="SelectionPanel" Margin="20,14,20,10" Width="420" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <StackPanel x:Name="SelectionPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" Focusable="True" FocusVisualStyle="{x:Null}"
                             KeyDown="SelectionPanel_KeyDown" AutomationProperties.Name="Teks terpilih">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
-                    <Border BorderBrush="#33FFFFFF" BorderThickness="2,0,0,0" Padding="10,2,0,2" Margin="0,0,0,12">
-                        <TextBlock x:Name="SelectionPreview" FontSize="12.5" Foreground="#CCFFFFFF" TextWrapping="Wrap" MaxHeight="54"
-                                   TextTrimming="CharacterEllipsis" />
+                    <Grid Height="18">
+                        <TextBlock Style="{StaticResource IslandMeta}" HorizontalAlignment="Left" Text="{local:Tr Teks terpilih, En=Selected text}" />
+                        <TextBlock x:Name="SelectionMeta" Style="{StaticResource IslandMeta}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Border Height="88" Margin="0,4,0,0" Background="#1C1C1E" CornerRadius="16" Padding="12,10">
+                        <TextBlock x:Name="SelectionPreview" FontSize="15" FontWeight="Medium" LineHeight="22" Foreground="#F5F5F7" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
                     </Border>
-                    <WrapPanel x:Name="SelectionButtons" />
+                    <StackPanel x:Name="SelectionButtons" Margin="0,8,0,0" />
                 </StackPanel>
 
                 <!-- Launcher: the notch drops down into a prompt + recent threads. -->

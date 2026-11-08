@@ -18,7 +18,7 @@ namespace CodexBar.App;
 // of Markdown for a standup.
 public partial class NotchWindow
 {
-    private const double RecapWidth = 460;
+    private const double RecapWidth = IslandTokens.WidthM;
     private static readonly TimeSpan RecapEvening = new(17, 0, 0);
 
     // Dev previews run with sample agents and timers: none of that belongs in the user's day.
@@ -152,17 +152,23 @@ public partial class NotchWindow
     private void RenderRecap()
     {
         var day = Today;
-        RecapDate.Text = day.Day.ToDateTime(TimeOnly.MinValue).ToString("dddd, d MMM", CultureInfo.CurrentUICulture);
-        RecapTiles.Children.Clear();
-        RecapTiles.Children.Add(Tile(day.FocusSessions.ToString(CultureInfo.InvariantCulture),
-            day.FocusSessions > 0 ? Tr.Text("fokus · ", "focus · ") + DayLog.Duration(day.FocusMinutes, Tr.Text) : Tr.Text("fokus", "focus")));
-        RecapTiles.Children.Add(Tile(day.AgentTasks.Count.ToString(CultureInfo.InvariantCulture), Tr.Text("tugas agent", "agent tasks")));
-        RecapTiles.Children.Add(Tile(day.Files.Count.ToString(CultureInfo.InvariantCulture), Tr.Text("file diubah", "files changed")));
-        RecapTiles.Children.Add(Tile(day.Commands.ToString(CultureInfo.InvariantCulture),
-            day.FailedCommands > 0 ? string.Format(Tr.Text("perintah · {0} gagal", "commands · {0} failed"), day.FailedCommands) : Tr.Text("perintah", "commands")));
+        // Focus is the big number; on a day without any, the agent's work is.
+        var focused = day.FocusSessions > 0;
+        RecapValue.Text = focused ? DayLog.Duration(day.FocusMinutes, Tr.Text) : day.AgentTasks.Count.ToString(CultureInfo.InvariantCulture);
+        RecapUnit.Text = focused ? Tr.Text("fokus", "focus") : Tr.Text("tugas", "tasks");
+        var facts = new List<string>
+        {
+            string.Format(Tr.Text("{0} tugas", "{0} tasks"), day.AgentTasks.Count),
+            string.Format(Tr.Text("{0} file", "{0} files"), day.Files.Count),
+            day.FailedCommands > 0
+                ? string.Format(Tr.Text("{0} perintah, {1} gagal", "{0} commands, {1} failed"), day.Commands, day.FailedCommands)
+                : string.Format(Tr.Text("{0} perintah", "{0} commands"), day.Commands)
+        };
+        RecapDate.Text = string.Join(" · ", facts);
+        RecapDate.ToolTip = day.Day.ToDateTime(TimeOnly.MinValue).ToString("dddd, d MMM", CultureInfo.CurrentUICulture);
 
         RecapRows.Children.Clear();
-        foreach (var task in day.AgentTasks.TakeLast(3).Reverse())
+        foreach (var task in day.AgentTasks.AsEnumerable().Reverse())
         {
             RecapRows.Children.Add(RecapRow(task));
         }
@@ -175,35 +181,42 @@ public partial class NotchWindow
         RenderPageDots();
     }
 
-    private FrameworkElement Tile(string value, string label)
+    private FrameworkElement RecapRow(string text)
     {
-        var stack = new StackPanel();
-        stack.Children.Add(new TextBlock { Text = value, FontFamily = (FontFamily)FindResource("SoraFont"), FontSize = 20, Foreground = TimerFocusBrush });
-        stack.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = TimerQuietBrush, TextTrimming = TextTrimming.CharacterEllipsis });
+        var grid = new Grid { Height = IslandTokens.Btn - 1 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        grid.Children.Add(new System.Windows.Shapes.Path
+        {
+            Data = CheckGlyph,
+            Width = 14,
+            Height = 14,
+            Stretch = Stretch.Uniform,
+            Stroke = IslandTokens.Text3,
+            StrokeThickness = 1.8,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var body = new TextBlock { Text = text, FontSize = 14, FontWeight = FontWeights.Medium, Foreground = IslandTokens.Text1, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(body, 1);
+        grid.Children.Add(body);
         return new Border
         {
-            Background = Frozen(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-            CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(10, 8, 6, 8),
-            Margin = new Thickness(0, 0, 6, 0),
-            Child = stack
+            BorderBrush = Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(0, 1, 0, 0),
+            Child = grid
         };
     }
-
-    private FrameworkElement RecapRow(string text) => new Border
-    {
-        BorderBrush = Frozen(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-        BorderThickness = new Thickness(0, 1, 0, 0),
-        Padding = new Thickness(0, 7, 0, 7),
-        Child = new TextBlock { Text = text, FontSize = 12.5, Foreground = TimerFocusBrush, TextTrimming = TextTrimming.CharacterEllipsis }
-    };
 
     private void RecapCopy_Click(object sender, RoutedEventArgs e)
     {
         try
         {
             System.Windows.Clipboard.SetText(Today.ToMarkdown(Tr.Text));
-            RecapCopy.Content = Tr.Text("Tersalin ✓", "Copied ✓");
+            RecapDate.Text = Tr.Text("Tersalin", "Copied");
         }
         catch (Exception exception)
         {

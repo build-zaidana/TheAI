@@ -132,10 +132,12 @@ public partial class NotchWindow
         var today = _water.Today(now);
         var culture = CultureInfo.CurrentCulture;
         WaterToday.Text = today.ToString("N0", culture);
-        WaterGoal.Text = string.Format(culture, " / {0:N0} ml", plan.GoalMl);
-        WaterAdd.Content = string.Format(culture, "+{0} ml", plan.GlassMl);
-        WaterUndo.Content = Tr.Text("Batal", "Undo");
+        WaterGoal.Text = string.Format(culture, "{0:N0} ml", plan.GoalMl);
+        WaterLeft.Text = string.Format(culture, "{0:N0} ml", Math.Max(0, plan.GoalMl - today));
+        WaterGlasses.Text = plan.GlassMl > 0 ? (today / plan.GlassMl).ToString(culture) : "0";
+        WaterUndoValue.Text = string.Format(culture, "−{0}", plan.GlassMl);
         WaterUndo.Visibility = today > 0 ? Visibility.Visible : Visibility.Collapsed;
+        WaterAdd.ToolTip = string.Format(culture, "+{0} ml", plan.GlassMl);
         System.Windows.Automation.AutomationProperties.SetName(WaterAdd, string.Format(culture, Tr.Text("Tambah {0} ml", "Add {0} ml"), plan.GlassMl));
         System.Windows.Automation.AutomationProperties.SetName(WaterUndo, string.Format(culture, Tr.Text("Kurangi {0} ml", "Remove {0} ml"), plan.GlassMl));
 
@@ -147,7 +149,6 @@ public partial class NotchWindow
                     : string.Format(culture, Tr.Text("Pengingat berikutnya {0:HH:mm}", "Next reminder at {0:HH:mm}"), next)
                 : string.Format(culture, Tr.Text("{0:N0} ml lagi", "{0:N0} ml to go"), plan.GoalMl - today);
 
-        WaterBar.Width = Math.Min(1, today / (double)plan.GoalMl) * WaterPanel.Width;
         RenderWaterWeek(now, plan);
     }
 
@@ -162,12 +163,13 @@ public partial class NotchWindow
             var (day, millilitres) = week[i];
             WaterWeek.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var met = millilitres >= plan.GoalMl;
-            var column = new DockPanel { Margin = new Thickness(6, 0, 6, 0) };
+            var column = new DockPanel { Margin = new Thickness(4, 0, 4, 0) };
             var label = new TextBlock
             {
-                Text = i == week.Count - 1 ? Tr.Text("Hari ini", "Today") : day.ToString("ddd", CultureInfo.CurrentCulture),
-                FontSize = 10.5,
-                Foreground = i == week.Count - 1 ? TimerFocusBrush : TimerQuietBrush,
+                Text = day.ToString("ddd", CultureInfo.CurrentCulture),
+                FontSize = 11,
+                FontWeight = FontWeights.Medium,
+                Foreground = i == week.Count - 1 ? IslandTokens.Text1 : IslandTokens.Text3,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
             };
@@ -175,10 +177,11 @@ public partial class NotchWindow
             column.Children.Add(label);
             column.Children.Add(new Border
             {
-                Height = Math.Max(3, 44 * millilitres / (double)top),
+                Height = Math.Max(4, 48 * millilitres / (double)top),
                 VerticalAlignment = VerticalAlignment.Bottom,
-                CornerRadius = new CornerRadius(3),
-                Background = met ? WaterBrush : WaterDimBrush,
+                CornerRadius = new CornerRadius(6),
+                // Today is white; a day that met the goal is lighter than one that didn't. One voice, no blue.
+                Background = i == week.Count - 1 ? IslandTokens.Text1 : IslandTokens.Frozen(met ? Color.FromRgb(0x8E, 0x8E, 0x93) : Color.FromRgb(0x3A, 0x3A, 0x3C)),
                 ToolTip = string.Format(CultureInfo.CurrentCulture, "{0:N0} ml", millilitres)
             });
             Grid.SetColumn(column, i);

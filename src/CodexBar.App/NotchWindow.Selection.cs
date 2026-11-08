@@ -12,7 +12,7 @@ namespace CodexBar.App;
 // notch as a parallel agent (the chat stays closed); "Ask…" puts the text into the launcher.
 public partial class NotchWindow
 {
-    private const double SelectionWidth = 460;
+    private const double SelectionWidth = IslandTokens.WidthM;
 
     private string _selection = string.Empty;
 
@@ -21,7 +21,7 @@ public partial class NotchWindow
         ("translate", "Terjemahkan", "Translate", Key.D1),
         ("explain", "Jelaskan", "Explain", Key.D2),
         ("summarize", "Ringkas", "Summarize", Key.D3),
-        ("proofread", "Perbaiki tulisan", "Fix writing", Key.D4),
+        ("proofread", "Perbaiki", "Fix writing", Key.D4),
     ];
 
     /// <summary>The quick-capture hotkey caught a selection: offer what to do with it.</summary>
@@ -36,34 +36,36 @@ public partial class NotchWindow
         _collapseTimer.Stop();
         _hoverTimer.Stop();
         SelectionPreview.Text = _selection.Length > 400 ? _selection[..400] + "…" : _selection;
+        SelectionMeta.Text = string.Format(Tr.Text("{0} karakter", "{0} characters"), _selection.Length);
         SelectionButtons.Children.Clear();
+        // Board 35: two wide buttons, then three; all 40, so the last row sits concentric in the corners.
+        var top = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1, Margin = new Thickness(0, 0, -8, 18) };
+        var bottom = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1, Margin = new Thickness(0, 0, -8, 0) };
         var index = 1;
         foreach (var (command, id, en, _) in SelectionActions)
         {
             var button = new Button
             {
-                Style = (Style)FindResource(index == 1 ? "NotchPrimaryPill" : "NotchPill"),
-                Height = 30,
-                FontSize = 12.5,
-                Margin = new Thickness(0, 0, 8, 8),
+                Style = (Style)FindResource(index == 1 ? "IslandPrimaryButton" : "IslandButton"),
+                Margin = new Thickness(0, 0, 8, 0),
                 Content = $"{Tr.Text(id, en)}  {index}",
                 Tag = command
             };
             button.Click += async (_, _) => await RunSelectionAsync(command);
-            SelectionButtons.Children.Add(button);
+            (index <= 2 ? top : bottom).Children.Add(button);
             index++;
         }
 
         var ask = new Button
         {
-            Style = (Style)FindResource("NotchPill"),
-            Height = 30,
-            FontSize = 12.5,
-            Margin = new Thickness(0, 0, 8, 8),
+            Style = (Style)FindResource("IslandButton"),
+            Margin = new Thickness(0, 0, 8, 0),
             Content = Tr.Text("Tanya…", "Ask…")
         };
         ask.Click += (_, _) => AskAboutSelection();
-        SelectionButtons.Children.Add(ask);
+        bottom.Children.Add(ask);
+        SelectionButtons.Children.Add(top);
+        SelectionButtons.Children.Add(bottom);
 
         _view = NotchView.Selection;
         ApplyView(animate: true);

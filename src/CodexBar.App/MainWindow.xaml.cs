@@ -236,6 +236,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
         catch (Exception exception)
         {
+            ShowActivated = true;
+            Opacity = 1;   // the notch never came up: the error has to be seen
             ShowError(exception.Message);
         }
     }
@@ -2225,6 +2227,9 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             Hide();
         }
+
+        ShowActivated = true;
+        Opacity = 1;   // hidden from here on, so it looks right whenever it's opened
 
         if (OnboardingPanel.Visibility == Visibility.Visible)
         {

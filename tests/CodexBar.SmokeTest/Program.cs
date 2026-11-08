@@ -739,6 +739,8 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(ShutdownCommand.TryParse("shutdown 30m", out power) && power.Seconds == 1800, "shutdown 30m");
         Assert(ShutdownCommand.TryParse("shutdown -a", out power) && power.Cancel, "shutdown -a");
         Assert(!ShutdownCommand.TryParse("25m", out _) && !ShutdownCommand.TryParse("shutdown -r -t 5", out _) && !ShutdownCommand.TryParse("shutdown -s", out _), "other text is not a shutdown");
+        Assert(CodexBar.Core.WeatherClient.ParseForecast("{\"current\":{\"temperature_2m\":31,\"weather_code\":2,\"is_day\":1},\"daily\":{\"temperature_2m_max\":[33],\"temperature_2m_min\":[25],\"precipitation_probability_max\":[70]},\"hourly\":{\"temperature_2m\":[25,26,27]}}") is { Hourly.Count: 3 }, "hourly temperatures are read");
+        Console.WriteLine("PASS weather hours");
         Console.WriteLine("PASS shutdown command");
         Console.WriteLine("PASS deterministic controller/settings/protocol tests");
         return 0;

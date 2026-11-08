@@ -171,23 +171,62 @@ public partial class NotchWindow
             _ => (Tr.Text("Selama fokus", "While you focused"), string.Empty)
         };
 
+        // What needs an answer comes first, then the newest: the first is the title, the rest are rows.
+        var items = _held.AsEnumerable().Reverse().OrderByDescending(item => item.Ask && HasPendingRequest).ToList();
+        _heldHero = items.FirstOrDefault();
+        if (HeldMeta.Text.Length == 0)
+        {
+            HeldMeta.Text = string.Format(Tr.Text("{0} tertahan", "{0} held"), items.Count);
+        }
+
+        if (_heldHero is { } first)
+        {
+            var pending = first.Ask && HasPendingRequest;
+            HeldHeroTitle.Text = first.Text;
+            HeldHeroSub.Text = $"{first.Agent} · {(first.Ask ? Tr.Text("minta izin", "asks permission") : Tr.Text("selesai", "done"))}";
+            HeldOpen.ToolTip = pending ? Tr.Text("Jawab", "Answer") : Tr.Text("Lihat", "View");
+        }
+
         HeldRows.Children.Clear();
-        foreach (var item in _held.TakeLast(5))
+        foreach (var item in items.Skip(1))
         {
             HeldRows.Children.Add(BuildHeldRow(item));
         }
     }
 
+    private HeldItem? _heldHero;
+
+    private void HeldOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (_heldHero is { } item)
+        {
+            OpenHeldItem(item);
+        }
+    }
+
+    private void OpenHeldItem(HeldItem item)
+    {
+        _heldCollapse.Stop();
+        if (item.Ask && HasPendingRequest)
+        {
+            ShowPendingRequest();
+            return;
+        }
+
+        SelectActivity(ActivityFor(item.Key));
+        OpenActivity();
+    }
+
     private FrameworkElement BuildHeldRow(HeldItem item)
     {
-        var grid = new Grid { Height = 38 };
+        var grid = new Grid { Height = IslandTokens.Btn - 1 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(AgentBadge(item.Agent));
 
         var pending = item.Ask && HasPendingRequest;
-        var text = new TextBlock { FontSize = 12.5, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Foreground = TimerFocusBrush };
+        var text = new TextBlock { FontSize = 14, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Foreground = TimerFocusBrush };
         text.Inlines.Add(new System.Windows.Documents.Run(item.Ask ? Tr.Text("Minta izin — ", "Asks permission — ") : Tr.Text("Selesai — ", "Done — ")));
         text.Inlines.Add(new System.Windows.Documents.Run(item.Text) { Foreground = TimerQuietBrush });
         Grid.SetColumn(text, 1);
@@ -195,30 +234,17 @@ public partial class NotchWindow
 
         var open = new Button
         {
-            Style = (Style)FindResource(pending ? "NotchPrimaryPill" : "NotchPill"),
-            Height = 26,
-            FontSize = 12,
+            Style = (Style)FindResource("IslandChip"),
             Content = pending ? Tr.Text("Jawab", "Answer") : Tr.Text("Lihat", "View")
         };
-        open.Click += (_, _) =>
-        {
-            _heldCollapse.Stop();
-            if (pending && HasPendingRequest)
-            {
-                ShowPendingRequest();
-                return;
-            }
-
-            SelectActivity(ActivityFor(item.Key));
-            OpenActivity();
-        };
+        open.Click += (_, _) => OpenHeldItem(item);
         System.Windows.Automation.AutomationProperties.SetName(open, $"{open.Content}: {item.Agent} — {item.Text}");
         Grid.SetColumn(open, 2);
         grid.Children.Add(open);
 
         return new Border
         {
-            BorderBrush = Frozen(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
+            BorderBrush = Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
             BorderThickness = new Thickness(0, 1, 0, 0),
             Child = grid
         };

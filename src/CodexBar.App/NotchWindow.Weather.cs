@@ -153,64 +153,79 @@ public partial class NotchWindow
             WeatherTemp.Text = $"{Math.Round(weather.Temperature):0}°";
             WeatherSummary.Text = WeatherClient.Describe(kind, Tr.Text);
             WeatherPlace.Text = place.Name;
-            WeatherRange.Text = double.IsNaN(weather.High) ? string.Empty
-                : $"↑ {Math.Round(weather.High):0}°  ↓ {Math.Round(weather.Low):0}°" +
-                  (weather.RainChance is > 0 and var rain ? "  ·  " + string.Format(Tr.Text("hujan {0}%", "rain {0}%"), rain) : string.Empty);
             WeatherNow.Visibility = Visibility.Visible;
             WeatherMessage.Visibility = Visibility.Collapsed;
+            WeatherLine.Visibility = weather.Hourly is null ? Visibility.Hidden : Visibility.Visible;
+            if (weather.Hourly is { } hours)
+            {
+                WeatherLine.Mark = Math.Min(LocalHour(place, now), hours.Count - 1);
+                WeatherLine.Show(hours);
+            }
         }
         else
         {
+            WeatherPlace.Text = Tr.Text("Cuaca", "Weather");
+            WeatherSummary.Text = string.Empty;
+            WeatherLine.Visibility = Visibility.Hidden;
             WeatherNow.Visibility = Visibility.Collapsed;
             WeatherMessage.Text = _weatherError.Length > 0 ? _weatherError : Tr.Text("Mengambil cuaca…", "Getting the weather…");
             WeatherMessage.Visibility = Visibility.Visible;
         }
 
-        WorldClockRows.Children.Clear();
-        WorldClockRows.Children.Add(ClockRow(Tr.Text("Di sini", "Here"), now.ToLocalTime().ToString("H:mm", CultureInfo.InvariantCulture), string.Empty, first: true));
-        foreach (var clock in WorldClock.ParseList(_host.WorldClocks))
+        // The footer holds five: the day's numbers first, then the next prayer and the clocks you set.
+        var cells = new List<(string Label, string Value)>();
+        if (_weather is { } today && !double.IsNaN(today.High))
         {
-            var shift = clock.DayShift(now);
-            var meta = string.Join("  ", new[] { clock.Offset(now), shift.Length > 0 ? (shift.StartsWith('+') ? Tr.Text("besok", "tomorrow") : Tr.Text("kemarin", "yesterday")) : string.Empty }
-                .Where(part => part.Length > 0));
-            WorldClockRows.Children.Add(ClockRow(clock.Label, clock.Time(now), meta, first: false));
+            cells.Add((Tr.Text("Tertinggi", "High"), $"{Math.Round(today.High):0}°"));
+            cells.Add((Tr.Text("Terendah", "Low"), $"{Math.Round(today.Low):0}°"));
+            if (today.RainChance is { } rain)
+            {
+                cells.Add((Tr.Text("Hujan", "Rain"), $"{rain}%"));
+            }
         }
 
         if (PrayerAvailable && NextPrayer(now) is { } prayer)
         {
-            WorldClockRows.Children.Add(ClockRow(prayer.Name(Tr.Text), prayer.At.ToString("H:mm", CultureInfo.InvariantCulture), Tr.Text("sholat berikutnya", "next prayer"), first: false));
+            cells.Add((prayer.Name(Tr.Text), prayer.At.ToString("H:mm", CultureInfo.InvariantCulture)));
+        }
+
+        foreach (var clock in WorldClock.ParseList(_host.WorldClocks))
+        {
+            var shift = clock.DayShift(now);
+            cells.Add((clock.Label, clock.Time(now) + (shift.StartsWith('+') ? " +1" : shift.Length > 0 ? " −1" : string.Empty)));
+        }
+
+        cells.Add((Tr.Text("Di sini", "Here"), now.ToLocalTime().ToString("H:mm", CultureInfo.InvariantCulture)));
+        WorldClockRows.Children.Clear();
+        var shown = cells.Take(5).ToList();
+        for (var i = 0; i < shown.Count; i++)
+        {
+            WorldClockRows.Children.Add(FootCell(shown[i].Label, shown[i].Value, last: i == shown.Count - 1 && shown.Count > 1));
         }
 
         RenderPageDots();
     }
 
-    private FrameworkElement ClockRow(string label, string time, string meta, bool first)
+    private static int LocalHour(GeoPlace place, DateTimeOffset now)
     {
-        var grid = new Grid { Height = 32 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
-        grid.Children.Add(new TextBlock { Text = label, FontSize = 13, Foreground = first ? TimerQuietBrush : TimerFocusBrush, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-        var detail = new TextBlock { Text = meta, FontSize = 11.5, Foreground = TimerQuietBrush, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) };
-        Grid.SetColumn(detail, 1);
-        grid.Children.Add(detail);
-        var clock = new TextBlock
+        try
         {
-            Text = time,
-            Style = (Style)FindResource("NotchDigits"),
-            FontSize = 15,
-            Foreground = first ? TimerQuietBrush : TimerFocusBrush,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(clock, 2);
-        grid.Children.Add(clock);
-        return new Border
+            return TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById(place.TimeZone)).Hour;
+        }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
         {
-            BorderBrush = Frozen(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-            BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0),
-            Child = grid
-        };
+            return now.ToLocalTime().Hour;
+        }
+    }
+
+    /// <summary>One label-over-value item of a page's footer (board 31).</summary>
+    private FrameworkElement FootCell(string label, string value, bool last)
+    {
+        var align = last ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        var cell = new StackPanel();
+        cell.Children.Add(new TextBlock { Style = (Style)FindResource("IslandFootLabel"), Foreground = IslandTokens.Text3, Text = label, HorizontalAlignment = align });
+        cell.Children.Add(new TextBlock { Style = (Style)FindResource("IslandFootValue"), Foreground = IslandTokens.Text2, Text = value, HorizontalAlignment = align });
+        return cell;
     }
 
     // ---- Dev preview ---------------------------------------------------------------------
@@ -220,7 +235,8 @@ public partial class NotchWindow
         await Task.Delay(400);
         _place = new GeoPlace("Jakarta", "Indonesia", -6.2, 106.8, "Asia/Jakarta");
         _placeFor = "Jakarta";
-        _weather = new WeatherReport(31.4, 2, true, 33.1, 25.0, 70);
+        _weather = new WeatherReport(31.4, 2, true, 33.1, 25.0, 70,
+            [26, 25.6, 25.2, 25, 25, 25.3, 26, 27.2, 28.6, 30, 31.2, 32.1, 32.8, 33.1, 33, 32.4, 31.6, 30.4, 29.2, 28.3, 27.6, 27, 26.6, 26.2]);
         OpenWeather();
         _pinned = true;
         if (Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } dir)

@@ -225,22 +225,47 @@ public partial class NotchWindow
     private void RenderReminders()
     {
         var now = DateTimeOffset.Now;
-        var open = _reminders.Open.Take(7).ToList();
+        var open = _reminders.Open.Take(8).ToList();
         ReminderRows.Children.Clear();
-        foreach (var item in open)
+        foreach (var item in open.Skip(1))
         {
             ReminderRows.Children.Add(BuildReminderRow(item, now));
         }
 
-        ReminderCount.Text = open.Count == 0 ? string.Empty : _reminders.Open.Count().ToString(System.Globalization.CultureInfo.InvariantCulture);
-        ReminderEmpty.Visibility = open.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // The next one is the page's title; ticking it is the page's one action.
+        _reminderHero = open.FirstOrDefault()?.Id;
+        var next = open.FirstOrDefault();
+        ReminderTitle.Text = next?.Text ?? Tr.Text("Belum ada pengingat", "No reminders");
+        ReminderSub.Text = next is null ? Tr.Text("Ketik di bawah atau /remind dari launcher", "Type below or /remind from the launcher") : ReminderList.When(next, now, Tr.Text);
+        ReminderSub.Foreground = next is not null && next.DueAt <= now ? (Brush)FindResource("NotchRed") : IslandTokens.Text2;
+        ReminderDone.Visibility = next is null ? Visibility.Collapsed : Visibility.Visible;
+        ReminderSnooze.Visibility = next is not null && next.Id == _ringingReminder && next.DueAt <= now ? Visibility.Visible : Visibility.Collapsed;
+        ReminderCount.Text = open.Count == 0 ? string.Empty : string.Format(Tr.Text("{0} tersisa", "{0} left"), _reminders.Open.Count());
         ReminderHint.Visibility = ReminderInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private string? _reminderHero;
+
+    private void ReminderDone_Click(object sender, RoutedEventArgs e)
+    {
+        if (_reminderHero is { } id)
+        {
+            CompleteReminder(id);
+        }
+    }
+
+    private void ReminderSnooze_Click(object sender, RoutedEventArgs e)
+    {
+        if (_reminderHero is { } id)
+        {
+            SnoozeReminder(id);
+        }
     }
 
     private FrameworkElement BuildReminderRow(ReminderItem item, DateTimeOffset now)
     {
         var ringing = item.Id == _ringingReminder && item.DueAt <= now;
-        var grid = new Grid { MinHeight = 36 };
+        var grid = new Grid { Height = IslandTokens.Btn - 1 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -248,6 +273,7 @@ public partial class NotchWindow
         var check = new CheckBox
         {
             VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             IsChecked = item.Done,
             Cursor = Cursors.Hand,
             Template = CircleCheckTemplate()
@@ -259,8 +285,8 @@ public partial class NotchWindow
         var text = new TextBlock
         {
             Text = item.Text,
-            FontSize = ringing ? 14 : 13,
-            FontWeight = ringing ? FontWeights.SemiBold : FontWeights.Normal,
+            FontSize = 14,
+            FontWeight = FontWeights.Medium,
             Foreground = TimerFocusBrush,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center
@@ -285,9 +311,9 @@ public partial class NotchWindow
             right = new TextBlock
             {
                 Text = ReminderList.When(item, now, Tr.Text),
-                Style = (Style)FindResource("NotchDigits"),
                 FontSize = 12,
-                Foreground = item.DueAt <= now ? (Brush)FindResource("NotchRed") : TimerQuietBrush,
+                FontWeight = FontWeights.Medium,
+                Foreground = item.DueAt <= now ? (Brush)FindResource("NotchRed") : IslandTokens.Text3,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(10, 0, 0, 0)
             };
@@ -297,9 +323,8 @@ public partial class NotchWindow
         grid.Children.Add(right);
         return new Border
         {
-            BorderBrush = Frozen(Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
-            BorderThickness = new Thickness(0, ReminderRows.Children.Count == 0 ? 0 : 1, 0, 0),
-            Padding = new Thickness(0, 3, 0, 3),
+            BorderBrush = Frozen(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            BorderThickness = new Thickness(0, 1, 0, 0),
             Child = grid
         };
     }
