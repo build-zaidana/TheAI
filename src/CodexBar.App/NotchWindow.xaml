@@ -467,33 +467,6 @@
         </Style>
 
         <!-- Timer modes as chips (Page 2, board 06): 28 tall, R 14, surface/1; the chosen one is white. -->
-        <Style x:Key="NotchModeButton" TargetType="Button">
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="28" />
-            <Setter Property="Margin" Value="0,0,8,0" />
-            <Setter Property="Foreground" Value="#98989F" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="#1C1C1E" CornerRadius="14">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Width="16" Height="16" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="#2C2C2E" />
-                                <Setter Property="Foreground" Value="#F5F5F7" />
-                            </Trigger>
-                            <Trigger Property="Tag" Value="selected">
-                                <Setter TargetName="Bg" Property="Background" Value="#F5F5F7" />
-                                <Setter Property="Foreground" Value="Black" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <Style x:Key="NotchTintButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand" />
@@ -519,31 +492,6 @@
             </Setter>
         </Style>
 
-        <Style x:Key="NotchTintPill" TargetType="Button">
-            <Setter Property="Height" Value="48" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource NotchGreen}" />
-            <Setter Property="Background" Value="#3330D158" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border Background="{TemplateBinding Background}" CornerRadius="24" />
-                            <Border x:Name="Hover" Background="White" CornerRadius="24" Opacity="0" />
-                            <ContentPresenter Margin="20,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Hover" Property="Opacity" Value="0.08" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <Style x:Key="NotchTextButton" TargetType="Button">
             <Setter Property="FontSize" Value="12" />
@@ -568,31 +516,6 @@
             </Setter>
         </Style>
 
-        <Style x:Key="NotchLengthButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#80FFFFFF" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Margin" Value="2,0" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="Transparent" CornerRadius="12" Padding="0,7">
-                            <ContentPresenter HorizontalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource NotchFill}" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                            <Trigger Property="Tag" Value="selected">
-                                <Setter TargetName="Bg" Property="Background" Value="#17FFFFFF" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <!-- An alarm clock in the timer's orange: bells, legs, a round face with its hands. -->
         <Viewbox x:Key="NotchAlarmGlyph" x:Shared="False" Stretch="Uniform">
@@ -1160,7 +1083,7 @@
                 </Grid>
 
                 <!-- The file shelf: files waiting to be dragged out somewhere. -->
-                <Grid x:Name="ShelfPanel" Margin="18,16,30,14" Width="392" HorizontalAlignment="Center" VerticalAlignment="Top"
+                <Grid x:Name="ShelfPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                       Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rak file">
                     <Grid.RenderTransform>
                         <TranslateTransform />

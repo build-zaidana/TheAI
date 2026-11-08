@@ -236,8 +236,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
         catch (Exception exception)
         {
-            ShowActivated = true;
-            Opacity = 1;   // the notch never came up: the error has to be seen
+            EndUnseenStart();   // the notch never came up: the error has to be seen
             ShowError(exception.Message);
         }
     }
@@ -2228,8 +2227,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             Hide();
         }
 
-        ShowActivated = true;
-        Opacity = 1;   // hidden from here on, so it looks right whenever it's opened
+        EndUnseenStart();   // hidden from here on, so it looks right whenever it's opened
 
         if (OnboardingPanel.Visibility == Visibility.Visible)
         {
@@ -2867,8 +2865,66 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         // Card harus selalu opaque. Area di luar card ditangani oleh per-pixel
         // transparency window, bukan dengan menurunkan opacity card.
+        if (_unseenStart)
+        {
+            return;   // settings and activation land here while the app starts: the bar stays unseen
+        }
+
         Opacity = 1;
         RootBorder.Opacity = 1;
+    }
+
+    private bool _unseenStart;
+
+    /// <summary>
+    /// The bar is only a host until the notch is up. It has to be shown to load, but nothing of it may be
+    /// seen, clicked or take focus: no drawing, click-through, off every screen.
+    /// </summary>
+    public void ShowUnseenUntilNotch()
+    {
+        _unseenStart = true;
+        ShowActivated = false;
+        Opacity = 0;
+        RootBorder.Visibility = Visibility.Hidden;
+        WatchBarForTest();
+        Show();
+    }
+
+    // CODEXBAR_TEST_BAR=1: every change in whether the bar could be seen goes to the log.
+    private void WatchBarForTest()
+    {
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_BAR") is not { Length: > 0 })
+        {
+            return;
+        }
+
+        var last = string.Empty;
+        var watch = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(10) };
+        watch.Tick += (_, _) =>
+        {
+            var seen = IsVisible && Opacity > 0 && RootBorder.Visibility == Visibility.Visible;
+            var now = $"seen={seen} visible={IsVisible} opacity={Opacity} border={RootBorder.Visibility} starting={_unseenStart} active={IsActive}";
+            if (now != last)
+            {
+                last = now;
+                DiagnosticsLog.Info("BarTest", now);
+            }
+        };
+        watch.Start();
+    }
+
+    private void EndUnseenStart()
+    {
+        if (!_unseenStart)
+        {
+            return;
+        }
+
+        _unseenStart = false;
+        ShowActivated = true;
+        Opacity = 1;
+        RootBorder.Opacity = 1;
+        RootBorder.Visibility = Visibility.Visible;
     }
 
     private void ShowOutputSurface()

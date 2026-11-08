@@ -121,11 +121,7 @@ public partial class App : System.Windows.Application
             var window = new MainWindow(settings, settingsStore, _provider, CreateProvider);
             window.ActiveProviderChanged += provider => _provider = provider;
             MainWindow = window;
-            // The bar is only a host until the notch is up: unseen, click-through and without taking focus,
-            // so starting the app never flashes the old window.
-            window.ShowActivated = false;
-            window.Opacity = 0;
-            window.Show();
+            window.ShowUnseenUntilNotch();
             _activationLoop = Task.Run(() => WaitForActivation(window, _activationCancellation.Token));
         }
         catch (Exception exception)

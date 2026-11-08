@@ -101,6 +101,18 @@ Perintah PowerShell yang berjalan ≥ 10 detik bisa tampil otomatis: nyalakan **
 
 Gunakan tombol `☰` untuk membuka menu/riwayat. Tombol **template prompt** (ikon daftar) di input bar membuka daftar template untuk sisip cepat, atau menyimpan prompt saat ini sebagai template baru. Tombol output `▤` hanya muncul saat output disetel terpisah (lihat Tampilan). `Top` (always-on-top) dan `Wrap kode` kini ada di panel Settings, bukan di toolbar, agar input bar tetap minimalis.
 
+## Mematikan PC nanti
+
+Di halaman Timer, pilih mode **Matikan**, atur durasinya di penggaris, lalu tekan tombol merah. Bisa juga diketik di halaman itu:
+
+```text
+shutdown -s -t 3600   # mati dalam 3600 detik
+shutdown 30m          # atau: matikan 1 jam
+shutdown -a           # batalkan
+```
+
+Ini menjalankan `shutdown /s /t X` milik Windows, yang **menutup paksa aplikasi yang terbuka**, jadi simpan pekerjaanmu. Sisa waktu tampil di notch, dan notch terbuka sendiri satu menit sebelumnya supaya masih bisa dibatalkan. Nilai di bawah 30 detik dinaikkan jadi 30 detik.
+
 ## Tampilan
 
 TheAI tampil sebagai **launcher satu baris** yang mengambang tepat di atas taskbar (gaya command palette), muncul/menyembunyi dengan hotkey global yang dapat diatur. Kartu memakai permukaan solid dengan sudut membulat native dan kontrol modern (ikon Segoe Fluent, slider/checkbox/combobox kustom, tombol kirim ikon Enter di dalam field).

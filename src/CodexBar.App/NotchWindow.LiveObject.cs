@@ -20,7 +20,6 @@ public partial class NotchWindow
 {
     private enum LiveKind { None, Record, Dial, Orb }
 
-    private enum OrbState { Working, Wait, Done, Error }
 
     private static readonly Geometry CheckGlyph = Geometry.Parse("M 20,6 L 9,17 L 4,12");
     private static readonly Geometry CrossGlyph = Geometry.Parse("M 18,6 L 6,18 M 6,6 L 18,18");
@@ -37,15 +36,12 @@ public partial class NotchWindow
     private object? _liveKey;            // what the visual was built for, so it is rebuilt only when that changes
 
     // Dial and orb parts that change without a rebuild.
-    private Path? _dialArc;
-    private TextBlock? _dialText;
     private RotateTransform? _recordSpin;
     private Border? _recordLabel;
 
     private bool LiveObjectAllowed => Edge == "top" && !IsCorner && !_floating;
 
     /// <summary>The text column's left inset when the object is out: 16 after the object's edge.</summary>
-    private double LiveTextInset(double radius, double outBy) => Math.Max(IslandTokens.P, (2 * radius) - outBy + IslandTokens.P);
 
     /// <summary>
     /// Show (or update) the live object. <paramref name="key"/> identifies the visual: the same key keeps
@@ -94,8 +90,6 @@ public partial class NotchWindow
         _liveKind = LiveKind.None;
         _liveKey = null;
         ApplyKeyline();   // the Shell draws its own outline again
-        _dialArc = null;
-        _dialText = null;
         _recordSpin = null;
         _recordLabel = null;
         if (_liveNeck is not null)
@@ -298,65 +292,6 @@ public partial class NotchWindow
         }
     }
 
-    /// <summary>A timer face: fine ticks, the time left as a thick arc, minutes in the middle.</summary>
-    private Grid BuildDial(double r, double fraction, Color color, bool pulse, string text)
-    {
-        var grid = new Grid { Width = 2 * r, Height = 2 * r, RenderTransformOrigin = new Point(0.5, 0.5) };
-        var ticks = new StreamGeometry();
-        using (var c = ticks.Open())
-        {
-            for (var i = 0; i < 12; i++)
-            {
-                var a = i * Math.PI / 6;
-                c.BeginFigure(new Point(r + ((r - 6) * Math.Sin(a)), r - ((r - 6) * Math.Cos(a))), false, false);
-                c.LineTo(new Point(r + ((r - 13) * Math.Sin(a)), r - ((r - 13) * Math.Cos(a))), true, false);
-            }
-        }
-        ticks.Freeze();
-        grid.Children.Add(new Path { Data = ticks, Stroke = IslandTokens.Frozen(Color.FromArgb(0x38, 0xFF, 0xFF, 0xFF)), StrokeThickness = 1.6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round });
-        var rr = r - 16;
-        grid.Children.Add(new Ellipse { Width = 2 * rr, Height = 2 * rr, Stroke = IslandTokens.Surface1, StrokeThickness = 6 });
-        _dialArc = new Path { Stroke = IslandTokens.Frozen(color), StrokeThickness = 6, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
-        grid.Children.Add(_dialArc);
-        _dialText = new TextBlock
-        {
-            FontSize = 20,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = IslandTokens.Text1,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        }.WithTabular();
-        grid.Children.Add(_dialText);
-        UpdateDial(fraction, color, text, r);
-        if (pulse && SystemParameters.ClientAreaAnimation)
-        {
-            var scale = new ScaleTransform();
-            grid.RenderTransform = scale;
-            var beat = new DoubleAnimation(1, 1.06, TimeSpan.FromMilliseconds(500)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase() };
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, beat);
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, beat);
-        }
-
-        return grid;
-    }
-
-    private void UpdateDial(double fraction, Color color, string text, double? radius = null)
-    {
-        if (_dialArc is null || _dialText is null)
-        {
-            return;
-        }
-
-        var r = radius ?? (_liveRadius - 2);
-        var rr = r - 16;
-        fraction = Math.Clamp(fraction, 0, 1);
-        _dialArc.Stroke = IslandTokens.Frozen(color);
-        _dialArc.Data = fraction >= 0.999
-            ? new EllipseGeometry(new Point(r, r), rr, rr)
-            : Arc(new Point(r, r), rr, fraction);
-        _dialText.Text = text;
-    }
-
     private static Geometry Arc(Point c, double radius, double fraction)
     {
         var g = new StreamGeometry();
@@ -374,51 +309,6 @@ public partial class NotchWindow
         }
         g.Freeze();
         return g;
-    }
-
-    /// <summary>The agent's orb: a sweep that turns while it works; a disc with a mark when it needs you, is done or failed.</summary>
-    private Grid BuildOrb(double r, Color color, OrbState state)
-    {
-        var grid = new Grid { Width = 2 * r, Height = 2 * r, RenderTransformOrigin = new Point(0.5, 0.5) };
-        if (state == OrbState.Working)
-        {
-            var sweep = new Grid { Width = 2 * r, Height = 2 * r, RenderTransformOrigin = new Point(0.5, 0.5) };
-            const int steps = 40;
-            var ring = r - 12.5;
-            for (var i = 0; i < steps; i++)
-            {
-                var a0 = 300.0 * i / steps;
-                var a1 = 300.0 * (i + 1) / steps + 0.6;
-                sweep.Children.Add(new Path
-                {
-                    Data = Segment(new Point(r, r), ring, a0, a1),
-                    Stroke = IslandTokens.Frozen(Color.FromArgb((byte)(255 * (i + 1) / steps), color.R, color.G, color.B)),
-                    StrokeThickness = 4.5
-                });
-            }
-            if (SystemParameters.ClientAreaAnimation)
-            {
-                var spin = new RotateTransform();
-                sweep.RenderTransform = spin;
-                spin.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1.2)) { RepeatBehavior = RepeatBehavior.Forever });
-            }
-            grid.Children.Add(sweep);
-            grid.Children.Add(Glyph(SparkleGlyph, IslandTokens.Text1, 28, 2.2));
-            return grid;
-        }
-
-        grid.Children.Add(new Ellipse { Width = 56, Height = 56, Fill = IslandTokens.Frozen(color) });
-        grid.Children.Add(Glyph(state switch { OrbState.Wait => AlertGlyph, OrbState.Done => CheckGlyph, _ => CrossGlyph }, System.Windows.Media.Brushes.Black, 28, 3));
-        if (state == OrbState.Wait && SystemParameters.ClientAreaAnimation)
-        {
-            var scale = new ScaleTransform();
-            grid.RenderTransform = scale;
-            var beat = new DoubleAnimation(1, 1.06, TimeSpan.FromMilliseconds(600)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase() };
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, beat);
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, beat);
-        }
-
-        return grid;
     }
 
     /// <summary>The compact objects (board 01): a ring of the level, a dot, or a disc with a mark.</summary>

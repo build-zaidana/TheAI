@@ -18,8 +18,6 @@ public partial class NotchWindow
 {
     private const double WaterWidth = 420;
 
-    private static readonly Brush WaterBrush = Frozen(Color.FromRgb(0x2E, 0xCF, 0xDB));   // the water tile's teal
-    private static readonly Brush WaterDimBrush = Frozen(Color.FromArgb(0x55, 0x2E, 0xCF, 0xDB));
 
     private static string WaterPath => System.IO.Path.Combine(CodexBar.Providers.AppPaths.DataRoot, "water.json");
 

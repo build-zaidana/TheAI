@@ -23,7 +23,7 @@ namespace CodexBar.App;
 // together, or cleared. The compact notch shows a tray and how many files wait.
 public partial class NotchWindow
 {
-    private const double ShelfWidth = 440;
+    private const double ShelfWidth = IslandTokens.WidthM;
     private const int ShelfLimit = 24;
 
     private static readonly string ShelfFile = System.IO.Path.Combine(
