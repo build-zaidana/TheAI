@@ -36,54 +36,62 @@ internal static class SystemControls
     }
 
     // ---- brightness (WMI scripting objects are apartment-threaded, so each call gets its own STA thread)
-    public static Task<int?> GetBrightnessAsync() => OnSta<int?>(service =>
+    // System.Management, not late-bound COM: through "dynamic", each WMI query worked once per process
+    // and then failed with "Unspecified error", which left the slider dead.
+    public static Task<int?> GetBrightnessAsync() => Task.Run<int?>(() =>
     {
-        foreach (dynamic item in service.ExecQuery("SELECT * FROM WmiMonitorBrightness"))
+        try
         {
-            return Convert.ToInt32(item.CurrentBrightness);
+            using var search = new System.Management.ManagementObjectSearcher(@"root\wmi", "SELECT CurrentBrightness FROM WmiMonitorBrightness");
+            using var found = search.Get();
+            foreach (var item in found)
+            {
+                using (item)
+                {
+                    return Convert.ToInt32(item["CurrentBrightness"]);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is System.Management.ManagementException or System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        {
+            CodexBar.Core.DiagnosticsLog.Error("Brightness", exception.Message);
         }
 
         return null;
     });
 
-    public static Task<bool> SetBrightnessAsync(int percent) => OnSta(service =>
-    {
-        var level = Math.Clamp(percent, 0, 100);
-        foreach (dynamic item in service.ExecQuery("SELECT * FROM WmiMonitorBrightnessMethods"))
-        {
-            item.WmiSetBrightness(1, level);
-            return true;
-        }
+    private static int _brightnessWanted = -1;
 
-        return false;
-    });
-
-    private static Task<T?> OnSta<T>(Func<dynamic, T?> work)
+    /// <summary>A slider sends a value per pointer move: while one is being applied only the newest waits.</summary>
+    public static Task<bool> SetBrightnessAsync(int percent)
     {
-        var done = new TaskCompletionSource<T?>();
-        var thread = new Thread(() =>
+        var alreadyWaiting = Interlocked.Exchange(ref _brightnessWanted, Math.Clamp(percent, 0, 100)) >= 0;
+        return alreadyWaiting ? Task.FromResult(true) : Task.Run(() =>
         {
+            var applied = false;
             try
             {
-                var locatorType = Type.GetTypeFromProgID("WbemScripting.SWbemLocator");
-                if (locatorType is null)
+                using var search = new System.Management.ManagementObjectSearcher(@"root\wmi", "SELECT * FROM WmiMonitorBrightnessMethods");
+                using var found = search.Get();
+                var level = Interlocked.Exchange(ref _brightnessWanted, -1);
+                foreach (System.Management.ManagementObject item in found)
                 {
-                    done.SetResult(default);
-                    return;
-                }
+                    using (item)
+                    {
+                        item.InvokeMethod("WmiSetBrightness", [1u, (byte)level]);
+                        applied = true;
+                    }
 
-                dynamic locator = Activator.CreateInstance(locatorType)!;
-                done.SetResult(work(locator.ConnectServer(".", @"root\wmi")));
+                    break;
+                }
             }
-            catch (Exception exception)
+            catch (Exception exception) when (exception is System.Management.ManagementException or System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
             {
                 CodexBar.Core.DiagnosticsLog.Error("Brightness", exception.Message);
-                done.SetResult(default);
             }
-        }) { IsBackground = true, Name = "Brightness" };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        return done.Task;
+
+            return applied;
+        });
     }
 
     // ---- radios

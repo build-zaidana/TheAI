@@ -7,6 +7,7 @@
 - **Every open page is 420 × 248** with one template: a label, one big number or title, the middle, a footer. System has a live sparkline and jumps to the reading at fault; Timer sets its length on a ruler; Clipboard shows the newest large with where it came from; Music has the song as a waveform; Today, Control Center and the agent follow.
 - Weather (hourly temperatures as a line), Water, Reminders, the day's recap, "while you focused" and the selection actions follow the same template.
 - Pages without a close button (System, Control Center, Today, Clipboard, Weather, Water, Reminders, Calendar, Jobs, Recap) now close when the pointer leaves or you click elsewhere; opened from a hotkey they close after 6 seconds.
+- The brightness slider in Control Center works: its WMI calls failed after the first one.
 - Starting the app no longer flashes the old bar: it stays unseen until the notch is up.
 - Open pages no longer carry the round objects; those stay small on the compact pill.
 - Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
