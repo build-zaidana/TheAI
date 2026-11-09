@@ -2,7 +2,7 @@
 # %LOCALAPPDATA%\Programs\TheAI (folder yang sama dengan installer Inno Setup), buat
 # shortcut Start Menu, dan opsional shortcut desktop + jalankan saat login. Tidak butuh admin.
 #
-#   .\scripts\install.ps1                      # pasang dari artifacts\win-x64
+#   .\scripts\install.ps1                      # pasang dari artifacts\release\win-x64
 #   .\scripts\install.ps1 -Publish             # publish dulu, lalu pasang
 #   .\scripts\install.ps1 -LaunchAtLogin -Desktop
 #
@@ -20,7 +20,7 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $exeName = "TheAI.exe"
-$source = Join-Path $repoRoot "artifacts\win-x64\$exeName"
+$source = Join-Path $repoRoot "artifacts\release\win-x64\$exeName"
 
 if ($Publish) {
     & (Join-Path $PSScriptRoot "publish.ps1")

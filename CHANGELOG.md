@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.0 — 2026-11-09 · One family of pages, shutdown
 
 ### Changed — one family of pages
 

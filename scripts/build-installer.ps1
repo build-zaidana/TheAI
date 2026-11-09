@@ -72,7 +72,7 @@ function Invoke-Sign([string]$file) {
 
 # 1) Publish
 & (Join-Path $PSScriptRoot "publish.ps1") -Runtime $Runtime
-$exe = Join-Path $repoRoot "artifacts\$Runtime\TheAI.exe"
+$exe = Join-Path $repoRoot "artifacts\release\$Runtime\TheAI.exe"
 if (-not (Test-Path $exe)) { throw "Publish tidak menghasilkan $exe" }
 
 # 2) Sign exe (opsional)
@@ -84,9 +84,9 @@ $portableVersion = ([string]$projectXmlEarly.Project.PropertyGroup.Version).Trim
 $portableDir = Join-Path $env:TEMP ("TheAI-portable-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force (Join-Path $portableDir "Fonts") | Out-Null
 Copy-Item $exe $portableDir
-$ofl = Join-Path $repoRoot "artifacts\$Runtime\Fonts\OFL.txt"
+$ofl = Join-Path $repoRoot "artifacts\release\$Runtime\Fonts\OFL.txt"
 if (Test-Path $ofl) { Copy-Item $ofl (Join-Path $portableDir "Fonts") }
-$lucide = Join-Path $repoRoot "artifacts\$Runtime\Licenses\Lucide-LICENSE.txt"
+$lucide = Join-Path $repoRoot "artifacts\release\$Runtime\Licenses\Lucide-LICENSE.txt"
 if (Test-Path $lucide) {
     New-Item -ItemType Directory -Force (Join-Path $portableDir "Licenses") | Out-Null
     Copy-Item $lucide (Join-Path $portableDir "Licenses")

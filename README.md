@@ -26,7 +26,7 @@ Status akun dan riwayat dibaca langsung dari Codex App Server. Thread yang dibua
 2. Pasang lewat installer (`TheAI-Setup-x.y.z.exe`, lihat *Membangun installer*), pasang dari build tanpa installer (lihat *Pasang tanpa installer*), atau jalankan langsung `artifacts\win-x64\TheAI.exe`.
 3. Tekan hotkey global (default `Win+Shift+C`) untuk menampilkan atau menyembunyikan overlay. Kombinasi dapat diubah dari Settings.
 
-Build pada `artifacts\win-x64` bersifat self-contained: pengguna akhir tidak perlu memasang .NET Runtime. Codex CLI tetap harus terpasang dan login. Rilis saat ini mendukung Windows 10 (1809+) dan Windows 11 x64.
+Build pada `artifacts\release\win-x64` bersifat self-contained: pengguna akhir tidak perlu memasang .NET Runtime. Codex CLI tetap harus terpasang dan login. Rilis saat ini mendukung Windows 10 (1809+) dan Windows 11 x64.
 
 Lihat [PRIVACY.md](PRIVACY.md) sebelum mendistribusikan atau memakai aplikasi pada workspace sensitif.
 

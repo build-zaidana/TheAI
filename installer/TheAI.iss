@@ -4,7 +4,7 @@
 
 #define MyAppName "TheAI"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.6.0"
+  #define MyAppVersion "1.7.0"
 #endif
 #define MyAppPublisher "build-zaidana"
 #define MyAppURL "https://build-zaidana.github.io/theai-app/"
@@ -70,9 +70,9 @@ Type: files; Name: "{userprograms}\CodexBar.lnk"
 Type: files; Name: "{userdesktop}\CodexBar.lnk"
 
 [Files]
-Source: "..\artifacts\win-x64\TheAI.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\artifacts\win-x64\Fonts\OFL.txt"; DestDir: "{app}\Fonts"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\artifacts\win-x64\Licenses\Lucide-LICENSE.txt"; DestDir: "{app}\Licenses"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\artifacts\release\win-x64\TheAI.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\artifacts\release\win-x64\Fonts\OFL.txt"; DestDir: "{app}\Fonts"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\artifacts\release\win-x64\Licenses\Lucide-LICENSE.txt"; DestDir: "{app}\Licenses"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

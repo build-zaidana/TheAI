@@ -20,7 +20,7 @@ if (-not (Test-Path $dotnet)) {
 }
 
 $project = Join-Path $repositoryRoot "src\CodexBar.App\CodexBar.App.csproj"
-$output = Join-Path $repositoryRoot "artifacts\$Runtime"
+$output = Join-Path $repositoryRoot "artifacts\release\$Runtime"
 
 # ReadyToRun: precompiled code, so the first windows open without waiting on the JIT (~0.2 s).
 # Uncompressed bundle on purpose: a compressed single file is unpacked into private memory at
