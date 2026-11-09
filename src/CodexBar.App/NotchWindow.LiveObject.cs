@@ -267,23 +267,45 @@ public partial class NotchWindow
         return grid;
     }
 
+    // The record is only ever small now (the compact pill): 20 steps a second look the same as an animation,
+    // which would make WPF redraw 60 times a second for as long as a song plays.
+    private System.Windows.Threading.DispatcherTimer? _recordTick;
+
     private void SpinRecord(bool spinning)
     {
         if (_recordSpin is null)
         {
+            _recordTick?.Stop();
             return;
+        }
+
+        if (_recordTick is null)
+        {
+            _recordTick = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+            _recordTick.Tick += (_, _) =>
+            {
+                if (_recordSpin is null)
+                {
+                    _recordTick.Stop();
+                    return;
+                }
+
+                if (!IsVisible)
+                {
+                    return;   // hidden for a full-screen app: nothing to turn, but it goes on when it's back
+                }
+
+                _recordSpin.Angle = (_recordSpin.Angle + (360 * 0.05 / 1.8)) % 360;
+            };
         }
 
         if (spinning && SystemParameters.ClientAreaAnimation)
         {
-            _recordSpin.BeginAnimation(RotateTransform.AngleProperty,
-                new DoubleAnimation(_recordSpin.Angle % 360, (_recordSpin.Angle % 360) + 360, TimeSpan.FromSeconds(1.8)) { RepeatBehavior = RepeatBehavior.Forever });
+            _recordTick.Start();
         }
         else
         {
-            var angle = _recordSpin.Angle;
-            _recordSpin.BeginAnimation(RotateTransform.AngleProperty, null);
-            _recordSpin.Angle = angle;
+            _recordTick.Stop();
         }
 
         if (_recordLabel is not null)
@@ -329,7 +351,9 @@ public partial class NotchWindow
         {
             var turn = new RotateTransform();
             ring.RenderTransform = turn;
-            turn.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1.2)) { RepeatBehavior = RepeatBehavior.Forever });
+            var turning = new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1.2)) { RepeatBehavior = RepeatBehavior.Forever };
+            System.Windows.Media.Animation.Timeline.SetDesiredFrameRate(turning, 24);
+            turn.BeginAnimation(RotateTransform.AngleProperty, turning);
         }
         grid.Children.Add(ring);
         return grid;

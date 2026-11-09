@@ -4,7 +4,9 @@
 
 [Download for Windows](https://github.com/build-zaidana/theai-app/releases/latest) · [Website](https://build-zaidana.github.io/theai-app/) · [Report a problem](https://github.com/build-zaidana/theai-app/issues/new/choose)
 
-![The notch at the top of the screen, page by page](docs/assets/demo.gif)
+![A tour of the notch: agents, system, timer, clipboard, music, shutdown and controls](docs/assets/demo.gif)
+
+[Watch the 34-second tour in full quality](docs/assets/promo-en.mp4) · [Bahasa Indonesia](docs/assets/promo-id.mp4)
 
 Free · Windows 10 (1809+) and 11 · x64 · no account needed
 
@@ -14,11 +16,14 @@ Free · Windows 10 (1809+) and 11 · x64 · no account needed
 - **Command palette.** Type `/` in the launcher: `/review`, `/explain`, `/fix`, `/test`, `/commit`, `/translate ja`, `/summarize`, `/proofread`, `/remind 15m stretch`, `/focus 25`, `/weather`… and your own templates.
 - **Select anything, ask about it.** Select text in any app, press the quick-capture hotkey, and the notch offers to translate, explain, summarize or fix it — the answer comes back in the notch.
 - **Builds, CI and scripts report themselves.** Long PowerShell commands, your pull request's checks (through your GitHub CLI) and anything a script sends with `TheAI.exe activity` show up as live activities. A failure goes to your agent in one click.
+- **Shut down on time.** Pick a length or a time of day on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `shutdown 22:30`; `shutdown -a` calls it off. It runs Windows' own `shutdown /s /t`, which **closes open apps by force**, so the page says so, and the notch opens a minute before.
+- **Your PC at a glance.** CPU, GPU, memory and disk with their last minute as a line; when memory runs short the page jumps to it and names the app using the most.
+- **Control Center.** Wi-Fi, Bluetooth, microphone, a timer, a screenshot and lock in one row, with volume and brightness as sliders.
 - **Focus first.** During a pomodoro or a meeting, agent results and permission requests wait and appear together at the break.
-- **The rest of your day.** Reminders and to-dos, a water reminder, prayer times, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with controls and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
+- **The rest of your day.** Reminders and to-dos, a water reminder, prayer times, weather and a world clock, timer and pomodoro, a calendar countdown with a join button, music with the song as a seek bar and synced lyrics you can click to jump to a line, clipboard history, a file shelf, today's recap for standup, and a system page.
 - **Small things, in the notch.** Volume, brightness, battery, Caps Lock, keyboard language and the internet dropping, in place of Windows' pop-ups; a dot while an app uses your microphone or camera, and `/mute`; and, if you like, a pair of eyes that blink while nothing is going on and doze off while you're away.
 - **Only what you want.** Everything except the agent and the launcher is optional: TheAI asks on first start, and Settings → Notch → Choose features changes it any time.
-- **Out of the way.** Hides while a game or video is fullscreen; at rest under 0.5% of one CPU core and ~125 MB of memory, redrawing only when something changes.
+- **Out of the way.** Hides while a game or video is fullscreen; at rest under 0.5% of one CPU core and about 100 MB of private memory, redrawing only when something changes (about 2% of one core while a song plays).
 
 ## Install
 

@@ -10,6 +10,7 @@
 - The brightness slider in Control Center works: its WMI calls failed after the first one.
 - Starting the app no longer flashes the old bar: it stays unseen until the notch is up.
 - Open pages no longer carry the round objects; those stay small on the compact pill.
+- The small record on the pill turns 20 steps a second instead of redrawing the notch 60 times a second while a song plays.
 - Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
 
 ### Added — turn the PC off later
