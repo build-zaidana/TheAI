@@ -376,6 +376,27 @@ public sealed class PromptTemplate
         new() { Name = "Review & rapikan", Content = "Review kode ini untuk keterbacaan, dan sederhanakan tanpa mengubah perilaku:\n\n" },
     ];
 
+    private static readonly (string IdName, string Name, string Content)[] SeedsInEnglish =
+    [
+        ("Jelaskan kode", "Explain code", "Explain what the following code does and any likely problems:\n\n"),
+        ("Perbaiki bug", "Fix a bug", "Find and fix the bug in this code. Explain the cause and the fix:\n\n"),
+        ("Tulis unit test", "Write unit tests", "Write thorough unit tests for the following code:\n\n"),
+        ("Review & rapikan", "Review & tidy", "Review this code for readability, and simplify it without changing behaviour:\n\n"),
+    ];
+
+    /// <summary>How a template reads in English: an untouched seed is translated, anything the user wrote stays theirs.</summary>
+    public static PromptTemplate InEnglish(PromptTemplate template)
+    {
+        var seed = CreateDefaults().FirstOrDefault(item => item.Name == template.Name && item.Content == template.Content);
+        if (seed is null)
+        {
+            return template;
+        }
+
+        var english = SeedsInEnglish.First(item => item.IdName == seed.Name);
+        return new PromptTemplate { Name = english.Name, Content = english.Content };
+    }
+
     /// <summary>
     /// Clean a template list: trim fields, drop entries with an empty name or content,
     /// de-duplicate by name (case-insensitive, first wins), and cap to <see cref="MaxCount"/>.

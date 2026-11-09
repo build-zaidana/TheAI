@@ -43,24 +43,15 @@ public partial class WelcomeWindow : Window
         [
             (Tr.Text("Arahkan kursor", "Hover"), Tr.Text("ke notch untuk membukanya, lalu scroll untuk berpindah halaman.", "over the notch to open it, then scroll to move between its pages.")),
             (hotkey, Tr.Text("membuka launcher dari mana saja. Ketik pertanyaan, lalu Enter.", "opens the launcher from anywhere. Type a question and press Enter.")),
-            ("/", Tr.Text("di launcher menampilkan perintah: /review, /explain, /translate, /focus 25…", "in the launcher lists commands: /review, /explain, /translate, /focus 25…")),
+            ("/", Tr.Text("di launcher menampilkan perintah seperti /review dan /focus 25.", "in the launcher lists commands like /review and /focus 25.")),
         ];
         foreach (var (key, text) in tips)
         {
             var row = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(118) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(128) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.Children.Add(new Border
-            {
-                Background = (Brush)FindResource("MacFill"),
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(8, 3, 8, 3),
-                Margin = new Thickness(0, 0, 12, 0),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                Child = new TextBlock { Text = key, FontWeight = FontWeights.SemiBold, FontSize = 12.5 }
-            });
-            var body = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 13.5, LineHeight = 20, VerticalAlignment = VerticalAlignment.Center };
+            row.Children.Add(new TextBlock { Text = key, FontWeight = FontWeights.SemiBold, FontSize = 14, LineHeight = 20, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0) });
+            var body = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 14, LineHeight = 20 };
             Grid.SetColumn(body, 1);
             row.Children.Add(body);
             Tips.Children.Add(row);
@@ -78,7 +69,7 @@ public partial class WelcomeWindow : Window
         ];
         foreach (var (group, title) in groups)
         {
-            FeatureGroups.Children.Add(new TextBlock { Text = title, Style = (Style)FindResource("MacSectionTitle"), Margin = new Thickness(2, 6, 0, 6) });
+            FeatureGroups.Children.Add(new TextBlock { Text = title, Style = (Style)FindResource("FluentSectionTitle"), Margin = new Thickness(2, 6, 0, 6) });
             var box = new StackPanel();
             if (group == NotchFeatures.Work && claudeInstalled)
             {
@@ -99,7 +90,7 @@ public partial class WelcomeWindow : Window
                 toggle.GotKeyboardFocus += (_, _) => ShowPreview(key, name);
             }
 
-            FeatureGroups.Children.Add(new Border { Style = (Style)FindResource("MacGroupBox"), Margin = new Thickness(0, 0, 0, 14), Child = box });
+            FeatureGroups.Children.Add(new Border { Style = (Style)FindResource("FluentGroupBox"), Margin = new Thickness(0, 0, 0, 14), Child = box });
         }
     }
 
@@ -107,24 +98,24 @@ public partial class WelcomeWindow : Window
     {
         if (box.Children.Count > 0)
         {
-            box.Children.Add(new Border { Style = (Style)FindResource("MacSeparator") });
+            box.Children.Add(new Border { Style = (Style)FindResource("FluentSeparator") });
         }
 
-        var row = new Grid { Style = (Style)FindResource("MacRow"), MinHeight = 52 };
+        var row = new Grid { Style = (Style)FindResource("FluentRow"), MinHeight = 52 };
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 8, 64, 8) };
-        text.Children.Add(new TextBlock { Text = name, Style = (Style)FindResource("MacRowLabel") });
+        text.Children.Add(new TextBlock { Text = name, Style = (Style)FindResource("FluentRowLabel") });
         text.Children.Add(new TextBlock
         {
             Text = description,
             FontSize = 11.5,
-            Foreground = (Brush)FindResource("MacText2"),
+            Foreground = (Brush)FindResource("FluentText2"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 0)
         });
         row.Children.Add(text);
         var toggle = new CheckBox
         {
-            Style = (Style)FindResource("MacSwitch"),
+            Style = (Style)FindResource("FluentSwitch"),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
             IsChecked = on
@@ -186,8 +177,9 @@ public partial class WelcomeWindow : Window
         FeatureStep.Visibility = Visibility.Visible;
         BackButton.Visibility = StepDots.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         NextButton.Content = Tr.Text("Mulai", "Start");
-        Dot1.Fill = Frozen(Color.FromArgb(0x33, 0, 0, 0));
-        Dot2.Fill = Frozen(Color.FromRgb(0x1D, 0x1D, 0x1F));
+        Dot1.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "FluentDotOff");
+        Dot2.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "FluentText");
+        CloseCaption.ClearValue(ForegroundProperty);   // no longer over the dark picture
         ShowPreview("today", Tr.Text("Arahkan ke fitur untuk melihat contohnya", "Point at a feature to see what it looks like"));
         _switches.Values.FirstOrDefault()?.Focus();
     }
@@ -211,8 +203,9 @@ public partial class WelcomeWindow : Window
         TourStep.Visibility = Visibility.Visible;
         BackButton.Visibility = Visibility.Collapsed;
         NextButton.Content = Tr.Text("Lanjut", "Continue");
-        Dot1.Fill = Frozen(Color.FromRgb(0x1D, 0x1D, 0x1F));
-        Dot2.Fill = Frozen(Color.FromArgb(0x33, 0, 0, 0));
+        Dot1.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "FluentText");
+        Dot2.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "FluentDotOff");
+        CloseCaption.Foreground = System.Windows.Media.Brushes.White;
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -228,6 +221,8 @@ public partial class WelcomeWindow : Window
             }
         }
     }
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

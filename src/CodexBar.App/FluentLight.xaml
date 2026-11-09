@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Canvas board 36, light. Ink is the accent; colour is kept for state. -->
+    <SolidColorBrush x:Key="FluentWindow" Color="#F6F6F7" />
+    <SolidColorBrush x:Key="FluentGroup" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentControl" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentMenu" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentEdge" Color="#29000000" />
+    <SolidColorBrush x:Key="FluentLine" Color="#12000000" />
+    <SolidColorBrush x:Key="FluentControlLine" Color="#29000000" />
+    <SolidColorBrush x:Key="FluentFill" Color="#0F000000" />
+    <SolidColorBrush x:Key="FluentHover" Color="#09000000" />
+    <SolidColorBrush x:Key="FluentThumb" Color="#42000000" />
+    <SolidColorBrush x:Key="FluentText" Color="#1B1B1F" />
+    <SolidColorBrush x:Key="FluentText2" Color="#5C5C63" />
+    <SolidColorBrush x:Key="FluentAccent" Color="#1B1B1F" />
+    <SolidColorBrush x:Key="FluentOnAccent" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentKnob" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentDotOff" Color="#C2C2C7" />
+    <SolidColorBrush x:Key="FluentGreen" Color="#1E8E3E" />
+    <SolidColorBrush x:Key="FluentOrange" Color="#C77700" />
+</ResourceDictionary>

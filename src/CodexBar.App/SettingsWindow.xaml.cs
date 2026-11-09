@@ -61,11 +61,11 @@ internal interface ISettingsHost
 public partial class SettingsWindow : Window
 {
     private static readonly string[] ApiKeyProviders = ["anthropic", "openai", "openrouter"];
-    private static readonly Brush Green = Frozen(Color.FromRgb(0x28, 0xA7, 0x45));
-    private static readonly Brush Orange = Frozen(Color.FromRgb(0xF2, 0x9B, 0x0A));
-    private static readonly Brush Grey = Frozen(Color.FromRgb(0xC7, 0xC7, 0xCC));
+    private Brush Green => (Brush)FindResource("FluentGreen");
+    private Brush Orange => (Brush)FindResource("FluentOrange");
+    private Brush Grey => (Brush)FindResource("FluentDotOff");
     private static readonly Brush Red = Frozen(Color.FromRgb(0xE5, 0x48, 0x3E));
-    private static readonly Brush Muted = Frozen(Color.FromRgb(0x6E, 0x6E, 0x73));
+    private Brush Muted => (Brush)FindResource("FluentText2");
 
     private readonly ISettingsHost _host;
     private readonly DispatcherTimer _sliderApply = new() { Interval = TimeSpan.FromMilliseconds(250) };
@@ -75,6 +75,7 @@ public partial class SettingsWindow : Window
     {
         _host = host;
         InitializeComponent();
+        PageTitle.Text = Tr.Text("Umum", "General");   // General is checked in the XAML, before this title exists
         _sliderApply.Tick += (_, _) =>
         {
             _sliderApply.Stop();
@@ -727,7 +728,7 @@ public partial class SettingsWindow : Window
             element.Visibility = key == page ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        PageTitle.Text = ((button.Content as StackPanel)?.Children.OfType<TextBlock>().FirstOrDefault()?.Text) ?? string.Empty;
+        PageTitle.Text = ((button.Content as StackPanel)?.Children.OfType<TextBlock>().LastOrDefault()?.Text) ?? string.Empty;   // the first is the icon
     }
 
     // Search jumps to the first page whose rows mention the query.

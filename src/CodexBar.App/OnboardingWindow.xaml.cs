@@ -10,8 +10,8 @@ namespace CodexBar.App;
 /// <summary>One line of the onboarding checklist ("Claude Code · 2.1.212 ✓").</summary>
 internal sealed record OnboardingStatus(string Label, string Value, bool Ok)
 {
-    private static readonly Brush OkBrush = Freeze(Color.FromRgb(0x28, 0xA7, 0x45));
-    private static readonly Brush PendingBrush = Freeze(Color.FromRgb(0xF2, 0x9B, 0x0A));
+    private static Brush OkBrush => (Brush)System.Windows.Application.Current.FindResource("FluentGreen");
+    private static Brush PendingBrush => (Brush)System.Windows.Application.Current.FindResource("FluentOrange");
 
     public bool First { get; init; }
     public Brush Dot => Ok ? OkBrush : PendingBrush;
@@ -41,7 +41,7 @@ internal sealed record OnboardingContent(
     bool OffersSkip = true);
 
 /// <summary>
-/// macOS-style sheet shown instead of the bar's inline onboarding panel when the app runs as a
+/// The setup sheet shown instead of the bar's inline onboarding panel when the app runs as a
 /// notch: what is missing (CLI not installed, not signed in, no API key, no workspace), the
 /// command to fix it and buttons that run the same actions the old panel did.
 /// </summary>
@@ -56,8 +56,9 @@ public partial class OnboardingWindow : Window
     {
         InitializeComponent();
         CopyButton.Content = Tr.Text("Salin", "Copy");
-        CloseLight.ToolTip = Tr.Text("Tutup", "Close");
-        SkipButton.Content = Tr.Text("Nanti saja. Notch tetap jalan tanpa agent", "Not now. The notch works without an agent");
+        CloseCaption.ToolTip = Tr.Text("Tutup", "Close");
+        System.Windows.Automation.AutomationProperties.SetName(CloseCaption, Tr.Text("Tutup", "Close"));
+        SkipButton.Content = Tr.Text("Nanti saja, notch tetap jalan", "Not now, the notch still works");
     }
 
     internal void Show(OnboardingContent content)

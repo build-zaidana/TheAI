@@ -16,6 +16,15 @@
 - Error messages, hotkey problems and the chat's `/` menu now follow your language; some were always in Indonesian.
 - Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
 
+### Changed — a Windows app that looks like one
+
+- **Settings, Welcome and the setup sheet are rebuilt on Fluent's type, corners and spacing**: Windows' own window controls at the top right, one-colour icons, 14 px text and nothing below 12, and visible keyboard focus.
+- **Those windows now follow your theme**, light or dark, and switch while open. The setting is now just "Theme", no longer "Bar theme".
+- **Welcome opens on what TheAI is for**: an agent asking for permission, answered from the notch.
+- Sentences on the island read at Regular weight; numbers stay thin. A risky request says why, and the gap above its buttons is gone.
+- The launcher's "Continue" heading no longer appears with nothing under it, and its chips line up with the rows above.
+- Tooltips, placeholders, screen-reader names and the four starter prompts follow your language; prompts you wrote stay as you wrote them.
+
 ### Added — turn the PC off later
 
 - **Matikan** mode on the Timer page, or type `shutdown -s -t 3600`, `shutdown 30m`, `matikan 1 jam`; `shutdown 22:30`, `matikan jam 22`; `shutdown -a` calls it off. **Pakai jam** on the page picks the time of day on the ruler (past that time, it means tomorrow). It runs Windows' own `shutdown /s /t X`, which **closes open apps by force**, so the page says so. The time left shows on the compact pill, and the notch opens by itself a minute before. Anything under 30 seconds is raised to 30.

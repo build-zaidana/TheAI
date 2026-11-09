@@ -2021,6 +2021,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private void ApplyTheme()
     {
         var dark = !IsLightTheme();
+        WindowTheme.Apply(dark);
         if (!dark)
         {
             RootBorder.Background = new SolidColorBrush(Color.FromRgb(247, 248, 250));
@@ -2523,7 +2524,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    IReadOnlyList<PromptTemplate> INotchHost.Templates => _settings.PromptTemplates;
+    IReadOnlyList<PromptTemplate> INotchHost.Templates =>
+        Tr.Text("id", "en") == "en" ? _settings.PromptTemplates.Select(PromptTemplate.InEnglish).ToList() : _settings.PromptTemplates;
 
     IReadOnlyList<ProviderInputAttachment> INotchHost.Attachments => _attachments;
 

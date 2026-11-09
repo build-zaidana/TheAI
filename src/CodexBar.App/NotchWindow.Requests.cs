@@ -60,6 +60,7 @@ public partial class NotchWindow
         RequestDetail.Text = detail;
         RequestDetailBox.Visibility = detail.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         RequestFields.Children.Clear();
+        RequestFields.Visibility = Visibility.Collapsed;   // empty, it would leave a hole above the buttons
         _answerReaders.Clear();
 
         PrepareQuickApproval(
@@ -101,6 +102,7 @@ public partial class NotchWindow
             AddQuestion(question);
         }
 
+        RequestFields.Visibility = RequestFields.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         RequestPrimary.Content = Tr.Text("Lanjutkan", "Continue");
         RequestSecondary.Content = Tr.Text("Batal", "Cancel");
         RequestTertiary.Visibility = Visibility.Collapsed;
@@ -557,6 +559,8 @@ public partial class NotchWindow
         if (risky)
         {
             RequestKind.Text += Tr.Text(" · berisiko", " · risky");
+            RequestMessage.Text = Tr.Text("Terlihat merusak. Periksa dulu.", "This looks destructive. Check it first.");
+            RequestMessage.Visibility = Visibility.Visible;
         }
 
         RequestSecondary.Visibility = risky ? Visibility.Collapsed : Visibility.Visible;

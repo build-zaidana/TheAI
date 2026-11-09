@@ -422,7 +422,7 @@
         <Style x:Key="IslandTitle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource SoraFont}" />
             <Setter Property="FontSize" Value="30" />
-            <Setter Property="FontWeight" Value="Light" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="LineHeight" Value="40" />
             <Setter Property="Height" Value="40" />
             <Setter Property="Foreground" Value="#F5F5F7" />
@@ -575,7 +575,7 @@
                 <Grid x:Name="CompactPanel" Height="32" Margin="11,0" Cursor="Hand" VerticalAlignment="Top"
                       MouseEnter="CompactPanel_MouseEnter" MouseLeave="CompactPanel_MouseLeave"
                       Background="Transparent"
-                      AutomationProperties.Name="Buka TheAI">
+                      AutomationProperties.Name="{local:Tr Buka TheAI, En=Open TheAI}">
                     <Border x:Name="CompactGlyph" Width="13" Height="13" CornerRadius="3.5" Background="White"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed">
                         <Border Width="7" Height="2.5" CornerRadius="0,0,1.5,1.5" Background="Black" VerticalAlignment="Top" />
@@ -636,7 +636,7 @@
                     <!-- Opens the chat straight from the compact notch, without expanding it first. -->
                     <Button x:Name="CompactChatButton" Style="{StaticResource NotchIconButton}" Width="22" Height="22" Opacity="0"
                             HorizontalAlignment="Left" VerticalAlignment="Center" Click="CompactChatButton_Click"
-                            ToolTip="Buka chat" AutomationProperties.Name="Buka chat">
+                            ToolTip="{local:Tr Buka chat, En=Open chat}" AutomationProperties.Name="{local:Tr Buka chat, En=Open chat}">
                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4"
                               StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                               Data="M 3,0.7 L 10,0.7 Q 12.3,0.7 12.3,3 L 12.3,7 Q 12.3,9.3 10,9.3 L 6,9.3 L 3,11.8 L 3,9.3 Q 0.7,9.3 0.7,7 L 0.7,3 Q 0.7,0.7 3,0.7 Z" />
@@ -651,7 +651,7 @@
                     <TextBlock x:Name="CompactGlance" FontSize="12.5" Foreground="#A1A1A6" HorizontalAlignment="Right" VerticalAlignment="Center"
                                Margin="0,0,2,0" Visibility="Collapsed" IsHitTestVisible="False" />
                     <Ellipse x:Name="PrivacyDot" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,-8,0"
-                             Visibility="Collapsed" AutomationProperties.Name="Mikrofon atau kamera dipakai" />
+                             Visibility="Collapsed" AutomationProperties.Name="{local:Tr Mikrofon atau kamera dipakai, En=Microphone or camera in use}" />
                     <Grid x:Name="CompactIndicator" HorizontalAlignment="Right" VerticalAlignment="Center" Width="14" Height="14">
                         <Grid x:Name="SpinnerIndicator" Visibility="Collapsed">
                             <Ellipse Stroke="#2EFFFFFF" StrokeThickness="2.4" />
@@ -696,7 +696,7 @@
                 <!-- Music (Page 2, board 04, V3): cover 104 at P 16, title, artist, a seek bar in the cover's colour and
                      the three controls 40; the record (NotchWindow.LiveObject.cs) leaves the island's left side under the cover. -->
                 <Grid x:Name="MusicPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Musik">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Musik, En=Music}">
                     <Grid.RenderTransform>
                         <TranslateTransform />
                     </Grid.RenderTransform>
@@ -724,7 +724,7 @@
                                       Data="M 6,2 L 16,0 L 16,12 A 3,3 0 1 1 14,9.2 L 14,3.4 L 8,4.6 L 8,14 A 3,3 0 1 1 6,11.2 Z" />
                             </Border>
                             <Button x:Name="MusicPlayButton" Grid.Column="2" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Foreground="Black" Height="40" Margin="12,0,0,0"
-                                    VerticalAlignment="Center" Click="MusicPlay_Click" AutomationProperties.Name="Putar/jeda">
+                                    VerticalAlignment="Center" Click="MusicPlay_Click" AutomationProperties.Name="{local:Tr Putar/jeda, En=Play or pause}">
                                 <Grid>
                                     <Path x:Name="MusicPlayGlyph" Fill="Black" Data="M 0,0 L 13,7.5 L 0,15 Z" Margin="2,0,0,0" />
                                     <Path x:Name="MusicPauseGlyph" Fill="Black" Data="M 0,0 L 4,0 L 4,15 L 0,15 Z M 8,0 L 12,0 L 12,15 L 8,15 Z" Visibility="Collapsed" />
@@ -743,7 +743,7 @@
                             <!-- The song's shape is the seek bar: click or drag to move. -->
                             <Grid x:Name="MusicProgress" Height="64" Margin="0,10,0,0" Background="Transparent" Cursor="Hand"
                                   MouseLeftButtonDown="MusicBar_MouseDown" MouseMove="MusicBar_MouseMove" MouseLeftButtonUp="MusicBar_MouseUp"
-                                  AutomationProperties.Name="Posisi lagu">
+                                  AutomationProperties.Name="{local:Tr Posisi lagu, En=Track position}">
                                 <local:Waveform x:Name="MusicWave" />
                                 <Border x:Name="MusicProgressTrack" Visibility="Collapsed" />
                                 <Border x:Name="MusicProgressFill" Visibility="Collapsed" HorizontalAlignment="Left" Width="0" />
@@ -761,11 +761,11 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button x:Name="MusicPrevButton" Style="{StaticResource IslandRoundButton}" Height="40" Background="#1C1C1E" Foreground="#F5F5F7" Margin="0,0,8,0"
-                                            Click="MusicPrev_Click" AutomationProperties.Name="Lagu sebelumnya">
+                                            Click="MusicPrev_Click" AutomationProperties.Name="{local:Tr Lagu sebelumnya, En=Previous track}">
                                         <Path Fill="#F5F5F7" Data="M 0,0 L 2.4,0 L 2.4,14 L 0,14 Z M 14,0 L 14,14 L 3.4,7 Z" />
                                     </Button>
                                     <Button x:Name="MusicNextButton" Style="{StaticResource IslandRoundButton}" Height="40" Background="#1C1C1E" Foreground="#F5F5F7"
-                                            Click="MusicNext_Click" AutomationProperties.Name="Lagu berikutnya">
+                                            Click="MusicNext_Click" AutomationProperties.Name="{local:Tr Lagu berikutnya, En=Next track}">
                                         <Path Fill="#F5F5F7" Data="M 0,0 L 10.6,7 L 0,14 Z M 11.6,0 L 14,0 L 14,14 L 11.6,14 Z" />
                                     </Button>
                                 </StackPanel>
@@ -784,7 +784,7 @@
                     <!-- Synced lyrics beside the player: the line being sung in white; click any line to jump there. -->
                     <Border x:Name="MusicLyricsSide" Grid.Column="1" Width="236" Margin="18,0,0,0" Padding="16,0,0,0"
                             BorderBrush="#1AFFFFFF" BorderThickness="1,0,0,0" Visibility="Collapsed" ClipToBounds="True"
-                            AutomationProperties.Name="Lirik">
+                            AutomationProperties.Name="{local:Tr Lirik, En=Lyrics}">
                         <StackPanel x:Name="MusicLyricLines" VerticalAlignment="Center" />
                     </Border>
                 </Grid>
@@ -808,7 +808,7 @@
                         <Grid Height="64" Margin="0,4,0,0">
                             <TextBlock x:Name="ShutdownBig" Style="{StaticResource IslandHero}" />
                             <Button Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Click="ShutdownCancel_Click" AutomationProperties.Name="Batalkan" ToolTip="{local:Tr Batalkan, En=Call it off}">
+                                    Click="ShutdownCancel_Click" AutomationProperties.Name="{local:Tr Batalkan, En=Cancel}" ToolTip="{local:Tr Batalkan, En=Call it off}">
                                 <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 11,11 M 11,1 L 1,11" />
                             </Button>
                         </Grid>
@@ -842,7 +842,7 @@
                         <Grid Height="64" Margin="0,4,0,0">
                             <TextBlock x:Name="TimerBig" Style="{StaticResource IslandHero}" Text="24:12" />
                             <Button x:Name="TimerPlayButton" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Click="TimerPlay_Click" AutomationProperties.Name="Jeda">
+                                    Click="TimerPlay_Click" AutomationProperties.Name="{local:Tr Jeda, En=Pause}">
                                 <Grid>
                                     <Path x:Name="TimerPlayGlyph" Fill="Black" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
                                     <Path x:Name="TimerPauseGlyph" Fill="Black" HorizontalAlignment="Center" VerticalAlignment="Center" Width="11" Height="14" Stretch="Uniform" Data="M 1,1.5 Q 1,0 2.5,0 L 4,0 Q 5.4,0 5.4,1.5 L 5.4,16.5 Q 5.4,18 4,18 L 2.5,18 Q 1,18 1,16.5 Z M 9,1.5 Q 9,0 10.5,0 L 12,0 Q 13.4,0 13.4,1.5 L 13.4,16.5 Q 13.4,18 12,18 L 10.5,18 Q 9,18 9,16.5 Z" />
@@ -863,7 +863,7 @@
                                 <TextBlock Style="{StaticResource IslandFootLabel}" Foreground="#7C7C80" Text="{local:Tr Durasi, En=Length}" />
                                 <TextBlock x:Name="TimerFootLength" Style="{StaticResource IslandFootValue}" Foreground="#98989F" />
                             </StackPanel>
-                            <Button x:Name="TimerStopButton" Style="{StaticResource IslandFootButton}" Click="TimerReset_Click" AutomationProperties.Name="Hentikan">
+                            <Button x:Name="TimerStopButton" Style="{StaticResource IslandFootButton}" Click="TimerReset_Click" AutomationProperties.Name="{local:Tr Hentikan, En=Stop}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource IslandFootLabel}" HorizontalAlignment="Right" Text="{local:Tr Batal, En=Cancel}" />
                                     <TextBlock x:Name="TimerStopValue" Style="{StaticResource IslandFootValue}" HorizontalAlignment="Right" />
@@ -879,7 +879,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Button x:Name="TimerWatchPlay" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
-                                Background="#38FFFFFF" Click="TimerWatchPlay_Click" AutomationProperties.Name="Jeda">
+                                Background="#38FFFFFF" Click="TimerWatchPlay_Click" AutomationProperties.Name="{local:Tr Jeda, En=Pause}">
                             <Grid>
                                 <Path x:Name="TimerWatchPlayGlyph" Fill="#F5F5F7" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3,0,0,0"
                                       Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
@@ -913,7 +913,7 @@
                             <TextBlock x:Name="TimerAlarmTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
                         </StackPanel>
                         <Button x:Name="TimerAlarmCancel" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
-                                Background="#1FFFFFFF" Click="TimerAlarmCancel_Click" AutomationProperties.Name="Hapus alarm">
+                                Background="#1FFFFFFF" Click="TimerAlarmCancel_Click" AutomationProperties.Name="{local:Tr Hapus alarm, En=Delete alarm}">
                             <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
                         </Button>
                     </Grid>
@@ -929,7 +929,7 @@
                             <Button x:Name="ShutdownKind" Style="{StaticResource IslandChip}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,52,0"
                                     Visibility="Collapsed" Click="ShutdownKind_Click" />
                             <Button x:Name="TimerStartButton" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Click="TimerStart_Click" AutomationProperties.Name="Mulai">
+                                    Click="TimerStart_Click" AutomationProperties.Name="{local:Tr Mulai, En=Start}">
                                 <Path Fill="Black" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
                             </Button>
                         </Grid>
@@ -971,12 +971,12 @@
                     <!-- Keystrokes land here; the row shows them in place of its label, the number shows the result. -->
                     <TextBox x:Name="TimerInput" Width="1" Height="1" Opacity="0" IsTabStop="False" HorizontalAlignment="Left"
                              TextChanged="TimerInput_TextChanged" PreviewKeyDown="TimerInput_PreviewKeyDown"
-                             AutomationProperties.Name="Perintah timer" />
+                             AutomationProperties.Name="{local:Tr Perintah timer, En=Timer commands}" />
                 </StackPanel>
 
                 <!-- Time's up / the alarm rings: the same row, now green or ringing. -->
                 <Grid x:Name="TimerDonePanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Waktu habis">
+                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Waktu habis, En=Time is up}">
                     <Grid.RenderTransform>
                         <TranslateTransform />
                     </Grid.RenderTransform>
@@ -990,19 +990,19 @@
                             <TextBlock x:Name="TimerDoneDigits" Style="{StaticResource IslandHero}" Text="00:00" />
                             <Path x:Name="TimerDoneNextGlyph" Visibility="Collapsed" />
                             <Button Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Click="TimerDoneNext_Click" AutomationProperties.Name="Mulai lagi">
+                                    Click="TimerDoneNext_Click" AutomationProperties.Name="{local:Tr Mulai lagi, En=Restart}">
                                 <Path Fill="Black" Margin="2,0,0,0" Width="14" Height="15" Stretch="Uniform" Data="M 2,1.5 Q 2,0 3.4,0.8 L 16.4,8.8 Q 17.6,9.6 16.4,10.4 L 3.4,18.4 Q 2,19.2 2,17.7 Z" />
                             </Button>
                         </Grid>
                         <local:RulerPicker x:Name="TimerDoneRuler" Height="64" Margin="-16,10,-16,0" IsHitTestVisible="False" Value="0:0:0" />
                         <local:SpaceBetweenPanel Height="38" Margin="0,18,0,0">
-                            <Button x:Name="TimerDoneNext" Style="{StaticResource IslandFootButton}" Tag="selected" Click="TimerDoneNext_Click" AutomationProperties.Name="Langkah berikutnya">
+                            <Button x:Name="TimerDoneNext" Style="{StaticResource IslandFootButton}" Tag="selected" Click="TimerDoneNext_Click" AutomationProperties.Name="{local:Tr Langkah berikutnya, En=Next step}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource IslandFootLabel}" Text="{local:Tr Berikutnya, En=Next}" />
                                     <TextBlock x:Name="TimerDoneNextText" Style="{StaticResource IslandFootValue}" />
                                 </StackPanel>
                             </Button>
-                            <Button x:Name="TimerDoneClose" Style="{StaticResource IslandFootButton}" Click="TimerDoneClose_Click" AutomationProperties.Name="Tutup">
+                            <Button x:Name="TimerDoneClose" Style="{StaticResource IslandFootButton}" Click="TimerDoneClose_Click" AutomationProperties.Name="{local:Tr Tutup, En=Close}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource IslandFootLabel}" HorizontalAlignment="Right" Text="{local:Tr Selesai, En=Done}" />
                                     <TextBlock x:Name="TimerDoneCloseText" Style="{StaticResource IslandFootValue}" HorizontalAlignment="Right" />
@@ -1028,7 +1028,7 @@
                             <TextBlock x:Name="TimerRingTime" Style="{StaticResource NotchLabel}" FontSize="20" Margin="16,0,0,0" />
                         </StackPanel>
                         <Button x:Name="TimerSnoozeButton" Grid.Column="2" Style="{StaticResource NotchTintButton}" Width="40" Height="40"
-                                Background="#38FFFFFF" Click="TimerSnooze_Click" AutomationProperties.Name="Tunda 9 menit">
+                                Background="#38FFFFFF" Click="TimerSnooze_Click" AutomationProperties.Name="{local:Tr Tunda 9 menit, En=Snooze 9 minutes}">
                             <Canvas Width="22" Height="22">
                                 <TextBlock Text="Z" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" Canvas.Left="1" Canvas.Top="-1" />
                                 <TextBlock Text="Z" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" Canvas.Left="11" Canvas.Top="3" />
@@ -1036,7 +1036,7 @@
                             </Canvas>
                         </Button>
                         <Button x:Name="TimerRingClose" Grid.Column="3" Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="10,0,0,0"
-                                Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="Matikan alarm">
+                                Background="#1FFFFFFF" Click="TimerDoneClose_Click" AutomationProperties.Name="{local:Tr Matikan alarm, En=Turn off the alarm}">
                             <Path Stroke="White" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 12,12 M 12,1 L 1,12" />
                         </Button>
                     </Grid>
@@ -1086,7 +1086,7 @@
 
                 <!-- The file shelf: files waiting to be dragged out somewhere. -->
                 <Grid x:Name="ShelfPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rak file">
+                      Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Rak file, En=File shelf}">
                     <Grid.RenderTransform>
                         <TranslateTransform />
                     </Grid.RenderTransform>
@@ -1097,12 +1097,12 @@
                     <WrapPanel x:Name="ShelfItems" />
                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
                         <Button Style="{StaticResource NotchTintButton}" Width="40" Height="40" Background="#38FFFFFF" Click="ShelfSaveAll_Click"
-                                ToolTip="Simpan semua ke folder" AutomationProperties.Name="Simpan semua ke folder">
+                                ToolTip="{local:Tr Simpan semua ke folder, En=Save all to a folder}" AutomationProperties.Name="{local:Tr Simpan semua ke folder, En=Save all to a folder}">
                             <Path Stroke="#F5F5F7" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Data="M 7,1 L 7,10 M 3.5,6.5 L 7,10 L 10.5,6.5 M 1,12 L 1,13.5 L 13,13.5 L 13,12" />
                         </Button>
                         <Button Style="{StaticResource NotchTintButton}" Width="40" Height="40" Margin="0,8,0,0" Background="#1FFFFFFF" Click="ShelfClear_Click"
-                                ToolTip="Kosongkan rak" AutomationProperties.Name="Kosongkan rak">
+                                ToolTip="{local:Tr Kosongkan rak, En=Empty the shelf}" AutomationProperties.Name="{local:Tr Kosongkan rak, En=Empty the shelf}">
                             <Path Stroke="#F5F5F7" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 1,1 L 11,11 M 11,1 L 1,11" />
                         </Button>
                     </StackPanel>
@@ -1110,7 +1110,7 @@
 
                 <!-- Today's calendar: the next event large (with a camera to join its call), then the rest. -->
                 <StackPanel x:Name="CalendarPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Kalender">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Kalender, En=Calendar}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1119,7 +1119,7 @@
 
                 <!-- Live activities: every job a script reports, with its progress or what went wrong. -->
                 <StackPanel x:Name="JobsPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Aktivitas">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Aktivitas, En=Activity}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1127,7 +1127,7 @@
                 </StackPanel>
 
                 <!-- The break after focus (or the end of a meeting): what the agents did meanwhile, all at once. -->
-                <StackPanel x:Name="HeldPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Selama fokus">
+                <StackPanel x:Name="HeldPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Selama fokus, En=During focus}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1144,7 +1144,7 @@
                             <TextBlock x:Name="HeldHeroTitle" Style="{StaticResource IslandTitle}" />
                             <TextBlock x:Name="HeldHeroSub" Style="{StaticResource IslandMeta}" FontWeight="Normal" Margin="1,2,0,0" />
                         </StackPanel>
-                        <Button x:Name="HeldOpen" Grid.Column="1" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="HeldOpen_Click" AutomationProperties.Name="Lihat">
+                        <Button x:Name="HeldOpen" Grid.Column="1" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="HeldOpen_Click" AutomationProperties.Name="{local:Tr Lihat, En=View}">
                             <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 0,6 L 13,6 M 8,1 L 13,6 L 8,11" />
                         </Button>
                     </Grid>
@@ -1154,7 +1154,7 @@
                 </StackPanel>
 
                 <!-- Today, recapped: tiles with the day's numbers, the latest things done, a copy for standup. -->
-                <StackPanel x:Name="RecapPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Rekap hari ini">
+                <StackPanel x:Name="RecapPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Rekap hari ini, En=Recap for today}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1168,7 +1168,7 @@
                             <TextBlock x:Name="RecapUnit" Style="{StaticResource IslandHeroUnit}" />
                         </StackPanel>
                         <Button x:Name="RecapCopy" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center" Click="RecapCopy_Click"
-                                AutomationProperties.Name="Salin untuk standup" ToolTip="{local:Tr Salin untuk standup, En=Copy for standup}">
+                                AutomationProperties.Name="{local:Tr Salin untuk standup, En=Copy for standup}" ToolTip="{local:Tr Salin untuk standup, En=Copy for standup}">
                             <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform"
                                   Data="M 8,8 L 20,8 Q 22,8 22,10 L 22,20 Q 22,22 20,22 L 10,22 Q 8,22 8,20 Z M 4,16 C 2.9,16 2,15.1 2,14 L 2,4 C 2,2.9 2.9,2 4,2 L 14,2 C 15.1,2 16,2.9 16,4" />
                         </Button>
@@ -1202,7 +1202,7 @@
                         </StackPanel>
                         <Border x:Name="ClipThumb" Grid.Column="1" Width="64" Height="64" CornerRadius="16" Margin="12,0,0,0" Visibility="Collapsed" />
                         <Button x:Name="ClipCopyButton" Grid.Column="2" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center"
-                                Click="ClipCopy_Click" AutomationProperties.Name="Salin" ToolTip="{local:Tr Salin, En=Copy}">
+                                Click="ClipCopy_Click" AutomationProperties.Name="{local:Tr Salin, En=Copy}" ToolTip="{local:Tr Salin, En=Copy}">
                             <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="16" Height="16" Stretch="Uniform"
                                   Data="M 8,8 L 20,8 Q 22,8 22,10 L 22,20 Q 22,22 20,22 L 10,22 Q 8,22 8,20 Z M 4,16 C 2.9,16 2,15.1 2,14 L 2,4 C 2,2.9 2.9,2 4,2 L 14,2 C 15.1,2 16,2.9 16,4" />
                         </Button>
@@ -1215,7 +1215,7 @@
 
                 <!-- The machine (board 31): one reading large, its last minute as a line, the four below. -->
                 <StackPanel x:Name="SystemPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Sistem">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Sistem, En=System}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1232,7 +1232,7 @@
                 </StackPanel>
 
                 <!-- Reminders & to-dos: the open ones (due first), and a field to add one. -->
-                <StackPanel x:Name="ReminderPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pengingat">
+                <StackPanel x:Name="ReminderPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Pengingat, En=Reminders}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1252,7 +1252,7 @@
                         </StackPanel>
                         <Button x:Name="ReminderSnooze" Grid.Column="1" Style="{StaticResource IslandChip}" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"
                                 Content="{local:Tr Tunda 10m, En=Snooze 10m}" Click="ReminderSnooze_Click" />
-                        <Button x:Name="ReminderDone" Grid.Column="2" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="ReminderDone_Click" AutomationProperties.Name="Selesai" ToolTip="{local:Tr Selesai, En=Done}">
+                        <Button x:Name="ReminderDone" Grid.Column="2" Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" Margin="12,0,0,0" VerticalAlignment="Center" Click="ReminderDone_Click" AutomationProperties.Name="{local:Tr Selesai, En=Done}" ToolTip="{local:Tr Selesai, En=Done}">
                             <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 1,7 L 5.5,11.5 L 14,2" />
                         </Button>
                     </Grid>
@@ -1270,13 +1270,13 @@
                                        Text="{local:Tr 15m minum air · 14:30 telepon · beli susu, En=15m drink water · 14:30 call · buy milk}" />
                             <TextBox x:Name="ReminderInput" Grid.Column="1" Style="{StaticResource NotchInput}" FontSize="14" VerticalAlignment="Center"
                                      KeyDown="ReminderInput_KeyDown" TextChanged="ReminderInput_TextChanged"
-                                     AutomationProperties.Name="Tambah pengingat" />
+                                     AutomationProperties.Name="{local:Tr Tambah pengingat, En=Add a reminder}" />
                         </Grid>
                     </Border>
                 </StackPanel>
 
                 <!-- Weather where the user is, and other time zones. -->
-                <StackPanel x:Name="WeatherPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Cuaca dan jam dunia">
+                <StackPanel x:Name="WeatherPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Cuaca dan jam dunia, En=Weather and world clocks}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1300,7 +1300,7 @@
 
                 <!-- Today (Page 2, board 02, D1): the date is the title; rows 56 with 40 items; P 16 all round, the last row ends 8 above the edge. -->
                 <StackPanel x:Name="TodayPanel" Width="388" Margin="16" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Hari ini">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Hari ini, En=Today}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1311,7 +1311,7 @@
                     <Grid Height="64" Margin="0,4,0,0">
                         <TextBlock x:Name="TodayDate" Style="{StaticResource IslandHero}" />
                         <Button Style="{StaticResource IslandRoundButton}" Background="#F5F5F7" Height="40" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Click="TodayAdd_Click" AutomationProperties.Name="Tambah pengingat" ToolTip="{local:Tr Tambah pengingat, En=Add a reminder}">
+                                Click="TodayAdd_Click" AutomationProperties.Name="{local:Tr Tambah pengingat, En=Add a reminder}" ToolTip="{local:Tr Tambah pengingat, En=Add a reminder}">
                             <Path Stroke="Black" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 7,0 L 7,14 M 0,7 L 14,7" />
                         </Button>
                     </Grid>
@@ -1322,7 +1322,7 @@
 
                 <!-- Control Center (board 34): eight 40 tiles, then volume and brightness as liquid capsules. -->
                 <StackPanel x:Name="ControlPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Pusat kontrol">
+                            Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Pusat kontrol, En=Control center}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1340,7 +1340,7 @@
 
 
                 <!-- Water: today's glasses against the goal, the last seven days, and one-click glasses. -->
-                <StackPanel x:Name="WaterPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="Minum air">
+                <StackPanel x:Name="WaterPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top" Visibility="Collapsed" SizeChanged="Panel_SizeChanged" AutomationProperties.Name="{local:Tr Minum air, En=Water}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1374,7 +1374,7 @@
                 <!-- A selection caught by the quick-capture hotkey, and what to do with it. -->
                 <StackPanel x:Name="SelectionPanel" Margin="16" Width="388" HorizontalAlignment="Center" VerticalAlignment="Top"
                             Visibility="Collapsed" SizeChanged="Panel_SizeChanged" Focusable="True" FocusVisualStyle="{x:Null}"
-                            KeyDown="SelectionPanel_KeyDown" AutomationProperties.Name="Teks terpilih">
+                            KeyDown="SelectionPanel_KeyDown" AutomationProperties.Name="{local:Tr Teks terpilih, En=Selected text}">
                     <StackPanel.RenderTransform>
                         <TranslateTransform />
                     </StackPanel.RenderTransform>
@@ -1405,7 +1405,7 @@
                             </Grid.ColumnDefinitions>
                             <!-- Provider dropdown: the real logo, the name, a chevron. -->
                             <Button x:Name="ProviderButton" Style="{StaticResource NotchProviderButton}" Margin="0,0,12,0"
-                                    Click="ProviderButton_Click" AutomationProperties.Name="Pilih provider">
+                                    Click="ProviderButton_Click" AutomationProperties.Name="{local:Tr Pilih provider, En=Choose a provider}">
                                 <StackPanel Orientation="Horizontal">
                                     <Path x:Name="ProviderLogo" Width="16" Height="16" Stretch="Uniform" Fill="White" VerticalAlignment="Center" />
                                     <TextBlock x:Name="LauncherProviderText" Text="Codex" Margin="7,0,7,0" VerticalAlignment="Center" />
@@ -1440,12 +1440,12 @@
                             </Grid>
                             <TextBox x:Name="LauncherInput" Grid.Column="1" Style="{StaticResource NotchInput}" FontSize="15"
                                      TextChanged="LauncherInput_TextChanged" PreviewKeyDown="LauncherInput_PreviewKeyDown"
-                                     AutomationProperties.Name="Tanya atau cari thread" />
+                                     AutomationProperties.Name="{local:Tr Tanya atau cari thread, En=Ask or search threads}" />
                             <!-- Recording / transcribing state, drawn over the input. -->
                             <Grid x:Name="LauncherVoiceHost" Grid.Column="1" Visibility="Collapsed" Background="Transparent" />
                             <Button x:Name="MicButton" Grid.Column="2" Style="{StaticResource NotchIconButton}" Margin="0,0,2,0"
                                     PreviewMouseLeftButtonDown="MicButton_Down" PreviewMouseLeftButtonUp="MicButton_Up"
-                                    AutomationProperties.Name="Input suara">
+                                    AutomationProperties.Name="{local:Tr Input suara, En=Voice input}">
                                 <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Width="14" Height="17" Stretch="None"
                                       Data="M 7,1.2 Q 9.6,1.2 9.6,3.8 L 9.6,8.2 Q 9.6,10.8 7,10.8 Q 4.4,10.8 4.4,8.2 L 4.4,3.8 Q 4.4,1.2 7,1.2 Z M 1.8,7.6 Q 1.8,13.2 7,13.2 Q 12.2,13.2 12.2,7.6 M 7,13.2 L 7,16" />
@@ -1457,7 +1457,7 @@
                                       Data="M 1.5,4.5 L 1.5,13 Q 1.5,14.5 3,14.5 L 15,14.5 Q 16.5,14.5 16.5,13 L 16.5,4.5 Q 16.5,3 15,3 L 12.5,3 L 11.3,1.2 L 6.7,1.2 L 5.5,3 L 3,3 Q 1.5,3 1.5,4.5 Z M 12,8.6 A 3,3 0 1 1 6,8.6 A 3,3 0 1 1 12,8.6 Z" />
                             </Button>
                             <Button x:Name="LauncherSendButton" Grid.Column="4" Style="{StaticResource NotchRoundButton}" Width="34" Height="34"
-                                    Click="LauncherSendButton_Click" IsEnabled="False" AutomationProperties.Name="Kirim">
+                                    Click="LauncherSendButton_Click" IsEnabled="False" AutomationProperties.Name="{local:Tr Kirim, En=Send}">
                                 <Path Stroke="Black" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Data="M 7,12 L 7,2 M 2.5,6.5 L 7,2 L 11.5,6.5" Width="14" Height="14" />
                             </Button>
@@ -1515,13 +1515,13 @@
 
                     <!-- Parallel agents (running or finished, until closed). -->
                     <StackPanel x:Name="AgentListPanel" Visibility="Collapsed">
-                        <TextBlock x:Name="AgentHeader" Text="Agent paralel" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock x:Name="AgentHeader" Text="{local:Tr Agent paralel, En=Parallel agents}" FontSize="11" FontWeight="SemiBold"
                                    Foreground="{StaticResource NotchText3}" Margin="12,12,12,4" />
                         <StackPanel x:Name="AgentList" />
                     </StackPanel>
 
                     <Grid Margin="12,12,8,4">
-                        <TextBlock x:Name="RecentHeader" Text="Lanjutkan" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock x:Name="RecentHeader" Visibility="Collapsed" Text="{local:Tr Lanjutkan, En=Continue}" FontSize="11" FontWeight="SemiBold"
                                    Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
                         <!-- Source filters when sessions from elsewhere are listed (Terminal · IDE · Desktop · TheAI). -->
                         <StackPanel x:Name="RecentFilters" Orientation="Horizontal" HorizontalAlignment="Right" />
@@ -1547,7 +1547,7 @@
                     </ItemsControl>
 
                     <!-- "/" turns the launcher into a command palette. -->
-                    <StackPanel x:Name="CommandPanel" Visibility="Collapsed" Margin="0,8,0,0" AutomationProperties.Name="Perintah">
+                    <StackPanel x:Name="CommandPanel" Visibility="Collapsed" Margin="0,8,0,0" AutomationProperties.Name="{local:Tr Perintah, En=Commands}">
                         <StackPanel x:Name="CommandRows" />
                         <TextBlock x:Name="CommandEmpty" Visibility="Collapsed" Margin="12,6,12,2" FontSize="12" Foreground="{StaticResource NotchText3}"
                                    TextWrapping="Wrap" Text="{local:Tr Tidak ada perintah seperti itu — hapus / untuk bertanya biasa., En=No such command — remove the / to just ask.}" />
@@ -1555,7 +1555,7 @@
                                    Text="{local:Tr ↑↓ pilih · Tab lengkapi · Enter jalankan, En=↑↓ choose · Tab complete · Enter run}" />
                     </StackPanel>
 
-                    <WrapPanel x:Name="ChipPanel" Margin="6,10,6,0" />
+                    <WrapPanel x:Name="ChipPanel" Margin="0,10,0,0" />
 
                     <!-- Subscription usage: one row per limit window. -->
                     <StackPanel x:Name="QuotaPanel" Margin="12,12,12,0" Visibility="Collapsed" />
@@ -1563,7 +1563,7 @@
                     <!-- Grabber: tap, or pull toward the screen edge, to fold the launcher back into the notch. -->
                     <Button x:Name="LauncherGrabber" Style="{StaticResource NotchGrabber}" Margin="0,10,0,0" HorizontalAlignment="Center"
                             Click="LauncherGrabber_Click" PreviewMouseLeftButtonDown="LauncherGrabber_Down"
-                            PreviewMouseMove="LauncherGrabber_Move" AutomationProperties.Name="Tutup" />
+                            PreviewMouseMove="LauncherGrabber_Move" AutomationProperties.Name="{local:Tr Tutup, En=Close}" />
                 </StackPanel>
 
                 <!-- Quick: a request arriving while the notch is compact; one click for the recommended answer. -->
@@ -1575,7 +1575,7 @@
                         <Button x:Name="QuickPrimary" Style="{StaticResource IslandPrimaryButton}" Margin="0" Click="QuickPrimary_Click" />
                         <Button x:Name="QuickSecondary" Style="{StaticResource IslandButton}" Margin="8,0,0,0" Click="QuickSecondary_Click" />
                         <Button x:Name="QuickMore" Style="{StaticResource IslandRoundButton}" Margin="8,0,0,0" Click="QuickMore_Click"
-                                ToolTip="Pilihan lain" AutomationProperties.Name="Pilihan lain">
+                                ToolTip="{local:Tr Pilihan lain, En=More options}" AutomationProperties.Name="{local:Tr Pilihan lain, En=More options}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="3.5" Height="3.5" Fill="White" />
                                 <Ellipse Width="3.5" Height="3.5" Fill="White" Margin="3,0,0,0" />
@@ -1637,28 +1637,28 @@
                         </TextBlock>
                         <StackPanel x:Name="ActivityTools" Grid.Column="1" Orientation="Horizontal" Opacity="0">
                             <StackPanel x:Name="ActivityPager" Orientation="Horizontal" Margin="0,0,6,0" Visibility="Collapsed">
-                                <Button Style="{StaticResource NotchIconButton}" Width="24" Click="PrevActivity_Click" AutomationProperties.Name="Agent sebelumnya">
+                                <Button Style="{StaticResource NotchIconButton}" Width="24" Click="PrevActivity_Click" AutomationProperties.Name="{local:Tr Agent sebelumnya, En=Previous agent}">
                                     <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 6,1 L 2,5 L 6,9" />
                                 </Button>
                                 <TextBlock x:Name="ActivityPagerText" FontSize="11" Foreground="{StaticResource NotchText3}"
                                            VerticalAlignment="Center" Margin="2,0" FontFamily="Segoe UI Variable Text, Segoe UI" />
-                                <Button Style="{StaticResource NotchIconButton}" Width="24" Click="NextActivity_Click" AutomationProperties.Name="Agent berikutnya">
+                                <Button Style="{StaticResource NotchIconButton}" Width="24" Click="NextActivity_Click" AutomationProperties.Name="{local:Tr Agent berikutnya, En=Next agent}">
                                     <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 2,1 L 6,5 L 2,9" />
                                 </Button>
                             </StackPanel>
-                            <Button x:Name="PinButton" Style="{StaticResource NotchIconButton}" Click="PinButton_Click" ToolTip="Sematkan" AutomationProperties.Name="Sematkan">
+                            <Button x:Name="PinButton" Style="{StaticResource NotchIconButton}" Click="PinButton_Click" ToolTip="{local:Tr Sematkan, En=Pin}" AutomationProperties.Name="{local:Tr Sematkan, En=Pin}">
                                 <Path x:Name="PinGlyph" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Data="M 5,1.5 L 10,1.5 L 9.2,6.5 L 11.5,9 L 3.5,9 L 5.8,6.5 Z M 7.5,9 L 7.5,14" Width="15" Height="15" />
                             </Button>
-                            <Button Style="{StaticResource NotchIconButton}" Click="OpenWindowButton_Click" ToolTip="Buka di jendela" AutomationProperties.Name="Buka di jendela">
+                            <Button Style="{StaticResource NotchIconButton}" Click="OpenWindowButton_Click" ToolTip="{local:Tr Buka di jendela, En=Open in a window}" AutomationProperties.Name="{local:Tr Buka di jendela, En=Open in a window}">
                                 <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Data="M 9,2 L 13,2 L 13,6 M 13,2 L 8,7 M 6,3 L 3,3 L 3,13 L 13,13 L 13,10" Width="15" Height="15" />
                             </Button>
-                            <Button Style="{StaticResource NotchIconButton}" Click="CloseButton_Click" ToolTip="Tutup" AutomationProperties.Name="Tutup">
+                            <Button Style="{StaticResource NotchIconButton}" Click="CloseButton_Click" ToolTip="{local:Tr Tutup, En=Close}" AutomationProperties.Name="{local:Tr Tutup, En=Close}">
                                 <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       Data="M 3.5,3.5 L 11.5,11.5 M 11.5,3.5 L 3.5,11.5" Width="15" Height="15" />
@@ -1703,7 +1703,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Button x:Name="FilesHeaderButton" Style="{StaticResource NotchRowButton}" Height="38" Click="FilesHeader_Click"
-                                        AutomationProperties.Name="File yang diubah">
+                                        AutomationProperties.Name="{local:Tr File yang diubah, En=Changed files}">
                                     <StackPanel Orientation="Horizontal">
                                         <Path x:Name="FilesChevron" Stroke="{StaticResource NotchText3}" StrokeThickness="1.6" Width="10" Height="10"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
@@ -1720,7 +1720,7 @@
                                     </StackPanel>
                                 </Button>
                                 <Button x:Name="OpenEditorButton" Grid.Column="1" Style="{StaticResource NotchTextLink}" Margin="8,0,14,0"
-                                        Click="OpenEditor_Click" Content="Buka di VS Code" />
+                                        Click="OpenEditor_Click" Content="{local:Tr Buka di VS Code, En=Open in VS Code}" />
                             </Grid>
                             <ScrollViewer x:Name="FilesScroller" MaxHeight="232" VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed" Focusable="False">
@@ -1733,11 +1733,11 @@
                     <StackPanel x:Name="QueueBox" Margin="0,10,0,0" Visibility="Collapsed">
                         <Grid Height="22" Margin="2,0,0,2">
                             <TextBlock VerticalAlignment="Center">
-                                <Run x:Name="QueueTitleRun" Text="Antrean" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText3}" />
+                                <Run x:Name="QueueTitleRun" Text="{local:Tr Antrean, En=Queue}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText3}" />
                                 <Run x:Name="QueueStateRun" FontSize="11" Foreground="{StaticResource NotchOrange}" />
                             </TextBlock>
                             <Button x:Name="QueueSendNowButton" Style="{StaticResource NotchTextLink}" HorizontalAlignment="Right"
-                                    Click="QueueSendNow_Click" Content="Kirim sekarang" Visibility="Collapsed" />
+                                    Click="QueueSendNow_Click" Content="{local:Tr Kirim sekarang, En=Send now}" Visibility="Collapsed" />
                         </Grid>
                         <StackPanel x:Name="QueueList" />
                     </StackPanel>
@@ -1749,7 +1749,7 @@
                         </Grid.ColumnDefinitions>
                         <Border Height="38" CornerRadius="19" Background="#17FFFFFF" Padding="16,0">
                             <Grid>
-                                <TextBlock x:Name="FollowUpPlaceholder" Text="Tambahkan instruksi…" Foreground="{StaticResource NotchText3}"
+                                <TextBlock x:Name="FollowUpPlaceholder" Text="{local:Tr Tambahkan instruksi…, En=Add an instruction…}" Foreground="{StaticResource NotchText3}"
                                            VerticalAlignment="Center" IsHitTestVisible="False" />
                                 <!-- Next-prompt suggestion: Tab takes it, Enter sends it. -->
                                 <Grid x:Name="FollowUpSuggestion" IsHitTestVisible="False" Visibility="Collapsed">
@@ -1767,12 +1767,12 @@
                                 </Grid>
                                 <TextBox x:Name="FollowUpInput" Style="{StaticResource NotchInput}"
                                          TextChanged="FollowUpInput_TextChanged" PreviewKeyDown="FollowUpInput_PreviewKeyDown"
-                                         AutomationProperties.Name="Tambahkan instruksi" />
+                                         AutomationProperties.Name="{local:Tr Tambahkan instruksi, En=Add an instruction}" />
                                 <Grid x:Name="FollowUpVoiceHost" Visibility="Collapsed" Background="Transparent" />
                             </Grid>
                         </Border>
                         <Button x:Name="ActionButton" Grid.Column="1" Width="38" Height="38" Margin="8,0,0,0"
-                                Style="{StaticResource NotchRoundButton}" Click="ActionButton_Click" AutomationProperties.Name="Hentikan">
+                                Style="{StaticResource NotchRoundButton}" Click="ActionButton_Click" AutomationProperties.Name="{local:Tr Hentikan, En=Stop}">
                             <Grid>
                                 <Border x:Name="StopGlyph" Width="12" Height="12" CornerRadius="3" Background="Black" />
                                 <Path x:Name="SendGlyph" Visibility="Collapsed" Stroke="Black" StrokeThickness="2"
