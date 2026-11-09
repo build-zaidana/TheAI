@@ -158,6 +158,9 @@ public sealed class AppSettings
     /// <summary>Jendela sambutan (tur + pilih fitur) sudah ditunjukkan.</summary>
     public bool WelcomeShown { get; set; } = true;
 
+    /// <summary>"Not now" on the agent setup: it no longer opens by itself at start, only when an agent is asked something.</summary>
+    public bool AgentSetupSkipped { get; set; }
+
     /// <summary>
     /// A new user starts with only the core (the agent and the launcher): every notch feature is off
     /// until they pick it in the welcome window. Existing users keep what they had.
@@ -291,6 +294,7 @@ public sealed class AppSettings
         CheckForUpdates = source.CheckForUpdates;
         UpdateRepository = source.UpdateRepository;
         SkippedUpdate = source.SkippedUpdate;
+        AgentSetupSkipped = source.AgentSetupSkipped;
         PromptSuggestionSource = source.PromptSuggestionSource;
         ChatSide = source.ChatSide;
         QuickCaptureReveal = source.QuickCaptureReveal;

@@ -212,7 +212,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         using var process = new Process { StartInfo = CreateStartInfo(executable, arguments, _workspacePath) };
         if (!process.Start())
         {
-            throw new InvalidOperationException("claude gagal dijalankan.");
+            throw new InvalidOperationException("claude couldn't be started.");
         }
 
         _turnProcess = process;
@@ -324,7 +324,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         if (!process.Start())
         {
-            throw new InvalidOperationException("claude gagal dijalankan.");
+            throw new InvalidOperationException("claude couldn't be started.");
         }
 
         _turnProcess = process;

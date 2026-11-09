@@ -7,4 +7,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CodexBar.Core\CodexBar.Core.csproj" />
+  </ItemGroup>
 </Project>

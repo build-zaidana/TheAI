@@ -37,7 +37,8 @@ internal sealed record OnboardingContent(
     string SecondaryText,
     Func<Task> Secondary,
     string? LinkText,
-    Action? Link);
+    Action? Link,
+    bool OffersSkip = true);
 
 /// <summary>
 /// macOS-style sheet shown instead of the bar's inline onboarding panel when the app runs as a
@@ -48,10 +49,15 @@ public partial class OnboardingWindow : Window
 {
     private OnboardingContent? _content;
 
+    /// <summary>The sheet was put aside: the close button, Esc or "Not now".</summary>
+    public event Action? Skipped;
+
     public OnboardingWindow()
     {
         InitializeComponent();
         CopyButton.Content = Tr.Text("Salin", "Copy");
+        CloseLight.ToolTip = Tr.Text("Tutup", "Close");
+        SkipButton.Content = Tr.Text("Nanti saja. Notch tetap jalan tanpa agent", "Not now. The notch works without an agent");
     }
 
     internal void Show(OnboardingContent content)
@@ -68,6 +74,7 @@ public partial class OnboardingWindow : Window
         SecondaryButton.Content = content.SecondaryText;
         LinkButton.Content = content.LinkText ?? string.Empty;
         LinkButton.Visibility = content.Link is null ? Visibility.Collapsed : Visibility.Visible;
+        SkipButton.Visibility = content.OffersSkip ? Visibility.Visible : Visibility.Collapsed;
         PrimaryButton.IsEnabled = SecondaryButton.IsEnabled = true;
 
         if (!IsVisible)
@@ -114,7 +121,13 @@ public partial class OnboardingWindow : Window
         }
     }
 
-    private void Later_Click(object sender, RoutedEventArgs e) => Hide();
+    private void Later_Click(object sender, RoutedEventArgs e) => PutAside();
+
+    private void PutAside()
+    {
+        Hide();
+        Skipped?.Invoke();
+    }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -128,7 +141,7 @@ public partial class OnboardingWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            Hide();
+            PutAside();
         }
     }
 }

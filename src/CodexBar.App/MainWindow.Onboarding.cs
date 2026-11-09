@@ -301,7 +301,7 @@ public partial class MainWindow
         }
 
         using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException($"Tidak dapat menjalankan {Path.GetFileName(executable)}.");
+            ?? throw new InvalidOperationException(string.Format(Tr.Text("Tidak dapat menjalankan {0}.", "Couldn't run {0}."), Path.GetFileName(executable)));
         var outputTask = process.StandardOutput.ReadToEndAsync();
         var errorTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
@@ -316,7 +316,7 @@ public partial class MainWindow
                 detail = detail[^500..];
             }
             throw new InvalidOperationException(
-                $"{Path.GetFileName(executable)} berhenti dengan kode {process.ExitCode}. {detail}");
+                string.Format(Tr.Text("{0} berhenti dengan kode {1}. {2}", "{0} stopped with code {1}. {2}"), Path.GetFileName(executable), process.ExitCode, detail));
         }
     }
 
@@ -339,8 +339,26 @@ public partial class MainWindow
 
     // ---- Onboarding sheet (notch mode) ---------------------------------------------------------
 
+    // Someone who said "not now" isn't asked again at every start: only when they ask an agent something.
+    private bool _startingUp;
+
+    private void SkipAgentSetup()
+    {
+        _onboardingWindow?.Hide();
+        if (!_settings.AgentSetupSkipped)
+        {
+            _settings.AgentSetupSkipped = true;
+            _ = SaveSettingsSafeAsync();
+        }
+    }
+
     private void ShowOnboardingWindow(OnboardingKind kind, string? detail)
     {
+        if (_startingUp && _settings.AgentSetupSkipped && kind != OnboardingKind.Error)
+        {
+            return;
+        }
+
         if (_welcome is not null)
         {
             _pendingOnboarding = (kind, detail);   // after the welcome, not on top of it
@@ -403,20 +421,34 @@ public partial class MainWindow
                 loc["onboard.workspace.body"],
                 status, null,
                 Tr.Text("Pilih folder…", "Choose folder…"), () => { OnboardingRetryButton_Click(this, args); return Task.CompletedTask; },
-                Tr.Text("Nanti", "Later"), () => { _onboardingWindow?.Hide(); return Task.CompletedTask; },
-                null, null),
+                Tr.Text("Nanti", "Later"), () => { SkipAgentSetup(); return Task.CompletedTask; },
+                null, null, OffersSkip: false),
             _ => new(
                 loc["onboard.error.title"],
                 detail ?? loc["onboard.error.body"],
                 status, null,
                 Tr.Text("Coba lagi", "Try again"), Retry,
                 Tr.Text("Nanti", "Later"), () => { _onboardingWindow?.Hide(); return Task.CompletedTask; },
-                Tr.Text("Buka log…", "Open log…"), () => OpenLogsButton_Click(this, args))
+                Tr.Text("Buka log…", "Open log…"), () => OpenLogsButton_Click(this, args), OffersSkip: false)
         };
 
-        _onboardingWindow ??= new OnboardingWindow();
+        if (_onboardingWindow is null)
+        {
+            _onboardingWindow = new OnboardingWindow();
+            _onboardingWindow.Skipped += SkipAgentSetup;
+        }
+
         _onboardingWindow.Show(content);
     }
+
+    // Asked an agent something and it isn't installed: the setup, not an error about a missing file.
+    private bool AgentMissing(Exception exception) =>
+        exception is System.IO.FileNotFoundException && _controller.ProviderId switch
+        {
+            "claude-code" => CodexBar.Providers.ClaudeCode.ClaudeCodeExecutableLocator.TryLocate() is null,
+            "codex" => !TryLocateCodex(),
+            _ => false
+        };
 
     private static bool TryLocateCodex()
     {

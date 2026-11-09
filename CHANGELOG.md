@@ -11,6 +11,9 @@
 - Starting the app no longer flashes the old bar: it stays unseen until the notch is up.
 - Open pages no longer carry the round objects; those stay small on the compact pill.
 - The small record on the pill turns 20 steps a second instead of redrawing the notch 60 times a second while a song plays.
+- **TheAI without an agent.** The setup sheet has a clear "Not now" and stays away after it; it returns when you ask an agent something. It used to open at every start.
+- **Start at sign-in tells the truth.** Settings shows what's really set, including the installer's checkbox, and an in-app update no longer turns it back on after you switched it off. Uninstalling always removes the entry.
+- Error messages, hotkey problems and the chat's `/` menu now follow your language; some were always in Indonesian.
 - Approvals that look destructive are marked risky: declining is the main button and "for the session" is not offered.
 
 ### Added — turn the PC off later

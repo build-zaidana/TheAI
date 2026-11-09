@@ -82,7 +82,9 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "CodexBar"; Flags: deletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
     ValueName: "TheAI"; ValueData: """{app}\{#MyAppExeName}"""; \
-    Tasks: startup; Flags: uninsdeletevalue
+    Tasks: startup; Check: not IsInAppUpdate
+; Whoever set it, the installer's checkbox or TheAI's own switch, uninstalling removes it.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "TheAI"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchNow}"; \

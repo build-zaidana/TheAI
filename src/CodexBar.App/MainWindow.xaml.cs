@@ -218,8 +218,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 ShowWelcome(tour: true);
             }
 
+            _startingUp = true;
             await StartupAsync();
-            ApplyDisplayMode();
+            ApplyDisplayMode();   // shows a setup the start left open, so it counts as the start too
+            _startingUp = false;
             StartClaudeSync();
             StartUpdateChecks();
             _ = Task.Run(() => ImageThumb.PruneCache(TimeSpan.FromDays(30), 300L * 1024 * 1024));
@@ -375,7 +377,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 {
                     ShowOnboarding(
                         OnboardingKind.LoginNeeded,
-                        "Login CLI saat ini memakai API key. Jalankan codex logout lalu codex login untuk menggunakan akun ChatGPT.");
+                        Tr.Text("Login CLI saat ini memakai API key. Jalankan codex logout lalu codex login untuk menggunakan akun ChatGPT.", "The CLI is signed in with an API key. Run codex logout, then codex login, to use your ChatGPT account."));
                     return;
                 }
 
@@ -1012,7 +1014,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _responseZoomDelta = 0;
         RenderConversation();
         SetBusyUi(true);
-        _outputWindow?.SetContext(_workspaceLabel, "Mengirim…");
+        _outputWindow?.SetContext(_workspaceLabel, Tr.Text("Mengirim…", "Sending…"));
         if (IsVisible)
         {
             ShowOutputSurface();
@@ -1045,6 +1047,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _messages.Remove(userMessage);
             RenderConversation();
             SetBusyUi(false);
+            if (AgentMissing(exception))
+            {
+                ShowOnboarding(OnboardingKind.InstallNeeded);
+                return false;
+            }
+
             _notch?.HandleProviderEvent(new ProviderErrorEvent(exception.Message));
             ShowError(exception.Message);
             return false;

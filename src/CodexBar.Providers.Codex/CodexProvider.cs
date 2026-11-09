@@ -951,7 +951,7 @@ public sealed class CodexProvider : IAgentProvider
             "item/fileChange/requestApproval" or
             "item/permissions/requestApproval"))
         {
-            _ = SendRpcErrorSafeAsync(requestId, -32601, $"Request belum didukung TheAI: {method}");
+            _ = SendRpcErrorSafeAsync(requestId, -32601, $"TheAI doesn't support this request yet: {method}");
             return;
         }
 

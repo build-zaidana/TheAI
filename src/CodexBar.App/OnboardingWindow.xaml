@@ -24,7 +24,7 @@
         </Border.Effect>
         <StackPanel Margin="20,12,20,20">
             <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource MacLight}" Background="#FF5F57" Click="Later_Click" ToolTip="Tutup">
+                <Button Style="{StaticResource MacLight}" Background="#FF5F57" Click="Later_Click" x:Name="CloseLight">
                     <Path Stroke="#80000000" StrokeThickness="1.2" Data="M 0,0 L 5,5 M 5,0 L 0,5" />
                 </Button>
                 <Button Style="{StaticResource MacLight}" Background="#D9D9DC" IsEnabled="False" />
@@ -83,6 +83,8 @@
                     <Button x:Name="PrimaryButton" Style="{StaticResource MacPrimaryButton}" Click="Primary_Click" IsDefault="True" />
                 </StackPanel>
             </Grid>
+
+            <Button x:Name="SkipButton" Style="{StaticResource MacLinkButton}" Margin="0,12,0,0" HorizontalAlignment="Center" Click="Later_Click" />
         </StackPanel>
     </Border>
 </Window>

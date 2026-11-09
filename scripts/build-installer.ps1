@@ -4,7 +4,7 @@
 # works, but Windows SmartScreen shows "Unknown publisher" when the installer is run.
 # Switch it on with ONE of these (secrets stay in environment variables, never in the repo):
 #
-#   Azure Trusted Signing (cheapest for individuals):
+#   Azure Artifact Signing (formerly Trusted Signing; individuals only in the USA and Canada):
 #     $env:THEAI_TRUSTED_SIGNING_DLIB     = "C:\path\Azure.CodeSigning.Dlib.dll"
 #     $env:THEAI_TRUSTED_SIGNING_METADATA = "C:\path\metadata.json"   # Endpoint, CodeSigningAccountName, CertificateProfileName
 #     (sign in first with `az login`; see https://learn.microsoft.com/azure/trusted-signing/)

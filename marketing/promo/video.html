@@ -1,0 +1,350 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>TheAI promo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#05060b}
+body{font-family:"Segoe UI Variable Text","Segoe UI",sans-serif;color:#F5F5F7;-webkit-font-smoothing:antialiased}
+#bg{position:absolute;inset:0;background:radial-gradient(1100px 620px at 50% -8%,#3a2f86 0%,rgba(58,47,134,0) 72%),radial-gradient(900px 520px at 16% 110%,#123a5e 0%,rgba(18,58,94,0) 70%),radial-gradient(900px 560px at 88% 112%,#3b1d55 0%,rgba(59,29,85,0) 70%),#07080e}
+#island{position:absolute;left:50%;top:0;background:#000;transform-origin:top center;overflow:hidden;box-shadow:0 26px 90px rgba(0,0,0,.55)}
+#pages{position:absolute;left:0;top:0;width:420px;height:248px;transform-origin:0 0}
+.page{position:absolute;left:0;top:0;width:420px;height:248px;opacity:0}
+.abs{position:absolute;white-space:nowrap}
+.meta{font:500 13px/18px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#98989F}
+.hero{font:300 60px/64px "Segoe UI Variable Display","Segoe UI",sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#F5F5F7}
+.unit{font:500 15px/20px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#98989F}
+.title{font:300 30px/40px "Segoe UI Variable Display","Segoe UI",sans-serif;letter-spacing:-.01em;color:#F5F5F7;overflow:hidden;text-overflow:ellipsis}
+.fl{font:500 12px/16px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#7C7C80}
+.fv{font:500 14px/20px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#98989F;font-variant-numeric:tabular-nums}
+.sel .fl,.sel .fv{color:#F5F5F7}
+.foot{position:absolute;left:16px;top:194px;width:388px;height:38px;display:flex;justify-content:space-between}
+.foot>div:last-child{text-align:right}
+.btn{position:absolute;width:40px;height:40px;border-radius:20px;background:#F5F5F7;display:flex;align-items:center;justify-content:center}
+.pill{position:absolute;height:40px;border-radius:20px;background:#1C1C1E;color:#F5F5F7;font:600 13px/40px "Segoe UI Variable Text","Segoe UI",sans-serif;text-align:center}
+.row{position:absolute;left:16px;width:388px;height:40px;border-top:1px solid rgba(255,255,255,.08);font:500 14px/39px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#F5F5F7;white-space:nowrap}
+.row i{position:absolute;right:0;top:0;font:500 12px/39px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#7C7C80;font-style:normal}
+.row b{position:absolute;left:28px;top:0;font-weight:500}
+#cap{position:absolute;left:0;right:0;top:700px;text-align:center;font:600 72px/84px "Segoe UI Variable Display","Segoe UI",sans-serif;letter-spacing:-.025em;color:#F7F7FA;text-shadow:0 2px 40px rgba(0,0,0,.45)}
+#sub{position:absolute;left:0;right:0;top:796px;text-align:center;font:400 30px/40px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#A9AEC2}
+#outro{position:absolute;inset:0;text-align:center;opacity:0}
+#mark{font:700 150px/170px "Segoe UI Variable Display","Segoe UI",sans-serif;letter-spacing:-.04em;margin-top:330px;color:#fff}
+#o1{font:500 42px/56px "Segoe UI Variable Display","Segoe UI",sans-serif;color:#E4E6F2;margin-top:6px}
+#o2{font:400 30px/42px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#A9AEC2;margin-top:26px}
+#o3{display:inline-block;font:600 28px/64px "Segoe UI Variable Text","Segoe UI",sans-serif;color:#000;background:#F5F5F7;border-radius:32px;padding:0 40px;margin-top:44px}
+#eyes{position:absolute;left:50%;top:0;display:flex;gap:9px;transform:translateX(-50%)}
+#eyes i{display:block;width:7px;height:11px;border-radius:4px;background:#F5F5F7}
+.v,.v body{width:1080px;height:1920px}
+.v #island{top:340px}
+.v #cap{top:1030px;left:60px;right:60px;font-size:84px;line-height:98px}
+.v #sub{left:60px;right:60px;font-size:38px;line-height:50px}
+.v #mark{margin-top:760px}
+.v #o1{font-size:52px;line-height:66px}
+.v #o2{font-size:38px;line-height:52px}
+</style></head><body>
+<div id="bg"></div>
+<div id="island">
+  <div id="eyes" style="margin-top:21px"><i></i><i></i></div>
+  <div id="pages">
+
+    <div class="page" id="p-agent">
+      <div class="abs meta" style="left:16px;top:16px">Claude Code <span style="color:#7C7C80">&nbsp;my-app</span></div>
+      <div class="abs meta" id="ag-time" style="right:16px;top:16px"></div>
+      <div class="abs title" style="left:15px;top:38px;width:388px" id="ag-title"></div>
+      <div id="ag-rows"></div>
+    </div>
+
+    <div class="page" id="p-ask">
+      <div class="abs" style="left:16px;top:21px;width:8px;height:8px;border-radius:4px;background:#FFD60A"></div>
+      <div class="abs meta" style="left:32px;top:16px" id="ask-kind"></div>
+      <div class="abs meta" style="right:16px;top:16px" id="ask-wait"></div>
+      <div class="abs title" style="left:15px;top:38px" id="ask-title"></div>
+      <div class="abs" style="left:16px;top:88px;width:388px;height:88px;background:#1C1C1E;border-radius:16px;padding:14px;font:500 15px/26px 'Cascadia Mono',Consolas,monospace;white-space:pre">npm run test<br><span style="color:#98989F">my-app · 214 tests</span></div>
+      <div class="pill" style="left:16px;top:192px;width:124px" id="ask-b1"></div>
+      <div class="pill" style="left:148px;top:192px;width:124px" id="ask-b2"></div>
+      <div class="pill" style="left:280px;top:192px;width:124px;background:#F5F5F7;color:#000" id="ask-b3"></div>
+    </div>
+
+    <div class="page" id="p-sys">
+      <div class="abs meta" style="left:16px;top:16px" id="sys-label"></div>
+      <div class="abs meta" style="right:16px;top:16px" id="sys-meta"></div>
+      <div class="abs hero" style="left:13px;top:38px" id="sys-val"></div>
+      <div class="abs unit" style="top:74px" id="sys-unit"></div>
+      <svg class="abs" width="404" height="72" style="left:0;top:110px;overflow:visible" id="sys-svg"><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35" id="g1a"/><stop offset="1" stop-color="#fff" stop-opacity="0" id="g1b"/></linearGradient></defs><path id="sys-area" fill="url(#g1)"/><path id="sys-line" fill="none" stroke-width="1.6" stroke-linecap="round"/><circle id="sys-halo"/><circle id="sys-dot" r="3"/></svg>
+      <div class="foot" id="sys-foot"></div>
+    </div>
+
+    <div class="page" id="p-timer">
+      <div class="abs meta" style="left:16px;top:16px" id="tm-label"></div>
+      <div class="abs meta" style="right:16px;top:16px" id="tm-meta"></div>
+      <div class="abs hero" style="left:13px;top:38px" id="tm-val"></div>
+      <div class="btn" style="left:364px;top:50px" id="tm-btn"><svg width="14" height="15" viewBox="0 0 16 18"><path d="M1 1 L15 9 L1 17 Z" fill="#000"/></svg></div>
+      <svg class="abs" width="420" height="64" style="left:0;top:112px" id="tm-svg"></svg>
+      <div class="foot" id="tm-foot"></div>
+    </div>
+
+    <div class="page" id="p-clip">
+      <div class="abs meta" style="left:16px;top:16px" id="cl-label"></div>
+      <div class="abs meta" style="right:16px;top:16px" id="cl-meta"></div>
+      <div class="abs title" style="left:15px;top:38px;width:330px" id="cl-title"></div>
+      <div class="abs meta" style="left:16px;top:80px;font-weight:400" id="cl-sub"></div>
+      <div class="btn" style="left:364px;top:50px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></div>
+      <div id="cl-rows"></div>
+    </div>
+
+    <div class="page" id="p-music">
+      <div class="abs meta" style="left:16px;top:16px" id="mu-label"></div>
+      <div class="abs meta" style="right:16px;top:16px">Player</div>
+      <div class="abs title" style="left:15px;top:38px">Midnight Drive</div>
+      <div class="abs meta" style="left:16px;top:80px;font-weight:400">Sample Artist</div>
+      <div class="abs" style="left:288px;top:38px;width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#FF7A45,#C2185B 70%,#4A148C)"></div>
+      <div class="btn" style="left:364px;top:50px"><svg width="13" height="15" viewBox="0 0 13 15"><path d="M0 0h4v15H0zM8 0h4v15H8z" fill="#000"/></svg></div>
+      <svg class="abs" width="388" height="64" style="left:16px;top:112px" id="mu-svg"></svg>
+      <div class="abs fl" style="left:16px;top:194px" id="mu-l1"></div><div class="abs fv" style="left:16px;top:212px" id="mu-v1"></div>
+      <div class="abs fl" style="left:92px;top:194px" id="mu-l2"></div><div class="abs fv" style="left:92px;top:212px" id="mu-v2"></div>
+      <div class="btn" style="left:316px;top:192px;background:#1C1C1E"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M0 0h2.4v14H0zM14 0v14L3.4 7z" fill="#F5F5F7"/></svg></div>
+      <div class="btn" style="left:364px;top:192px;background:#1C1C1E"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M0 0l10.6 7L0 14zM11.6 0H14v14h-2.4z" fill="#F5F5F7"/></svg></div>
+    </div>
+
+    <div class="page" id="p-ctl">
+      <div class="abs meta" style="left:16px;top:16px" id="ct-label"></div>
+      <div class="abs meta" style="right:16px;top:16px" id="ct-meta"></div>
+      <div class="abs title" style="left:15px;top:38px" id="ct-title"></div>
+      <div class="abs meta" style="left:16px;top:80px;font-weight:400" id="ct-sub"></div>
+      <div id="ct-tiles"></div>
+      <svg class="abs" width="388" height="72" style="left:16px;top:160px" id="ct-svg"></svg>
+    </div>
+  </div>
+</div>
+<div id="cap"></div><div id="sub"></div>
+<div id="outro"><div id="mark">TheAI</div><div id="o1"></div><div id="o2"></div><div id="o3"></div></div>
+
+<script>
+const LANG = new URLSearchParams(location.search).get('lang') === 'id' ? 'id' : 'en';
+const T = {
+ en:{c0:'Your day, up top.',s0:'A living notch for Windows.',
+  c1:'Your AI agents report here.',s1:'Claude Code, Codex and Gemini CLI.',
+  c2:'They ask before they act.',s2:'Answer without leaving your work.',
+  c3:'See what is slowing you down.',s3:'Live, and it names the app.',
+  c4:'A timer you can feel.',s4:'Slide the ruler. Press start.',
+  c5:'Everything you copied.',s5:'One look, one click away.',
+  c6:'Your music, in reach.',s6:'Any player. The song is the seek bar.',
+  c7:'Off at 22:30.',s7:'Pick a time, and it shuts the PC down.',
+  c8:'Volume. Brightness. Wi-Fi.',s8:'All in one place.',
+  o1:'A living notch for Windows',o2:'Free. No account. No ads.',o3:'build-zaidana.github.io/theai-app',
+  steps:['Read the failing test','Fix the date parser','Run the tests'],ago:['12 s','40 s','running'],work:'Fixing the build',done:'Tests pass',ran:'Running',
+  kind:'Claude Code asks',wait:'Waiting 0:04',ask:'Run this command?',b1:'Decline',b2:'This session',b3:'Allow once',
+  cpu:'CPU',gpu:'GPU',mem:'Memory',disk:'Disk C:',last:'The last minute',hog:'Browser uses 6.4 GB',
+  focus:'Focus',brk:'Break',long:'Long',other:'Set',min:'min',doneat:'Done at 15:25',
+  latest:'Latest',now:'just now',src:'Browser · just now',srcOld:'Editor · 14 min',
+  clip1:'Design review at 3 pm',clip1s:'Text · 21 characters',clip2:'github.com/sample/project',clip3:'#FF9F0A',clip4:'npm run build',m14:'14 min',h1:'1 h',h2:'2 h',
+  playing:'Now playing',gone:'Gone',left:'Left',
+  shut:'Off in 2 h 15 min',force:'Apps close by force',useLen:'Use a length',timer:'Timer',pomo:'Pomodoro',watch:'Stopwatch',alarm:'Alarm',shutdown:'Shut down',type:'Type @',
+  ctl:'Control',batt:'Battery 84%',net:'Home Wi-Fi',netS:'Connected · Bluetooth on'},
+ id:{c0:'Harimu, di puncak layar.',s0:'Notch yang hidup untuk Windows.',
+  c1:'Agent AI-mu melapor di sini.',s1:'Claude Code, Codex, dan Gemini CLI.',
+  c2:'Mereka bertanya sebelum bertindak.',s2:'Jawab tanpa meninggalkan pekerjaanmu.',
+  c3:'Lihat apa yang bikin lambat.',s3:'Langsung, dan menyebut aplikasinya.',
+  c4:'Timer yang terasa.',s4:'Geser penggarisnya. Tekan mulai.',
+  c5:'Semua yang kamu salin.',s5:'Sekali lihat, sekali klik.',
+  c6:'Musikmu, selalu dekat.',s6:'Pemutar apa pun. Lagunya jadi bar posisi.',
+  c7:'Mati pukul 22:30.',s7:'Pilih jamnya, PC mati sendiri.',
+  c8:'Volume. Kecerahan. Wi-Fi.',s8:'Semua di satu tempat.',
+  o1:'Notch yang hidup untuk Windows',o2:'Gratis. Tanpa akun. Tanpa iklan.',o3:'build-zaidana.github.io/theai-app',
+  steps:['Membaca tes yang gagal','Memperbaiki parser tanggal','Menjalankan tes'],ago:['12 dtk','40 dtk','jalan'],work:'Memperbaiki build',done:'Tes lulus',ran:'Berjalan',
+  kind:'Claude Code bertanya',wait:'Menunggu 0:04',ask:'Jalankan perintah?',b1:'Tolak',b2:'Izinkan sesi',b3:'Izinkan sekali',
+  cpu:'CPU',gpu:'GPU',mem:'Memori',disk:'Disk C:',last:'Satu menit terakhir',hog:'Browser memakai 6.4 GB',
+  focus:'Fokus',brk:'Istirahat',long:'Panjang',other:'Atur',min:'mnt',doneat:'Selesai pukul 15:25',
+  latest:'Terbaru',now:'baru saja',src:'Browser · baru saja',srcOld:'Editor · 14 mnt',
+  clip1:'Rapat desain jam 3 sore',clip1s:'Teks · 23 karakter',clip2:'github.com/sample/project',clip3:'#FF9F0A',clip4:'npm run build',m14:'14 mnt',h1:'1 jam',h2:'2 jam',
+  playing:'Sedang diputar',gone:'Berjalan',left:'Sisa',
+  shut:'Mati 2 j 15 mnt lagi',force:'Aplikasi ditutup paksa',useLen:'Pakai durasi',timer:'Timer',pomo:'Pomodoro',watch:'Stopwatch',alarm:'Alarm',shutdown:'Matikan',type:'Ketik @',
+  ctl:'Kontrol',batt:'Baterai 84%',net:'Wi-Fi Rumah',netS:'Tersambung · Bluetooth aktif'}
+}[LANG];
+const $=id=>document.getElementById(id);
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+// A spring with a small overshoot, like the app's island.
+const spring=x=>x>=1?1:1-Math.exp(-7*x)*Math.cos(9*x);
+const V=new URLSearchParams(location.search).get('format')==='vertical';
+if(V)document.documentElement.classList.add('v');
+const S=V?2.4:2;                    // the island drawn larger than life: 1080p, or filling a phone's width
+const SCENES=[
+ {id:null,    a:0,   b:2.8, w:150, h:32,  r:16, c:'c0', s:'s0'},
+ {id:'agent', a:2.8, b:6.8, w:420, h:248, r:36, c:'c1', s:'s1'},
+ {id:'ask',   a:6.8, b:10,  w:420, h:248, r:36, c:'c2', s:'s2'},
+ {id:'sys',   a:10,  b:14,  w:420, h:248, r:36, c:'c3', s:'s3'},
+ {id:'timer', a:14,  b:17.5,w:420, h:248, r:36, c:'c4', s:'s4'},
+ {id:'clip',  a:17.5,b:20.5,w:420, h:248, r:36, c:'c5', s:'s5'},
+ {id:'music', a:20.5,b:23.5,w:420, h:248, r:36, c:'c6', s:'s6'},
+ {id:'off',   a:23.5,b:26.7,w:420, h:248, r:36, c:'c7', s:'s7'},
+ {id:'ctl',   a:26.7,b:29.2,w:420, h:248, r:36, c:'c8', s:'s8'},
+ {id:null,    a:29.2,b:34,  w:150, h:32,  r:16, c:null, s:null}
+];
+const PAGE={agent:'p-agent',ask:'p-ask',sys:'p-sys',timer:'p-timer',off:'p-timer',clip:'p-clip',music:'p-music',ctl:'p-ctl'};
+const DURATION=34;
+
+function foot(el,items,sel){el.innerHTML=items.map((x,i)=>`<div class="${i===sel?'sel':''}"><div class="fl">${x[0]}</div><div class="fv" style="margin-top:2px">${x[1]}</div></div>`).join('')}
+function curve(pts){let d=`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;for(let i=1;i<pts.length;i++){const m=(pts[i-1][0]+pts[i][0])/2;d+=` C${m.toFixed(1)} ${pts[i-1][1].toFixed(1)} ${m.toFixed(1)} ${pts[i][1].toFixed(1)} ${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)}`}return d}
+function noise(x,seed){return Math.sin(x*.9+seed)*.5+Math.sin(x*2.3+seed*2)*.28+Math.sin(x*5.1+seed*3)*.16}
+
+function drawSys(t,sc){
+ const p=seg(t,sc.a+1.9,sc.a+2.4),warn=p>0;
+ $('sys-label').textContent=warn?T.mem:T.cpu;
+ $('sys-meta').textContent=warn?T.hog:T.last;
+ const cpu=Math.round(23+6*noise(t*1.2,1));const mem=(9.1+3.8*ease(p)).toFixed(1);
+ const col=warn?'#FF453A':'#F5F5F7';
+ $('sys-val').textContent=warn?mem:String(cpu);$('sys-val').style.color=col;
+ $('sys-unit').textContent=warn?'GB':'%';
+ $('sys-unit').style.left=(13+$('sys-val').offsetWidth+4)+'px';
+ const W=404,H=72,n=42,step=W/(n-1),scroll=(t*1.6)%1;const pts=[];
+ for(let i=0;i<=n;i++){const x=(i-scroll)*step;const k=Math.floor(t*1.6)+i;
+  let v=warn?.38+.42*ease(clamp((i-n+14*p*2)/14))+.05*noise(k,4):.42+.42*noise(k*.55,1);
+  pts.push([x,H-2-clamp(v,.02,.98)*(H-4)])}
+ const d=curve(pts);const last=pts[pts.length-2];
+ $('sys-line').setAttribute('d',d);$('sys-line').setAttribute('stroke',col);
+ $('sys-area').setAttribute('d',d+` L${pts[pts.length-1][0]} ${H} L${pts[0][0]} ${H} Z`);
+ $('g1a').setAttribute('stop-color',col);$('g1b').setAttribute('stop-color',col);
+ const beat=(t%1.6)/1.6;
+ const yEnd=last[1]+(pts[pts.length-1][1]-last[1])*(1-scroll)*0;
+ $('sys-dot').setAttribute('cx',W);$('sys-dot').setAttribute('cy',yEnd);$('sys-dot').setAttribute('fill',col);
+ $('sys-halo').setAttribute('cx',W);$('sys-halo').setAttribute('cy',yEnd);$('sys-halo').setAttribute('r',3+6*beat);$('sys-halo').setAttribute('fill',col);$('sys-halo').setAttribute('opacity',.5*(1-beat));
+ $('sys-svg').style.clipPath='inset(-12px -12px -12px 0)';
+ foot($('sys-foot'),[[T.cpu,`${cpu} %`],[T.gpu,'8 %'],[T.mem,`${mem} GB`],[T.disk,'214 GB']],warn?2:0);
+ if(warn){const sel=$('sys-foot').children[2];sel.querySelectorAll('div').forEach(e=>e.style.color='#FF453A')}
+}
+function ruler(el,value,clock){
+ const W=420,per=10,mid=W/2;let s='';
+ for(let m=Math.floor(value-22);m<=Math.ceil(value+22);m++){
+  if(!clock&&(m<0||m>180))continue;
+  const x=mid+(m-value)*per,f=clamp(Math.min(x,W-x)/(W*.18));if(f<=0)continue;
+  const major=((m%5)+5)%5===0;
+  s+=`<line x1="${x.toFixed(1)}" y1="8" x2="${x.toFixed(1)}" y2="${major?28:18}" stroke="${major?'#8E8E93':'#48484A'}" stroke-width="${major?1.6:1.2}" stroke-linecap="round" opacity="${f.toFixed(2)}"/>`;
+  if(major){const d=((m%1440)+1440)%1440;const lab=clock?`${Math.floor(d/60)}:${String(d%60).padStart(2,'0')}`:m;
+   s+=`<text x="${x.toFixed(1)}" y="52" text-anchor="middle" font-family="Segoe UI" font-size="12" fill="#7C7C80" opacity="${f.toFixed(2)}">${lab}</text>`}
+ }
+ s+=`<rect x="${mid-1}" y="0" width="2" height="32" rx="1" fill="#F5F5F7"/>`;
+ el.innerHTML=s;
+}
+function drawTimer(t,sc){
+ const p=ease(seg(t,sc.a+.7,sc.a+2.1)),v=25+5*p;
+ const m=Math.round(v);
+ $('tm-label').textContent=T.focus;$('tm-label').style.color='#98989F';
+ $('tm-meta').textContent=T.doneat.replace('15:25','15:'+String(m).padStart(2,'0'));$('tm-meta').style.color='#98989F';
+ $('tm-val').textContent=`${m}:00`;
+ $('tm-btn').style.background='#F5F5F7';
+ ruler($('tm-svg'),v,false);
+ foot($('tm-foot'),[[T.focus,`${m} ${T.min}`],[T.brk,`5 ${T.min}`],[T.long,`15 ${T.min}`],[T.other,'···']],0);
+}
+function drawOff(t,sc){
+ const p=ease(seg(t,sc.a+.5,sc.a+1.9));const v=21*60+135*0+90*p;   // 21:00 -> 22:30 on the clock
+ const m=Math.round(v/5)*5;
+ const left=m-20*60, hrs=Math.floor(left/60), mins=left%60;
+ $('tm-label').textContent=(LANG==='id'?`Mati ${hrs?hrs+' j ':''}${mins} mnt lagi`:`Off in ${hrs?hrs+' h ':''}${mins} min`);$('tm-label').style.color='#98989F';
+ $('tm-meta').textContent=T.force;$('tm-meta').style.color='#FF453A';
+ $('tm-val').textContent=`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;
+ $('tm-btn').style.background='#FF453A';
+ ruler($('tm-svg'),v,true);
+ foot($('tm-foot'),[[T.timer,`5 ${T.min}`],[T.pomo,`25 ${T.min}`],[T.watch,'0:00'],[T.alarm,T.type],[T.shutdown,`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`]],4);
+}
+function drawAgent(t,sc){
+ const done=t>sc.a+3.1;
+ $('ag-title').textContent=done?T.done:T.work;
+ $('ag-time').textContent=done?'0:58':`${T.ran} 0:${String(Math.min(57,41+Math.floor((t-sc.a)*5))).padStart(2,'0')}`;
+ let h='';const show=[sc.a+.8,sc.a+1.5,sc.a+2.2];
+ T.steps.forEach((s,i)=>{const o=clamp((t-show[i])/.25);if(o<=0)return;
+  const running=i===2&&!done;
+  const mark=running?`<svg width="16" height="16" style="position:absolute;left:0;top:12px;transform:rotate(${(t*360)%360}deg)"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#3A3A3C" stroke-width="2.2"/><path d="M8 1.5 A6.5 6.5 0 0 1 14.5 8" fill="none" stroke="#F5F5F7" stroke-width="2.2" stroke-linecap="round"/></svg>`
+   :`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C7C80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:1px;top:13px"><path d="M20 6 9 17l-5-5"/></svg>`;
+  h+=`<div class="row" style="top:${112+i*40}px;opacity:${o};transform:translateY(${(1-o)*6}px)">${mark}<b>${s}</b><i>${i===2&&done?'18 s':T.ago[i]}</i></div>`});
+ $('ag-rows').innerHTML=h;
+}
+function drawAsk(t,sc){
+ $('ask-kind').textContent=T.kind;$('ask-wait').textContent=T.wait;$('ask-title').textContent=T.ask;
+ $('ask-b1').textContent=T.b1;$('ask-b2').textContent=T.b2;$('ask-b3').textContent=T.b3;
+ const press=seg(t,sc.a+2.05,sc.a+2.2)-seg(t,sc.a+2.2,sc.a+2.4);
+ $('ask-b3').style.transform=`scale(${1-.06*press})`;
+}
+function drawClip(t,sc){
+ $('cl-label').textContent=T.latest;
+ const o=spring(seg(t,sc.a+1,sc.a+1.7));const swapped=t>sc.a+1;
+ $('cl-meta').textContent=swapped?T.src:T.srcOld;
+ $('cl-title').textContent=swapped?T.clip1:T.clip2;
+ $('cl-sub').textContent=swapped?T.clip1s:'github.com';
+ const items=[[T.clip2,'link',T.m14],[T.clip3,'#FF9F0A',T.h1],[T.clip4,'term',T.h2]];
+ const list=swapped?items:items.slice(1).concat([['','','']]);
+ const dy=swapped?(1-clamp(o))*-40:0;
+ let h='<div style="position:absolute;left:0;top:112px;width:420px;height:120px;overflow:hidden">';
+ list.forEach((x,i)=>{if(!x[0])return;const y=i*40+dy;
+  const mk=x[1].startsWith('#')?`<span style="position:absolute;left:0;top:12px;width:16px;height:16px;border-radius:5px;background:${x[1]}"></span>`
+   :x[1]==='link'?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C7C80" stroke-width="2" stroke-linecap="round" style="position:absolute;left:0;top:12px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>`
+   :`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C7C80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:0;top:12px"><path d="m4 17 6-6-6-6M12 19h8"/></svg>`;
+  h+=`<div class="row" style="top:${y}px">${mk}<b style="${x[1]==='term'?"font-family:'Cascadia Mono',Consolas,monospace;font-size:13px":''}">${x[0]}</b><i>${x[2]}</i></div>`});
+ $('cl-rows').innerHTML=h+'</div>';
+}
+function drawMusic(t,sc){
+ $('mu-label').textContent=T.playing;$('mu-l1').textContent=T.gone;$('mu-l2').textContent=T.left;
+ const prog=.2+.34*ease(seg(t,sc.a+.3,sc.b));const secs=Math.round(prog*233);
+ const f=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+ $('mu-v1').textContent=f(secs);$('mu-v2').textContent=f(233-secs);
+ let s='';const n=65;
+ for(let i=0;i<n;i++){const played=i<prog*n;let h=10+40*Math.abs(Math.sin(i*.47)*Math.cos(i*.19+1))+((i*37)&7);
+  if(played)h*=.78+.22*Math.sin(t*5+i*1.7);
+  s+=`<rect x="${i*6}" y="${(32-h/2).toFixed(1)}" width="3" height="${h.toFixed(1)}" rx="1.5" fill="${played?'#F5F5F7':'#3A3A3C'}"/>`}
+ $('mu-svg').innerHTML=s;
+}
+const TILES=['<path d="M12 20h.01M2 8.82a15 15 0 0 1 20 0M5 12.86a10 10 0 0 1 14 0M8.5 16.43a5 5 0 0 1 7 0"/>','<path d="m7 7 10 10-5 5V2l5 5L7 17"/>','<path d="M2 2l20 20"/><path d="M18.9 13.2A7 7 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.3V5a3 3 0 0 0-5.7-1.3"/><path d="M9 9v3a3 3 0 0 0 5.1 2.1"/><path d="M12 19v3"/>','<path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/>','<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>','<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>','<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/>','<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'];
+function drawCtl(t,sc){
+ $('ct-label').textContent=T.ctl;$('ct-meta').textContent=T.batt;$('ct-title').textContent=T.net;$('ct-sub').textContent=T.netS;
+ const gap=(388-8*40)/7;let h='';
+ TILES.forEach((p,i)=>{const on=i<2;h+=`<div class="btn" style="left:${16+i*(40+gap)}px;top:112px;background:${on?'#F5F5F7':'#1C1C1E'}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${on?'#000':'#F5F5F7'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg></div>`});
+ $('ct-tiles').innerHTML=h;
+ const vol=.3+.42*ease(seg(t,sc.a+.4,sc.a+1.5)),bri=.25+.5*ease(seg(t,sc.a+.8,sc.a+2));
+ const W=388,hh=32;let s=`<defs><clipPath id="c1"><rect width="${W}" height="${hh}" rx="16"/></clipPath><clipPath id="c2"><rect y="40" width="${W}" height="${hh}" rx="16"/></clipPath></defs>`;
+ const bar=(y,v,col,clip,ic)=>{const x=W*v;let e='';const wl=44,amp=4,ph=(t*22)%wl;
+  e+=`<rect y="${y}" width="${W}" height="${hh}" fill="#1C1C1E" clip-path="url(#${clip})"/>`;
+  let d=`M-10 ${y-wl} H${x} `;for(let k=0;k<5;k++){d+=`q${amp} ${wl/4} 0 ${wl/2} q${-amp} ${wl/4} 0 ${wl/2} `}d+=`H-10 Z`;
+  e+=`<g clip-path="url(#${clip})"><path d="${d}" fill="${col}" transform="translate(0 ${-ph})"/></g>`;
+  e+=`<text x="${W-16}" y="${y+21}" text-anchor="end" font-family="Segoe UI" font-weight="700" font-size="15" fill="#fff">${Math.round(v*100)}</text>`;
+  e+=`<g transform="translate(14 ${y+7})" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="scale(.75)">${ic}</g></g>`;return e};
+ s+=bar(0,vol,'#F5F5F7','c1','<path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="M16 9a5 5 0 0 1 0 6"/>');
+ s+=bar(40,bri,'#FFEDBE','c2','<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/>');
+ $('ct-svg').innerHTML=s;
+}
+const DRAW={agent:drawAgent,ask:drawAsk,sys:drawSys,timer:drawTimer,off:drawOff,clip:drawClip,music:drawMusic,ctl:drawCtl};
+
+function render(t){
+ let i=SCENES.findIndex(s=>t>=s.a&&t<s.b);if(i<0)i=SCENES.length-1;
+ const sc=SCENES[i],prev=SCENES[Math.max(0,i-1)];
+ const k=i===0?1:spring(seg(t,sc.a,sc.a+.7));
+ const w=prev.w+(sc.w-prev.w)*k,h=prev.h+(sc.h-prev.h)*k,r=prev.r+(sc.r-prev.r)*k;
+ const isl=$('island');
+ isl.style.width=(w*S)+'px';isl.style.height=(h*S)+'px';isl.style.marginLeft=(-w*S/2)+'px';
+ isl.style.borderRadius=V?`${r*S}px`:`0 0 ${r*S}px ${r*S}px`;
+ $('pages').style.transform=`translateX(${(w-420)*S/2}px) scale(${S})`;
+ // the eyes rest in the pill and step aside as a page opens
+ const openness=clamp((h-32)/60);
+ $('eyes').style.opacity=1-clamp(openness*2.5);
+ // pages cross-fade
+ const show=sc.id?PAGE[sc.id]:null;
+ document.querySelectorAll('.page').forEach(p=>{
+  const fadeOut=i>0&&prev.id&&PAGE[prev.id]===p.id&&show!==p.id?1-seg(t,sc.a,sc.a+.18):0;
+  const fadeIn=show===p.id?seg(t,sc.a+(prev.id?.12:.22),sc.a+(prev.id?.36:.5)):0;
+  p.style.opacity=Math.max(fadeOut,fadeIn);
+ });
+ if(sc.id)DRAW[sc.id](t,sc);
+ if(i>0&&prev.id&&(sc.id===null||PAGE[prev.id]!==PAGE[sc.id])&&t<sc.a+.2)DRAW[prev.id](t,prev);
+ // captions: in with a small rise, out before the next scene
+ const inn=ease(seg(t,sc.a+.25,sc.a+.7)),out=1-ease(seg(t,sc.b-.3,sc.b-.05));const op=sc.c?inn*out:0;
+ const cap=$('cap'),sub=$('sub');
+ cap.textContent=sc.c?T[sc.c]:'';sub.textContent=sc.s?T[sc.s]:'';
+ cap.style.opacity=op;sub.style.opacity=op*.95;
+ cap.style.transform=`translateY(${(1-inn)*18}px)`;sub.style.transform=`translateY(${(1-inn)*24}px)`;
+ if(V)sub.style.top=(1030+cap.offsetHeight+22)+'px';   // a caption may wrap to two lines here
+ // outro
+ const oo=ease(seg(t,29.6,30.3));
+ $('outro').style.opacity=oo;$('outro').style.transform=`translateY(${(1-oo)*20}px)`;
+ $('o1').textContent=T.o1;$('o2').textContent=T.o2;$('o3').textContent=T.o3;
+ return true;
+}
+window.render=render;window.DURATION=DURATION;render(0);
+</script></body></html>

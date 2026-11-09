@@ -36,7 +36,7 @@ public static class UpdateChecker
     {
         if (!IsRepository(repository))
         {
-            throw new ArgumentException("Repositori harus berformat pemilik/nama.", nameof(repository));
+            throw new ArgumentException(Localization.Text("Repositori harus berformat pemilik/nama.", "The repository must look like owner/name."), nameof(repository));
         }
 
         using var response = await Http.GetAsync($"https://api.github.com/repos/{repository.Trim()}/releases/latest", cancellationToken).ConfigureAwait(false);

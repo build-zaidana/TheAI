@@ -53,6 +53,9 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // Windows' language until the settings are read: a failure this early still speaks it.
+        CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(null));
+
         // A snapshot run (CODEXBAR_SNAPSHOT_DIR) renders previews to files and may run beside the real app.
         var mutexName = Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is { Length: > 0 } ? MutexName + ".Snapshot" : MutexName;
         _singleInstanceMutex = new Mutex(initiallyOwned: true, mutexName, out var createdNew);
@@ -67,7 +70,7 @@ public partial class App : System.Windows.Application
             catch (WaitHandleCannotBeOpenedException)
             {
                 System.Windows.MessageBox.Show(
-                    "TheAI sedang berjalan, tetapi tidak dapat ditampilkan. Gunakan hotkey yang dipilih atau menu tray TheAI.",
+                    Tr.Text("TheAI sedang berjalan, tetapi tidak dapat ditampilkan. Gunakan hotkey yang dipilih atau menu tray TheAI.", "TheAI is running but can't be shown. Use your hotkey or TheAI's tray menu."),
                     "TheAI",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -110,10 +113,17 @@ public partial class App : System.Windows.Application
             {
                 DiagnosticsLog.Info("App", "Data CodexBar dipindahkan ke " + CodexBar.Providers.AppPaths.DataRoot);
             }
-            if (settings.LaunchAtLogin)
+            // The Run key is the truth (the installer's checkbox sets it too), and only the real app
+            // touches it: a test run on its own data must never point sign-in at itself.
+            if (Environment.GetEnvironmentVariable("THEAI_DATA_DIR") is not { Length: > 0 } &&
+                Environment.GetEnvironmentVariable("CODEXBAR_SNAPSHOT_DIR") is not { Length: > 0 })
             {
-                // Refresh the Run-key path in case the executable was moved since last run.
-                StartupRegistration.Apply(true);
+                settings.LaunchAtLogin = StartupRegistration.IsEnabled();
+                if (settings.LaunchAtLogin)
+                {
+                    // Refresh the path in case the executable was moved since last run.
+                    StartupRegistration.Apply(true);
+                }
             }
 
             _provider = CreateProvider(settings.Provider);
@@ -128,7 +138,7 @@ public partial class App : System.Windows.Application
         {
             DiagnosticsLog.Error("Startup", "TheAI gagal dimulai.", exception);
             System.Windows.MessageBox.Show(
-                $"TheAI gagal dimulai.\n\n{exception.Message}",
+                Tr.Text("TheAI gagal dimulai.", "TheAI couldn't start.") + $"\n\n{exception.Message}",
                 "TheAI",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

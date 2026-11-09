@@ -97,6 +97,11 @@ public partial class MainWindow
         if (url.Length > 7000)
         {
             url = url[..7000];   // browsers and GitHub cap the length of a link
+            var escape = url.LastIndexOf('%');
+            if (escape >= url.Length - 2)
+            {
+                url = url[..escape];   // a cut "%2" would make the whole link invalid
+            }
         }
 
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });

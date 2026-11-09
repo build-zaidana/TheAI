@@ -3,12 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TheAI for Windows</title>
+<title>TheAI: a living notch for Windows, for AI agents and your day</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="TheAI turns the top of your Windows screen into a living notch for your AI agents, your day, music and more. Free for Windows 10 and 11.">
+<link rel="canonical" href="https://build-zaidana.github.io/theai-app/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://build-zaidana.github.io/theai-app/">
 <meta property="og:title" content="TheAI: a living notch for Windows">
-<meta property="og:description" content="Your AI agents and your day, at the top of the screen.">
-<meta property="og:image" content="assets/poster-en.jpg">
+<meta property="og:description" content="Your AI agents and your day, at the top of the screen. Free for Windows 10 and 11.">
+<meta property="og:image" content="https://build-zaidana.github.io/theai-app/assets/poster-en.jpg">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1080">
+<meta property="og:video" content="https://build-zaidana.github.io/theai-app/assets/promo-en.mp4">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"TheAI","url":"https://build-zaidana.github.io/theai-app/","description":"A living notch for Windows: AI agents, music, reminders and your day at the top of the screen.","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11","image":"https://build-zaidana.github.io/theai-app/assets/poster-en.jpg","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
 <meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="assets/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,6 +174,12 @@ footer a { color: var(--ink-2); }
   .cta .btn { min-width: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.steps { list-style: none; counter-reset: step; margin: 44px auto 0; padding: 0; max-width: 980px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; text-align: left; }
+.steps li { counter-increment: step; border: 1px solid var(--rule); border-radius: 18px; padding: 20px; background: var(--bg-2); min-width: 0; }
+.steps li::before { content: counter(step); display: block; font: 800 22px/1 var(--display); color: #9b8cff; margin-bottom: 10px; }
+.steps b { display: block; font-weight: 600; margin-bottom: 4px; }
+.steps li > span { display: block; color: var(--ink-2); font-size: 14.5px; }
+@media (max-width: 900px) { .steps { grid-template-columns: minmax(0, 1fr); } }
 .promo { margin: 56px auto 0; max-width: 1040px; }
 .promo video { display: block; width: 100%; height: auto; border-radius: 20px; background: #07080e; border: 1px solid var(--rule); }
 </style>
@@ -198,10 +214,10 @@ footer a { color: var(--ink-2); }
       <h1><span lang="en">Your agents and your day, up top.</span><span lang="id">Agent dan harimu, di puncak layar.</span></h1>
       <p><span lang="en">TheAI turns the top edge of Windows into a living notch. Your AI agents report there, and your day, music and reminders wait one hover away.</span><span lang="id">TheAI mengubah tepi atas Windows jadi notch yang hidup. Agent AI-mu melapor di sana, dan harimu, musik, serta pengingat tinggal satu sentuhan kursor.</span></p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
+        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest" data-download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
         <a class="btn ghost" href="#features"><span lang="en">See what it does</span><span lang="id">Lihat fiturnya</span></a>
       </div>
-      <div class="fine"><span lang="en">x64 · no account · installs for your user only</span><span lang="id">x64 · tanpa akun · terpasang untuk akunmu saja</span></div>
+      <div class="fine"><span lang="en">x64 · no account · installs for your user only<!--release--></span><span lang="id">x64 · tanpa akun · terpasang untuk akunmu saja<!--release--></span></div>
     </div>
 
     <figure class="promo">
@@ -218,7 +234,7 @@ footer a { color: var(--ink-2); }
     <section id="features">
       <div class="kicker"><span lang="en">Everything it does</span><span lang="id">Semua yang bisa dilakukan</span></div>
       <h2><span lang="en">Pick only what you want.</span><span lang="id">Pilih yang kamu mau saja.</span></h2>
-      <p class="lede"><span lang="en">Every feature is optional. On first start you choose, with a picture of each one, and Settings changes it any time.</span><span lang="id">Setiap fitur opsional. Saat pertama dibuka kamu memilih, lengkap dengan gambar tiap fitur, dan Pengaturan bisa mengubahnya kapan saja.</span></p>
+      <p class="lede"><span lang="en">Every feature is optional. On first start you choose, with pictures to show what each does, and Settings changes it any time.</span><span lang="id">Setiap fitur opsional. Saat pertama dibuka kamu memilih, dengan gambar yang menunjukkan fungsinya, dan Pengaturan bisa mengubahnya kapan saja.</span></p>
       <div class="features">
         <article class="feature">
           <span class="tile violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /></svg></span>
@@ -349,8 +365,8 @@ footer a { color: var(--ink-2); }
             <p><span lang="en">The installer isn't code-signed yet. Click More info, then Run anyway. Each release lists its SHA-256 so you can check the file.</span><span lang="id">Installer belum bertanda tangan kode. Klik More info, lalu Run anyway. Setiap rilis mencantumkan SHA-256 untuk mengecek file.</span></p>
           </details>
           <details>
-            <summary><span lang="en">Which AI do I need?</span><span lang="id">AI apa yang dibutuhkan?</span></summary>
-            <p><span lang="en">Claude Code or Codex with your subscription, or an Anthropic, OpenAI or OpenRouter key. TheAI walks you through it.</span><span lang="id">Claude Code atau Codex dengan langgananmu, atau key Anthropic, OpenAI, atau OpenRouter. TheAI memandumu.</span></p>
+            <summary><span lang="en">Do I need an AI subscription?</span><span lang="id">Apakah harus langganan AI?</span></summary>
+            <p><span lang="en">Only for asking an agent. The timer, music, reminders, prayer times and the rest work without one, so you can skip the setup. For agents: Claude Code or Codex with your subscription, or an Anthropic, OpenAI or OpenRouter key.</span><span lang="id">Hanya untuk bertanya ke agent. Timer, musik, pengingat, jadwal sholat, dan lainnya jalan tanpa itu, jadi penyiapannya bisa dilewati. Untuk agent: Claude Code atau Codex dengan langgananmu, atau key Anthropic, OpenAI, atau OpenRouter.</span></p>
           </details>
           <details>
             <summary><span lang="en">Does a scheduled shutdown close my apps?</span><span lang="id">Apakah shutdown terjadwal menutup aplikasiku?</span></summary>
@@ -372,8 +388,13 @@ footer a { color: var(--ink-2); }
       <h2><span lang="en">Bring your notch to life.</span><span lang="id">Hidupkan notch-mu.</span></h2>
       <p><span lang="en">Windows 10 (1809+) and 11 · installer or portable zip</span><span lang="id">Windows 10 (1809+) dan 11 · installer atau versi portable</span></p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
+        <a class="btn primary" href="https://github.com/build-zaidana/theai-app/releases/latest" data-download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <polyline points="7 10 12 15 17 10" /> <line x1="12" x2="12" y1="15" y2="3" /></svg><span lang="en">Download for Windows</span><span lang="id">Unduh untuk Windows</span></a>
       </div>
+      <ol class="steps">
+        <li><b><span lang="en">Run the installer</span><span lang="id">Jalankan installer</span></b><span><span lang="en">No admin rights needed. The installer is not code-signed yet, so Windows may warn you: choose More info, then Run anyway.</span><span lang="id">Tanpa hak admin. Installer belum bertanda tangan kode, jadi Windows mungkin memberi peringatan: pilih More info, lalu Run anyway.</span></span></li>
+        <li><b><span lang="en">Pick your features</span><span lang="id">Pilih fiturmu</span></b><span><span lang="en">Pictures show what each does. Choose a few now and change them any time in Settings.</span><span lang="id">Gambarnya menunjukkan fungsi tiap fitur. Pilih beberapa sekarang, dan ubah kapan saja di Pengaturan.</span></span></li>
+        <li><b><span lang="en">Point at the top of the screen</span><span lang="id">Arahkan ke puncak layar</span></b><span><span lang="en">Hover over the notch to open it, or press Win+Shift+C to ask your agent something.</span><span lang="id">Arahkan kursor ke notch untuk membukanya, atau tekan Win+Shift+C untuk bertanya ke agent.</span></span></li>
+      </ol>
     </section>
   </main>
 
@@ -399,6 +420,29 @@ footer a { color: var(--ink-2); }
   set(saved || ((navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en'));
   buttons.en.addEventListener('click', () => set('en'));
   buttons.id.addEventListener('click', () => set('id'));
+
+  // Not on Windows: the button sends this page to the PC instead of downloading what can't run here.
+  if (!/Windows NT/.test(navigator.userAgent)) {
+    const copy = { en: 'Send the link to my PC', id: 'Kirim link ke PC-ku' };
+    const done = { en: 'Link copied', id: 'Link tersalin' };
+    const label = (button, text) => {
+      button.querySelector('[lang="en"]').textContent = text.en;
+      button.querySelector('[lang="id"]').textContent = text.id;
+    };
+    document.querySelectorAll('[data-download]').forEach((button) => {
+      label(button, copy);
+      button.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const url = location.origin + location.pathname;
+        try {
+          if (navigator.share) { await navigator.share({ title: 'TheAI for Windows', url }); return; }
+          await navigator.clipboard.writeText(url);
+          label(button, done);
+          setTimeout(() => label(button, copy), 2200);
+        } catch (e) { /* share closed, or no clipboard here: nothing was lost */ }
+      });
+    });
+  }
 
   // The tour plays by itself while it can be seen, in the page's language; never with reduced motion.
   const videos = [...document.querySelectorAll('.promo video')];

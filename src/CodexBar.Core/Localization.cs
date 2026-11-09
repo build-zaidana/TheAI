@@ -43,6 +43,9 @@ public sealed class Localization : INotifyPropertyChanged
 
     public void SetLanguage(AppLanguage language) => Language = language;
 
+    /// <summary>Text with no table entry: Indonesian or English, in the language now in use.</summary>
+    public static string Text(string id, string en) => Instance.Language == AppLanguage.En ? en : id;
+
     /// <summary>
     /// A settings code to a language: "id", "en", or "auto" (and anything unknown) = Windows' own
     /// display language — Indonesian when that is Indonesian, English otherwise.
@@ -377,14 +380,14 @@ public static class Strings
         ["onboard.copied"] = ("Tersalin", "Copied"),
         ["onboard.docs"] = ("Buka panduan", "Open guide"),
         ["onboard.install.title"] = ("Codex CLI belum terpasang", "Codex CLI not installed"),
-        ["onboard.install.body"] = ("TheAI memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, lalu jalankan \"codex login\", kemudian klik Coba lagi.", "TheAI uses a logged-in Codex CLI. Install it via PowerShell/Terminal, run \"codex login\", then click Try again."),
+        ["onboard.install.body"] = ("TheAI memakai Codex CLI yang sudah login. Pasang lewat PowerShell/Terminal, lalu jalankan \"codex login\", kemudian klik Periksa lagi.", "TheAI uses a logged-in Codex CLI. Install it via PowerShell/Terminal, run \"codex login\", then click Check again."),
         ["onboard.install.action"] = ("Pasang otomatis", "Auto-install"),
         ["onboard.install.status"] = ("Codex belum terpasang", "Codex not installed"),
         ["onboard.login.title"] = ("Belum login ke Codex", "Not logged in to Codex"),
-        ["onboard.login.body"] = ("Codex sudah terpasang tetapi belum login. Jalankan perintah ini, selesaikan login di browser, lalu klik Coba lagi.", "Codex is installed but not logged in. Run this command, finish the login in your browser, then click Try again."),
+        ["onboard.login.body"] = ("Codex sudah terpasang tetapi belum login. Jalankan perintah ini, selesaikan login di browser, lalu klik Periksa lagi.", "Codex is installed but not logged in. Run this command, finish the login in your browser, then click Check again."),
         ["onboard.login.action"] = ("Buka login", "Open login"),
         ["onboard.login.status"] = ("Belum login", "Not logged in"),
-        ["onboard.login.wait"] = ("Selesaikan login pada jendela yang terbuka, lalu klik Coba lagi.", "Complete the login in the open window, then click Try again."),
+        ["onboard.login.wait"] = ("Selesaikan login pada jendela yang terbuka, lalu klik Periksa lagi.", "Complete the login in the open window, then click Check again."),
         ["onboard.install.progress"] = ("Menyiapkan Codex CLI… Jendela ini boleh tetap terbuka.", "Setting up Codex CLI… You may leave this window open."),
         ["onboard.install.statusProgress"] = ("Memasang Codex CLI…", "Installing Codex CLI…"),
         ["onboard.install.nodeMissing"] = ("Node.js belum terpasang dan Windows Package Manager tidak ditemukan. Buka panduan untuk instalasi manual.", "Node.js is not installed and Windows Package Manager was not found. Open the guide for manual installation."),
@@ -418,13 +421,13 @@ public static class Strings
         ["provider.capability.noWorkspace"] = ("Tidak berlaku untuk provider ini.", "Not applicable for this provider."),
         ["provider.capability.noApprovals"] = ("Provider ini tidak memakai approval/sandbox.", "This provider doesn't use approvals/sandbox."),
         ["onboard.claude.install.title"] = ("Claude Code belum terpasang", "Claude Code not installed"),
-        ["onboard.claude.install.body"] = ("Provider \"Claude (Langganan)\" memakai Claude Code CLI yang login dengan langganan Claude (Pro/Max). Pasang lewat PowerShell/Terminal, jalankan \"claude auth login\", lalu klik Coba lagi.", "The \"Claude (Subscription)\" provider uses the Claude Code CLI signed in with your Claude subscription (Pro/Max). Install it via PowerShell/Terminal, run \"claude auth login\", then click Try again."),
+        ["onboard.claude.install.body"] = ("Provider \"Claude (Langganan)\" memakai Claude Code CLI yang login dengan langganan Claude (Pro/Max). Pasang lewat PowerShell/Terminal, jalankan \"claude auth login\", lalu klik Periksa lagi.", "The \"Claude (Subscription)\" provider uses the Claude Code CLI signed in with your Claude subscription (Pro/Max). Install it via PowerShell/Terminal, run \"claude auth login\", then click Check again."),
         ["onboard.claude.install.status"] = ("Claude Code belum terpasang", "Claude Code not installed"),
         ["onboard.claude.install.progress"] = ("Menyiapkan Claude Code… Jendela ini boleh tetap terbuka.", "Setting up Claude Code… You may leave this window open."),
         ["onboard.claude.install.statusProgress"] = ("Memasang Claude Code…", "Installing Claude Code…"),
         ["onboard.claude.install.success"] = ("Claude Code sudah terpasang. Klik Buka login untuk menghubungkan langganan Claude.", "Claude Code is installed. Click Open login to connect your Claude subscription."),
         ["onboard.claude.login.title"] = ("Belum login ke Claude", "Not logged in to Claude"),
-        ["onboard.claude.login.body"] = ("Claude Code sudah terpasang tetapi belum login. Jalankan perintah ini, pilih akun langganan Claude di browser, lalu klik Coba lagi.", "Claude Code is installed but not logged in. Run this command, sign in with your Claude subscription in the browser, then click Try again."),
+        ["onboard.claude.login.body"] = ("Claude Code sudah terpasang tetapi belum login. Jalankan perintah ini, pilih akun langganan Claude di browser, lalu klik Periksa lagi.", "Claude Code is installed but not logged in. Run this command, sign in with your Claude subscription in the browser, then click Check again."),
         ["tray.show"] = ("Buka TheAI", "Open TheAI"),
         ["tray.displayMode"] = ("Mode tampilan", "Display mode"),
         ["tray.settings"] = ("Pengaturan…", "Settings…"),
@@ -532,6 +535,20 @@ public static class Strings
         ["notch.age.yesterday"] = ("kemarin", "yesterday"),
         ["claudeCode.status.ready"] = ("Claude (langganan) siap", "Claude (subscription) ready"),
         ["claudeCode.status.thinking"] = ("Claude sedang menjawab…", "Claude is responding…"),
+        ["anthropic.status.ready"] = ("Claude siap", "Claude is ready"),
+        ["anthropic.error.noKey"] = ("API key Anthropic belum diatur.", "The Anthropic API key isn't set."),
+        ["anthropic.status.thinking"] = ("Claude sedang menjawab…", "Claude is responding…"),
+        ["anthropic.error.http"] = ("Claude API error {0}: {1}", "Claude API error {0}: {1}"),
+        ["anthropic.error.request"] = ("Gagal menghubungi Claude: {0}", "Couldn't reach Claude: {0}"),
+        ["claudeCode.compact.none"] = ("Claude Code tidak memadatkan percakapan ini.", "Claude Code didn't compact this conversation."),
+        ["openai.status.ready"] = ("{0} siap", "{0} is ready"),
+        ["openai.error.noKey"] = ("API key {0} belum diatur.", "The {0} API key isn't set."),
+        ["openai.status.thinking"] = ("{0} sedang menjawab…", "{0} is responding…"),
+        ["openai.error.request"] = ("Gagal menghubungi {0}: {{0}}", "Couldn't reach {0}: {{0}}"),
+        ["openrouter.status.ready"] = ("{0} siap", "{0} is ready"),
+        ["openrouter.error.noKey"] = ("API key {0} belum diatur.", "The {0} API key isn't set."),
+        ["openrouter.status.thinking"] = ("{0} sedang menjawab…", "{0} is responding…"),
+        ["openrouter.error.request"] = ("Gagal menghubungi {0}: {{0}}", "Couldn't reach {0}: {{0}}"),
         ["claudeCode.status.tool"] = ("Claude memakai {0}…", "Claude is using {0}…"),
         ["claudeCode.error.run"] = ("Gagal menjalankan Claude Code: {0}", "Failed to run Claude Code: {0}"),
         ["claudeCode.error.exit"] = ("Claude Code keluar dengan kode {0}: {1}", "Claude Code exited with code {0}: {1}"),

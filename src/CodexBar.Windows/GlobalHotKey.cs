@@ -30,19 +30,19 @@ public sealed class GlobalHotKey : IDisposable
         var handle = new WindowInteropHelper(window).Handle;
         if (handle == 0)
         {
-            throw new InvalidOperationException("Handle window belum tersedia untuk mendaftarkan hotkey.");
+            throw new InvalidOperationException("No window handle to register the hotkey on yet.");
         }
 
         if (_handle != 0 && _handle != handle)
         {
-            throw new InvalidOperationException("GlobalHotKey sudah terhubung ke window lain.");
+            throw new InvalidOperationException("GlobalHotKey is already attached to another window.");
         }
 
         _handle = handle;
         if (_source is null)
         {
             _source = HwndSource.FromHwnd(_handle)
-                ?? throw new InvalidOperationException("Sumber window tidak tersedia untuk mendaftarkan hotkey.");
+                ?? throw new InvalidOperationException("No window source to register the hotkey on.");
             _source.AddHook(WindowProc);
         }
 
@@ -53,7 +53,7 @@ public sealed class GlobalHotKey : IDisposable
     {
         if (_handle == 0)
         {
-            throw new InvalidOperationException("Window belum siap untuk mendaftarkan hotkey.");
+            throw new InvalidOperationException("The window isn't ready to register the hotkey.");
         }
 
         var requested = Parse(gesture);
@@ -68,7 +68,7 @@ public sealed class GlobalHotKey : IDisposable
 
         if (_registered && !UnregisterHotKey(_handle, _hotKeyId))
         {
-            throw new InvalidOperationException("Hotkey lama tidak dapat dilepas. Coba tutup lalu buka kembali TheAI.");
+            throw new InvalidOperationException(CodexBar.Core.Localization.Text("Hotkey lama tidak dapat dilepas. Coba tutup lalu buka kembali TheAI.", "The old hotkey can't be released. Close TheAI and open it again."));
         }
 
         _registered = false;
@@ -92,7 +92,7 @@ public sealed class GlobalHotKey : IDisposable
         }
 
         throw new InvalidOperationException(
-            $"Hotkey {requested.DisplayName} tidak dapat dipakai (Windows error {errorCode}). Kombinasi mungkin sedang digunakan aplikasi lain.");
+            CodexBar.Core.Localization.Text($"Hotkey {requested.DisplayName} tidak dapat dipakai (Windows error {errorCode}). Kombinasi mungkin sedang digunakan aplikasi lain.", $"Hotkey {requested.DisplayName} can't be used (Windows error {errorCode}). Another app may be using it."));
     }
 
     public static string NormalizeGesture(string gesture) => Parse(gesture).DisplayName;
@@ -101,7 +101,7 @@ public sealed class GlobalHotKey : IDisposable
     {
         if (string.IsNullOrWhiteSpace(gesture))
         {
-            throw new FormatException("Hotkey tidak boleh kosong.");
+            throw new FormatException(CodexBar.Core.Localization.Text("Hotkey tidak boleh kosong.", "The hotkey can't be empty."));
         }
 
         uint modifiers = 0;
@@ -136,18 +136,18 @@ public sealed class GlobalHotKey : IDisposable
 
         if (modifiers == 0)
         {
-            throw new FormatException("Hotkey harus memakai minimal satu modifier: Win, Ctrl, Alt, atau Shift.");
+            throw new FormatException(CodexBar.Core.Localization.Text("Hotkey harus memakai minimal satu modifier: Win, Ctrl, Alt, atau Shift.", "The hotkey needs at least one of Win, Ctrl, Alt or Shift."));
         }
 
         if (key is null)
         {
-            throw new FormatException("Hotkey belum memiliki tombol utama.");
+            throw new FormatException(CodexBar.Core.Localization.Text("Hotkey belum memiliki tombol utama.", "The hotkey needs a main key."));
         }
 
         var virtualKey = (uint)KeyInterop.VirtualKeyFromKey(key.Value);
         if (virtualKey == 0)
         {
-            throw new FormatException("Tombol utama tidak didukung sebagai hotkey global.");
+            throw new FormatException(CodexBar.Core.Localization.Text("Tombol utama tidak didukung sebagai hotkey global.", "That key can't be used for a global hotkey."));
         }
 
         var parts = new List<string>();
@@ -178,7 +178,7 @@ public sealed class GlobalHotKey : IDisposable
             key is Key.None or Key.LeftAlt or Key.RightAlt or Key.LeftCtrl or Key.RightCtrl or
                 Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
         {
-            throw new FormatException($"Tombol '{token}' tidak didukung.");
+            throw new FormatException(CodexBar.Core.Localization.Text($"Tombol '{token}' tidak didukung.", $"The key '{token}' isn't supported."));
         }
 
         return key;

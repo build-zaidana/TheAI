@@ -464,7 +464,9 @@ static async Task<int> RunDeterministicTestsAsync()
         Localization.Instance.SetLanguage(AppLanguage.En);
         Assert(localizationChanged && Localization.Instance["settings.close"] == "Close",
             "Ganti bahasa harus memicu notifikasi dan indexer mengikuti bahasa baru.");
+        Assert(Localization.Text("Tutup", "Close") == "Close", "Teks tanpa tabel harus ikut bahasa Inggris.");
         Localization.Instance.SetLanguage(AppLanguage.Id);
+        Assert(Localization.Text("Tutup", "Close") == "Tutup", "Teks tanpa tabel harus ikut bahasa Indonesia.");
         Localization.Instance.PropertyChanged -= OnLocalizationChanged;
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,

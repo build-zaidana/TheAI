@@ -92,7 +92,7 @@ public sealed class JsonSettingsStore
     {
         var fullPath = Path.GetFullPath(destinationPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)
-            ?? throw new InvalidOperationException("Folder tujuan export tidak valid."));
+            ?? throw new InvalidOperationException(CodexBar.Core.Localization.Text("Folder tujuan export tidak valid.", "The export folder isn't valid.")));
         var temporaryPath = $"{fullPath}.{Guid.NewGuid():N}.tmp";
         try
         {
