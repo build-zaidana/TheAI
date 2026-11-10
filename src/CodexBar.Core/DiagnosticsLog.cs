@@ -4,7 +4,7 @@ namespace CodexBar.Core;
 
 /// <summary>
 /// Opt-in diagnostics logging. When enabled, writes newline-delimited entries to a
-/// per-day file (<c>codexbar-yyyyMMdd.log</c>) under <c>{baseDirectory}\logs</c> and
+/// per-day file (<c>theai-yyyyMMdd.log</c>) under <c>{baseDirectory}\logs</c> and
 /// prunes files older than the retention window on configure.
 ///
 /// Disabled by default. Every operation is best-effort: logging must never throw or
@@ -79,7 +79,7 @@ public static class DiagnosticsLog
             directory = _logDirectory;
             try
             {
-                var path = Path.Combine(directory, $"codexbar-{DateTime.Now:yyyyMMdd}.log");
+                var path = Path.Combine(directory, $"theai-{DateTime.Now:yyyyMMdd}.log");
                 var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {category}: {message}{Environment.NewLine}";
                 File.AppendAllText(path, line, Encoding.UTF8);
             }
@@ -95,7 +95,7 @@ public static class DiagnosticsLog
         try
         {
             var cutoff = DateTime.Now.AddDays(-RetentionDays);
-            foreach (var file in System.IO.Directory.EnumerateFiles(directory, "codexbar-*.log"))
+            foreach (var file in System.IO.Directory.EnumerateFiles(directory, "*-*.log"))
             {
                 if (File.GetLastWriteTime(file) < cutoff)
                 {

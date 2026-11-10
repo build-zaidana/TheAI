@@ -4,7 +4,7 @@ using CodexBar.Providers;
 
 namespace CodexBar.Providers.ClaudeCode;
 
-/// <summary>A Claude Code session found on disk (terminal, IDE, desktop app, or CodexBar itself).</summary>
+/// <summary>A Claude Code session found on disk (terminal, IDE, desktop app, or TheAI itself).</summary>
 public sealed record ClaudeSessionInfo(
     string SessionId,
     string FilePath,
@@ -19,7 +19,7 @@ public sealed record ClaudeSessionInfo(
 
 /// <summary>
 /// Reads the session transcripts Claude Code keeps under <c>~/.claude/projects/&lt;project&gt;/&lt;id&gt;.jsonl</c>,
-/// so sessions started anywhere can be listed and continued from CodexBar. Files can be large
+/// so sessions started anywhere can be listed and continued from TheAI. Files can be large
 /// (tool output), so a summary only parses the few lines it needs and is cached by size and
 /// write time.
 /// </summary>
@@ -161,7 +161,7 @@ public static class ClaudeSessionFiles
         string? turnEnd = null;
         DateTimeOffset? turnTime = null;
 
-        // A session file can hold branches (e.g. a prompt sent from CodexBar while Claude Code
+        // A session file can hold branches (e.g. a prompt sent from TheAI while Claude Code
         // kept going): show only the latest one, from its root to its newest message.
         var all = ReadLines(filePath).ToList();
         var lines = LatestBranch(all) ?? all;
@@ -319,7 +319,7 @@ public static class ClaudeSessionFiles
 
     /// <summary>
     /// The latest branch of the conversation, root first: the newest line no other line answers
-    /// (a file can hold branches, e.g. a prompt sent from CodexBar while Claude Code went on).
+    /// (a file can hold branches, e.g. a prompt sent from TheAI while Claude Code went on).
     /// Lines are not always written in conversation order, so the chain decides it. Null when the
     /// file has no uuids (older format: read it in file order).
     /// </summary>
@@ -359,7 +359,7 @@ public static class ClaudeSessionFiles
                 writer.WriteString("customTitle", title);
                 writer.WriteString("sessionId", newId);
                 // Ours until Claude Code itself writes to it (see ActiveElsewhere).
-                writer.WriteString("entrypoint", "codexbar");
+                writer.WriteString("entrypoint", "theai");
                 writer.WriteEndObject();
             }
 
@@ -420,7 +420,7 @@ public static class ClaudeSessionFiles
 
     /// <summary>
     /// True when the session was written by Claude Code itself (terminal, IDE, desktop) in the last
-    /// <paramref name="within"/>: it is probably open there, and a prompt sent from CodexBar
+    /// <paramref name="within"/>: it is probably open there, and a prompt sent from TheAI
     /// becomes a branch that app won't see.
     /// </summary>
     public static bool ActiveElsewhere(string sessionId, TimeSpan within)
@@ -445,7 +445,7 @@ public static class ClaudeSessionFiles
             }
         }
 
-        return last is not null and not ("sdk-cli" or "codexbar");
+        return last is not null and not ("sdk-cli" or "codexbar" or "theai");
     }
 
     internal static (IReadOnlyList<ProviderActivityStep> Steps, string Answer) SplitTurn(
@@ -495,7 +495,7 @@ public static class ClaudeSessionFiles
 
     /// <summary>Where pasted images from transcripts are kept (one file per image, by content).</summary>
     public static string ImageCacheFolder { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "cache", "images");
+        CodexBar.Providers.AppPaths.DataRoot, "cache", "images");
 
     // Images the person pasted into a prompt, written once to the cache so the chat can show them.
     private static IReadOnlyList<string> HumanImages(string line)
@@ -718,7 +718,11 @@ public static class ClaudeSessionFiles
     internal static ClaudeSessionInfo? Parse(FileInfo file)
     {
         string? cwd = null, entrypoint = null, firstPrompt = null, customTitle = null, aiTitle = null;
-        foreach (var line in ReadLines(file.FullName))
+        // Only the title lines and the first prompt matter; the rest (tool output, often 100+ MB)
+        // is skipped as bytes instead of becoming strings.
+        foreach (var line in MatchingLines(file.FullName, prefix =>
+                     prefix.IndexOf(CustomTitleMarker) >= 0 || prefix.IndexOf(AiTitleMarker) >= 0 ||
+                     firstPrompt is null && prefix.IndexOf(UserMarker) >= 0))
         {
             if (line.Contains("\"type\":\"custom-title\"", StringComparison.Ordinal))
             {
@@ -818,6 +822,72 @@ public static class ClaudeSessionFiles
                 .Select(block => Str(block, "text") ?? string.Empty)).Trim();
             return text.Length > 0 ? text : null;
         }
+    }
+
+    private static ReadOnlySpan<byte> CustomTitleMarker => "\"type\":\"custom-title\""u8;
+    private static ReadOnlySpan<byte> AiTitleMarker => "\"type\":\"ai-title\""u8;
+    private static ReadOnlySpan<byte> UserMarker => "\"type\":\"user\""u8;
+
+    /// <summary>How much of a line decides whether it is read: the record's "type" comes before its content.</summary>
+    internal const int LinePrefixBytes = 16 * 1024;
+
+    internal delegate bool LineFilter(ReadOnlySpan<byte> prefix);
+
+    /// <summary>
+    /// The lines whose first <see cref="LinePrefixBytes"/> pass <paramref name="wanted"/>, decoded; every
+    /// other line is skipped without being turned into a string.
+    /// </summary>
+    internal static IEnumerable<string> MatchingLines(string path, LineFilter wanted)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.SequentialScan);
+        var buffer = new byte[1 << 20];
+        var line = new MemoryStream();   // the current line: its prefix, or all of it once wanted
+        bool? keep = null;                // undecided until the prefix (or the whole line) is in
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            var position = 0;
+            while (position < read)
+            {
+                var newline = Array.IndexOf(buffer, (byte)'\n', position, read - position);
+                var end = newline < 0 ? read : newline;
+                if (keep != false)
+                {
+                    var take = keep == true ? end - position : Math.Min(end - position, LinePrefixBytes - (int)line.Length);
+                    line.Write(buffer, position, take);
+                    if (keep is null && line.Length >= LinePrefixBytes)
+                    {
+                        keep = wanted(line.GetBuffer().AsSpan(0, (int)line.Length));
+                        if (keep == true)
+                        {
+                            line.Write(buffer, position + take, end - position - take);
+                        }
+                    }
+                }
+
+                if (newline < 0)
+                {
+                    break;
+                }
+
+                if (Finish(line, keep ?? wanted(line.GetBuffer().AsSpan(0, (int)line.Length))) is { } text)
+                {
+                    yield return text;
+                }
+
+                line.SetLength(0);
+                keep = null;
+                position = newline + 1;
+            }
+        }
+
+        if (line.Length > 0 && Finish(line, keep ?? wanted(line.GetBuffer().AsSpan(0, (int)line.Length))) is { } last)
+        {
+            yield return last;
+        }
+
+        static string? Finish(MemoryStream line, bool keep) =>
+            keep ? Encoding.UTF8.GetString(line.GetBuffer(), 0, (int)line.Length).TrimEnd('\r') : null;
     }
 
     private static IEnumerable<string> ReadLines(string path)

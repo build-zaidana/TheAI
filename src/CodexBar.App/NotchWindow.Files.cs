@@ -57,6 +57,7 @@ public partial class NotchWindow
 
     private void AddChangedFiles(Activity activity, IReadOnlyList<ProviderFileChange> changes)
     {
+        RecordDay(day => day.ChangedFiles(changes.Select(change => change.MovePath is { Length: > 0 } moved ? moved : change.Path)));
         var files = activity.Files;
         foreach (var change in changes)
         {
@@ -161,10 +162,10 @@ public partial class NotchWindow
         label.Inlines.Add(new System.Windows.Documents.Run(name) { FontSize = 13 });
         if (folder.Length > 0)
         {
-            label.Inlines.Add(new System.Windows.Documents.Run("  " + folder) { FontSize = 11, Foreground = (Brush)FindResource("NotchText3") });
+            label.Inlines.Add(new System.Windows.Documents.Run("  " + folder) { FontSize = 12, Foreground = (Brush)FindResource("NotchText3") });
         }
 
-        var counts = new TextBlock { FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+        var counts = new TextBlock { FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
         if (file.Added > 0)
         {
             counts.Inlines.Add(new System.Windows.Documents.Run($"+{file.Added}") { Foreground = (Brush)FindResource("NotchGreen") });
@@ -182,7 +183,7 @@ public partial class NotchWindow
         {
             Text = badge,
             Width = 14,
-            FontSize = 11,
+            FontSize = 12,
             FontWeight = FontWeights.Bold,
             Foreground = badgeBrush,
             Margin = new Thickness(0, 0, 10, 0),
@@ -293,7 +294,7 @@ public partial class NotchWindow
         {
             Text = text.Replace("\t", "    "),
             FontFamily = new FontFamily("Cascadia Mono, Consolas"),
-            FontSize = 11.5,
+            FontSize = 12.5,
             LineHeight = 17,
             Foreground = foreground,
             TextTrimming = TextTrimming.CharacterEllipsis

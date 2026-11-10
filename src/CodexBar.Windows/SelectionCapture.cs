@@ -4,7 +4,7 @@ using System.Windows;
 namespace CodexBar.Windows;
 
 /// <summary>
-/// Copies the current foreground application's selection without activating CodexBar.
+/// Copies the current foreground application's selection without activating TheAI.
 /// A changed clipboard sequence is required, so an empty selection never reuses stale text.
 /// </summary>
 public static class SelectionCapture

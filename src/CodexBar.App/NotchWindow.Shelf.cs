@@ -23,11 +23,11 @@ namespace CodexBar.App;
 // together, or cleared. The compact notch shows a tray and how many files wait.
 public partial class NotchWindow
 {
-    private const double ShelfWidth = 440;
+    private const double ShelfWidth = IslandTokens.WidthM;
     private const int ShelfLimit = 24;
 
     private static readonly string ShelfFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "shelf.json");
+        CodexBar.Providers.AppPaths.DataRoot, "shelf.json");
 
     private readonly List<string> _shelf = [];
     private Point _shelfDragStart;
@@ -43,6 +43,10 @@ public partial class NotchWindow
             {
                 // Files moved or deleted since leave the shelf quietly.
                 _shelf.AddRange(saved.Where(path => File.Exists(path) || Directory.Exists(path)).Distinct(StringComparer.OrdinalIgnoreCase).Take(ShelfLimit));
+                if (_shelf.Count != saved.Count)
+                {
+                    SaveShelf();
+                }
             }
         }
         catch (Exception exception)
@@ -214,7 +218,7 @@ public partial class NotchWindow
         item.Children.Add(new TextBlock
         {
             Text = name,
-            FontSize = 10.5,
+            FontSize = 12.5,
             Foreground = (Brush)FindResource("NotchText3"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,

@@ -24,7 +24,9 @@ public partial class NotchWindow
     private void PlaceCompactChatButton()
     {
         CompactTimer.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+        CompactJob.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
         var shift = CompactTimer.Visibility == Visibility.Visible ? CompactTimer.DesiredSize.Width + 6
+            : CompactJob.Visibility == Visibility.Visible ? CompactJob.DesiredSize.Width + 6
             : CompactArt.Visibility == Visibility.Visible || CompactShelf.Visibility == Visibility.Visible || CompactCalendar.Visibility == Visibility.Visible ? 24
             : CompactGlyph.Visibility == Visibility.Visible ? 19 : -4;
         var vertical = CompactGlyph.HorizontalAlignment == System.Windows.HorizontalAlignment.Center;

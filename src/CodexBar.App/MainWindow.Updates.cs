@@ -4,8 +4,10 @@ using CodexBar.Core;
 namespace CodexBar.App;
 
 // Update check: a little after start and then daily, the public release repository is asked for
-// a newer version. A newer one shows a toast (Download / Skip this version) and a tray line;
-// downloading opens the release page in the browser, nothing installs on its own.
+// a newer version. A newer one shows a toast. When the release publishes its installer's SHA-256,
+// "Update now" downloads it (progress in the notch), checks the hash, installs it silently and
+// TheAI restarts on the new version; otherwise "Download" opens the release in the browser.
+// Nothing ever installs without that click.
 public partial class MainWindow
 {
     private DispatcherTimer? _updateTimer;
@@ -42,17 +44,20 @@ public partial class MainWindow
             _availableUpdate = update;
             if (update is null)
             {
-                return string.Format(Tr.Text("CodexBar {0} sudah yang terbaru.", "CodexBar {0} is up to date."), CurrentVersion.ToString(3));
+                return string.Format(Tr.Text("TheAI {0} sudah yang terbaru.", "TheAI {0} is up to date."), CurrentVersion.ToString(3));
             }
 
             if (manual || update.Tag != _settings.SkippedUpdate)
             {
                 _notifier.Show(
-                    string.Format(Tr.Text("CodexBar {0} tersedia", "CodexBar {0} is available"), update.Version.ToString(3)),
+                    string.Format(Tr.Text("TheAI {0} tersedia", "TheAI {0} is available"), update.Version.ToString(3)),
                     CompletionNotifier.Preview(update.Notes.Length > 0 ? update.Notes : Tr.Text("Versi baru sudah dirilis.", "A new version is out.")),
                     "update",
                     withSound: false,
-                    [(Tr.Text("Unduh", "Download"), "update-download"), (Tr.Text("Lewati versi ini", "Skip this version"), "update-skip")],
+                    [update.CanInstall
+                        ? (Tr.Text("Perbarui sekarang", "Update now"), "update-install")
+                        : (Tr.Text("Unduh", "Download"), "update-download"),
+                     (Tr.Text("Lewati versi ini", "Skip this version"), "update-skip")],
                     "update");
             }
 
@@ -77,6 +82,43 @@ public partial class MainWindow
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+    }
+
+    private bool _installingUpdate;
+
+    /// <summary>Download, verify and run the new installer; TheAI closes so it can be replaced.</summary>
+    private async Task InstallUpdateAsync()
+    {
+        if (_availableUpdate is not { CanInstall: true } update || _installingUpdate)
+        {
+            OpenUpdateDownload();
+            return;
+        }
+
+        _installingUpdate = true;
+        var title = $"TheAI {update.Version.ToString(3)}";
+        var progress = new Progress<double>(fraction =>
+            _notch?.ShowJob(new LiveJobUpdate("update", title, fraction, Tr.Text("mengunduh pembaruan", "downloading the update"))));
+        _notch?.ShowJob(new LiveJobUpdate("update", title, 0, Tr.Text("mengunduh pembaruan", "downloading the update")));
+        try
+        {
+            var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "TheAI-update");
+            var installer = await UpdateInstaller.DownloadAsync(update, folder, progress);
+            _notch?.ShowJob(new LiveJobUpdate("update", title, Detail: Tr.Text("memasang…", "installing…"), Done: true));
+            DiagnosticsLog.Info("Update", $"installing {update.Tag}");
+            // Silent, closes this TheAI (the installer knows its mutex), and starts the new one when done.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer,
+                "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /update=1") { UseShellExecute = true });
+            await Task.Delay(800);
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (Exception exception)
+        {
+            _installingUpdate = false;
+            DiagnosticsLog.Error("Update", exception.Message);
+            _notch?.ShowJob(new LiveJobUpdate("update", title, Failed: Tr.Text("gagal — buka rilisnya", "failed — opening the release")));
+            OpenUpdateDownload();
         }
     }
 

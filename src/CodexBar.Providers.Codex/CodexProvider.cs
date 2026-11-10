@@ -87,8 +87,8 @@ public sealed class CodexProvider : IAgentProvider
                     {
                         clientInfo = new
                         {
-                            name = "codexbar",
-                            title = "CodexBar",
+                            name = "theai",
+                            title = "TheAI",
                             version = typeof(CodexProvider).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"
                         }
                     },
@@ -951,7 +951,7 @@ public sealed class CodexProvider : IAgentProvider
             "item/fileChange/requestApproval" or
             "item/permissions/requestApproval"))
         {
-            _ = SendRpcErrorSafeAsync(requestId, -32601, $"Request belum didukung CodexBar: {method}");
+            _ = SendRpcErrorSafeAsync(requestId, -32601, $"TheAI doesn't support this request yet: {method}");
             return;
         }
 
@@ -1127,7 +1127,7 @@ public sealed class CodexProvider : IAgentProvider
         Emit(new ProviderUserInputEvent(
             LF("provider.mcp.connectTitle", "Hubungkan {0}", serverName),
             GetString(parameters, "message") ?? L("provider.mcp.connectMessage",
-                "Selesaikan langkah pada browser lalu kembali ke CodexBar."),
+                "Selesaikan langkah pada browser lalu kembali ke TheAI."),
             [new ProviderInputQuestion(
                 "completed",
                 L("provider.mcp.confirmHeader", "Konfirmasi"),

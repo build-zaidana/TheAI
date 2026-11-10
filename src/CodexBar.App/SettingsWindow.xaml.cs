@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -45,6 +46,10 @@ internal interface ISettingsHost
     (bool Ok, string Message) ApplyChatHotkey(string gesture);
     Task<string> CheckForUpdateAsync();
     (bool Ok, string Message) SetClaudeLiveSessions(bool on);
+    (bool Ok, string Message) SetGeminiLiveSessions(bool on);
+
+    /// <summary>Open the feature picker.</summary>
+    void ShowFeatures();
     Task InstallVoiceAsync(IProgress<double> progress, CancellationToken cancellationToken);
     void UninstallVoice();
     void OpenLogin();
@@ -56,11 +61,11 @@ internal interface ISettingsHost
 public partial class SettingsWindow : Window
 {
     private static readonly string[] ApiKeyProviders = ["anthropic", "openai", "openrouter"];
-    private static readonly Brush Green = Frozen(Color.FromRgb(0x28, 0xA7, 0x45));
-    private static readonly Brush Orange = Frozen(Color.FromRgb(0xF2, 0x9B, 0x0A));
-    private static readonly Brush Grey = Frozen(Color.FromRgb(0xC7, 0xC7, 0xCC));
+    private Brush Green => (Brush)FindResource("FluentGreen");
+    private Brush Orange => (Brush)FindResource("FluentOrange");
+    private Brush Grey => (Brush)FindResource("FluentDotOff");
     private static readonly Brush Red = Frozen(Color.FromRgb(0xE5, 0x48, 0x3E));
-    private static readonly Brush Muted = Frozen(Color.FromRgb(0x6E, 0x6E, 0x73));
+    private Brush Muted => (Brush)FindResource("FluentText2");
 
     private readonly ISettingsHost _host;
     private readonly DispatcherTimer _sliderApply = new() { Interval = TimeSpan.FromMilliseconds(250) };
@@ -70,6 +75,9 @@ public partial class SettingsWindow : Window
     {
         _host = host;
         InitializeComponent();
+        FluentDialog.FitWorkArea(this);
+        PageTitle.Text = Tr.Text("Umum", "General");   // General is checked in the XAML, before this title exists
+        AccessibleNames.FromRows(this);
         _sliderApply.Tick += (_, _) =>
         {
             _sliderApply.Stop();
@@ -84,7 +92,7 @@ public partial class SettingsWindow : Window
             "Klik kolom, lalu tekan kombinasi baru (misalnya Ctrl+Shift+A). Esc untuk batal.",
             "Click a field, then press the new combination (e.g. Ctrl+Shift+A). Esc cancels.");
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
-        VersionText.Text = $"CodexBar {version}";
+        VersionText.Text = $"TheAI {version}";
 
         _host.StateChanged += Host_StateChanged;
         Closed += (_, _) => _host.StateChanged -= Host_StateChanged;
@@ -142,6 +150,29 @@ public partial class SettingsWindow : Window
         MusicToastSwitch.IsChecked = s.MusicTrackToast;
         MusicLyricsSwitch.IsChecked = s.MusicLyrics;
         SystemHudSwitch.IsChecked = s.SystemHud;
+        FullscreenSwitch.IsChecked = s.HideInFullscreen;
+        HoldFocusSwitch.IsChecked = s.HoldDuringFocus;
+        LiveActivitiesSwitch.IsChecked = s.LiveActivities;
+        GitHubSwitch.IsChecked = s.GitHubChecks;
+        RecapSwitch.IsChecked = s.RecapEvening;
+        ClipboardSwitch.IsChecked = s.ClipboardHistory;
+        DownloadsSwitch.IsChecked = s.DownloadsToShelf;
+        SystemMonitorSwitch.IsChecked = s.SystemMonitor;
+        WeatherCityField.Text = s.WeatherCity;
+        WorldClocksField.Text = s.WorldClocks;
+        WorldClocksHint.Text = Tr.Text("Mis. Tokyo=Asia/Tokyo, America/New_York (maks. 4)", "e.g. Tokyo=Asia/Tokyo, America/New_York (up to 4)");
+        WaterGoalField.Text = s.WaterGoalMl.ToString(CultureInfo.InvariantCulture);
+        WaterGlassField.Text = s.WaterGlassMl.ToString(CultureInfo.InvariantCulture);
+        WaterEveryField.Text = s.WaterEveryMinutes.ToString(CultureInfo.InvariantCulture);
+        WaterHoursField.Text = string.Format(CultureInfo.InvariantCulture, "{0}-{1}", s.WaterFromHour, s.WaterUntilHour);
+        CombinedPagesSwitch.IsChecked = s.CombinedPages;
+        ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
+        ShellStatus.Text = ShellSwitch.IsChecked == true
+            ? Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal")
+            : Tr.Text("PowerShell: perintah ≥ 10 detik tampil di notch (menambah 1 baris di $PROFILE)", "PowerShell: commands of 10 s or more show in the notch (adds 1 line to $PROFILE)");
+        LiveActivitiesHint.Text = Tr.Text(
+            $@"TheAI.exe activity build --progress 0.4 — atau JSON ke \\.\pipe\{Hud.LiveJobPipe.Name}",
+            $@"TheAI.exe activity build --progress 0.4 — or JSON to \\.\pipe\{Hud.LiveJobPipe.Name}");
         Select(CalendarSourcePopup, s.CalendarSource);
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         CalendarLinkField.ToolTip = CodexBar.Core.CredentialStore.TryRead(CodexBar.App.Hud.CalendarReader.IcsCredential) is { Length: > 0 }
@@ -168,6 +199,10 @@ public partial class SettingsWindow : Window
         ShotHotkeyField.Text = s.ScreenshotHotkey;
         ClaudeLiveSwitch.IsChecked = s.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled();
         ClaudeImportSwitch.IsChecked = s.ClaudeImportSessions;
+        GeminiLiveSwitch.IsChecked = s.GeminiLiveSessions && GeminiHooksInstaller.IsInstalled();
+        GeminiLiveStatus.Text = GeminiLiveSwitch.IsChecked == true
+            ? Tr.Text("Hooks terpasang di ~/.gemini/settings.json", "Hooks installed in ~/.gemini/settings.json")
+            : Tr.Text("Memasang hooks di ~/.gemini/settings.json", "Adds hooks to ~/.gemini/settings.json");
         ClaudeLiveStatus.Text = ClaudeLiveSwitch.IsChecked == true
             ? Tr.Text("Hooks terpasang di ~/.claude/settings.json", "Hooks installed in ~/.claude/settings.json")
             : Tr.Text("Memasang hooks di ~/.claude/settings.json", "Adds hooks to ~/.claude/settings.json");
@@ -291,7 +326,7 @@ public partial class SettingsWindow : Window
         }
 
         var s = _host.Settings;
-        s.Language = TagOf(LanguagePopup) == "en" ? "en" : "id";
+        s.Language = TagOf(LanguagePopup) is "en" or "id" ? TagOf(LanguagePopup)! : "auto";
         s.Appearance.Theme = TagOf(ThemePopup) ?? "system";
         s.LaunchAtLogin = LaunchAtLoginSwitch.IsChecked == true;
         s.AutoCopyResponse = AutoCopySwitch.IsChecked == true;
@@ -313,6 +348,26 @@ public partial class SettingsWindow : Window
         s.MusicTrackToast = MusicToastSwitch.IsChecked == true;
         s.MusicLyrics = MusicLyricsSwitch.IsChecked == true;
         s.SystemHud = SystemHudSwitch.IsChecked == true;
+        s.HideInFullscreen = FullscreenSwitch.IsChecked == true;
+        s.HoldDuringFocus = HoldFocusSwitch.IsChecked == true;
+        s.LiveActivities = LiveActivitiesSwitch.IsChecked == true;
+        s.GitHubChecks = GitHubSwitch.IsChecked == true;
+        s.RecapEvening = RecapSwitch.IsChecked == true;
+        s.ClipboardHistory = ClipboardSwitch.IsChecked == true;
+        s.DownloadsToShelf = DownloadsSwitch.IsChecked == true;
+        s.SystemMonitor = SystemMonitorSwitch.IsChecked == true;
+        s.WeatherCity = WeatherCityField.Text.Trim();
+        s.WorldClocks = WorldClocksField.Text.Trim();
+        s.WaterGoalMl = NumberIn(WaterGoalField, s.WaterGoalMl);
+        s.WaterGlassMl = NumberIn(WaterGlassField, s.WaterGlassMl);
+        s.WaterEveryMinutes = NumberIn(WaterEveryField, s.WaterEveryMinutes);
+        var hours = WaterHoursField.Text.Split(['-', '–', ' ', '.', ':'], StringSplitOptions.RemoveEmptyEntries);
+        if (hours.Length == 2 && int.TryParse(hours[0], out var from) && int.TryParse(hours[1], out var until) && from < until)
+        {
+            (s.WaterFromHour, s.WaterUntilHour) = (from, until);
+        }
+
+        s.CombinedPages = CombinedPagesSwitch.IsChecked == true;
         s.CalendarSource = TagOf(CalendarSourcePopup) ?? s.CalendarSource;
         CalendarLinkRow.Visibility = s.CalendarSource == "ics" ? Visibility.Visible : Visibility.Collapsed;
         s.OutputDocked = DockedSwitch.IsChecked == true;
@@ -526,6 +581,47 @@ public partial class SettingsWindow : Window
         ClaudeLiveStatus.Text = message;
     }
 
+    private void Shell_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (ShellSwitch.IsChecked == true)
+            {
+                Hud.ShellIntegration.Install();
+                ShellStatus.Text = Tr.Text("Terpasang di profil PowerShell — buka terminal baru", "Installed in your PowerShell profile — open a new terminal");
+            }
+            else
+            {
+                Hud.ShellIntegration.Uninstall();
+                ShellStatus.Text = Tr.Text("Dilepas dari profil PowerShell", "Removed from your PowerShell profile");
+            }
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("Shell", exception.Message);
+            ShellSwitch.IsChecked = Hud.ShellIntegration.IsInstalled();
+            ShellStatus.Text = exception.Message;
+        }
+    }
+
+    private void Features_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+        _host.ShowFeatures();
+    }
+
+    private void GeminiLive_Click(object sender, RoutedEventArgs e)
+    {
+        var on = GeminiLiveSwitch.IsChecked == true;
+        var (ok, message) = _host.SetGeminiLiveSessions(on);
+        if (!ok && on)
+        {
+            GeminiLiveSwitch.IsChecked = GeminiHooksInstaller.IsInstalled();
+        }
+
+        GeminiLiveStatus.Text = message;
+    }
+
     private void ApplyVoiceHotkey_Click(object sender, RoutedEventArgs e)
     {
         var (ok, message) = _host.ApplyVoiceHotkey(VoiceHotkeyField.Text);
@@ -634,7 +730,7 @@ public partial class SettingsWindow : Window
             element.Visibility = key == page ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        PageTitle.Text = ((button.Content as StackPanel)?.Children.OfType<TextBlock>().FirstOrDefault()?.Text) ?? string.Empty;
+        PageTitle.Text = ((button.Content as StackPanel)?.Children.OfType<TextBlock>().LastOrDefault()?.Text) ?? string.Empty;   // the first is the icon
     }
 
     // Search jumps to the first page whose rows mention the query.
@@ -696,6 +792,9 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Helpers -----------------------------------------------------------------------------
+
+    private static int NumberIn(TextBox field, int fallback) =>
+        int.TryParse(field.Text.Trim(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var number) && number >= 0 ? number : fallback;
 
     private static string? TagOf(ComboBox combo) => (combo.SelectedItem as ComboBoxItem)?.Tag as string;
 

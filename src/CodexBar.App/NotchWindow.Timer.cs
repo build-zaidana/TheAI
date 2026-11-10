@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -39,10 +39,10 @@ public partial class NotchWindow
     private static readonly Geometry LapIcon = Geometry.Parse("F0 M3,1.5 H4.6 V14.5 H3 Z M4.6,2 H13 L10.8,5 L13,8 H4.6 Z");
 
     private static readonly string TimerFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "timer.json");
+        CodexBar.Providers.AppPaths.DataRoot, "timer.json");
 
     private static readonly string WatchFile = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "stopwatch.json");
+        CodexBar.Providers.AppPaths.DataRoot, "stopwatch.json");
 
     // Two slots, like DynamicLake's stacked timers: a countdown (pomodoro or timer, plus the alarm)
     // and a stopwatch, each running on its own and shown as its own row.
@@ -56,10 +56,10 @@ public partial class NotchWindow
     private TimerMode _idleMode = TimerMode.Timer;   // what Start begins when nothing runs
 
     /// <summary>A countdown or stopwatch runs (or is paused), or an alarm is set.</summary>
-    private bool TimerShowing => _timer.IsActive || _watch.IsActive || _timer.AlarmAt is not null;
+    private bool TimerShowing => _timer.IsActive || _watch.IsActive || _timer.AlarmAt is not null || ShutdownShowing;
 
     /// <summary>Something live besides the agent keeps the compact notch wide and visible.</summary>
-    private bool CompactLive => MusicShowing || TimerShowing || ShelfShowing || CalendarShowing;
+    private bool CompactLive => MusicShowing || TimerShowing || ShelfShowing || CalendarShowing || JobsShowing || _held.Count > 0;
 
     private void InitTimer()
     {
@@ -85,14 +85,25 @@ public partial class NotchWindow
         _timerTick.Tick += (_, _) => TimerTick();
         _pulseTimer.Tick += (_, _) => Pulse();
         _idleMode = _timer.Mode is TimerMode.Pomodoro or TimerMode.Stopwatch ? _timer.Mode : TimerMode.Timer;
+        InitShutdown();
         TimerWheel.Value = _timer.LastTimer;
         TimerWheel.Changed += length =>
         {
-            if (!_timer.IsActive && length > TimeSpan.Zero)
+            if (_idleShutdown && _shutdownByClock)
+            {
+                _shutdownClock = length;
+            }
+            else if (_idleShutdown)
+            {
+                _shutdownLength = length;
+            }
+            else if (!_timer.IsActive && length > TimeSpan.Zero)
             {
                 _timer.Select(TimerMode.Timer, length);
                 SaveTimer();
             }
+
+            RenderTimer();
         };
         Closed += (_, _) =>
         {
@@ -157,6 +168,7 @@ public partial class NotchWindow
 
         UpdateVisibility();
         UpdateTimerTick();
+        UpdateQuietCheck();
     }
 
     private void UpdateTimerTick()
@@ -177,6 +189,7 @@ public partial class NotchWindow
     private void TimerTick()
     {
         var now = DateTimeOffset.Now;
+        TickShutdown(now);
         if (_timer.Tick(now) is { } finished)
         {
             SaveTimer();
@@ -202,6 +215,7 @@ public partial class NotchWindow
 
     private void ApplyTimerCompact()
     {
+        QueueCompactObject();
         var showing = TimerShowing;
         CompactTimer.HorizontalAlignment = CompactGlyph.HorizontalAlignment;
         CompactTimer.VerticalAlignment = CompactGlyph.VerticalAlignment;
@@ -209,8 +223,15 @@ public partial class NotchWindow
         if (!showing)
         {
             CompactTimerText.Visibility = Visibility.Collapsed;
-            // Below the timer: an event about to start, then (when nothing plays) the shelf.
-            if (ApplyCalendarCompact())
+            // Below the timer: a script's live activity, an event about to start, then (when nothing plays) the shelf.
+            if (ApplyJobCompact())
+            {
+                CompactCalendar.Visibility = Visibility.Collapsed;
+                CompactCalendarText.Visibility = Visibility.Collapsed;
+                CompactShelf.Visibility = Visibility.Collapsed;
+                CompactShelfCount.Visibility = Visibility.Collapsed;
+            }
+            else if (ApplyCalendarCompact())
             {
                 CompactShelf.Visibility = Visibility.Collapsed;
                 CompactShelfCount.Visibility = Visibility.Collapsed;
@@ -229,6 +250,9 @@ public partial class NotchWindow
         CompactShelfCount.Visibility = Visibility.Collapsed;
         CompactCalendar.Visibility = Visibility.Collapsed;
         CompactCalendarText.Visibility = Visibility.Collapsed;
+        CompactJob.Visibility = Visibility.Collapsed;
+        CompactJobText.Visibility = Visibility.Collapsed;
+        SpinJob(false);
 
         // The timer outranks the music in the compact notch; the music stays one scroll away.
         CompactArt.Visibility = Visibility.Collapsed;
@@ -252,15 +276,25 @@ public partial class NotchWindow
             var lastMinute = slot.IsCountdown && slot.Run == TimerRun.Running && slot.Remaining(now) < TimeSpan.FromMinutes(1);
             opacity = slot.Run == TimerRun.Paused ? 0.55 : lastMinute && now.Millisecond >= 500 ? 0.4 : 1;
         }
+        else if (_shutdown is { } shutdown)
+        {
+            // Only the shutdown is pending: its time left, in the one colour that says "careful".
+            brush = IslandTokens.Frozen(IslandTokens.Error);
+            text = NotchTimer.Format(shutdown.At - now);
+            CompactTimerArc.Stroke = brush;
+            CompactTimerArc.Data = RingGeometry(16, 2.2, (shutdown.At - now) / (shutdown.At - shutdown.Started));
+        }
         else
         {
             brush = TimerFocusBrush;
             text = AlarmClock(_timer.AlarmAt!.Value);
         }
 
-        CompactTimerRing.Visibility = slot is not null ? Visibility.Visible : Visibility.Collapsed;
-        CompactAlarmGlyph.Visibility = slot is not null ? Visibility.Collapsed : Visibility.Visible;
-        var agentRight = _state != NotchState.Idle;
+        var ring = slot is not null || ShutdownShowing;
+        CompactTimerRing.Visibility = ring ? Visibility.Visible : Visibility.Collapsed;
+        CompactAlarmGlyph.Visibility = ring ? Visibility.Collapsed : Visibility.Visible;
+        // An agent's indicator or the held count takes the right side: the time moves beside the ring.
+        var agentRight = _state != NotchState.Idle || _held.Count > 0;
         var narrow = Vertical;
         CompactTimerLeftText.Visibility = agentRight && !narrow ? Visibility.Visible : Visibility.Collapsed;
         CompactTimerText.Visibility = !agentRight && !narrow ? Visibility.Visible : Visibility.Collapsed;
@@ -278,11 +312,19 @@ public partial class NotchWindow
     private static string AlarmClock(DateTimeOffset at) =>
         at.ToLocalTime().ToString("H':'mm", CultureInfo.InvariantCulture);
 
-    /// <summary>The outline stays the notch's usual one; the timer's colour lives in its content only.</summary>
-    private void ApplyKeyline() => Shell.BorderBrush = OutlineBrush;
+    /// <summary>The notch's usual faint rim; orange while an agent waits on you (board 1).</summary>
+    // While a live object is out, its surface draws the outline around the island and the object together.
+    private void ApplyKeyline() => Shell.BorderBrush = _liveKind != LiveKind.None ? System.Windows.Media.Brushes.Transparent
+        : _state == NotchState.Waiting ? WaitingRim : OutlineBrush;
+
+    // Page 2, boards 01 and 06: a countdown in the timer's orange (accent/timer), a pomodoro break in green;
+    // the same colour as the dial, so the pill, the page and the light agree.
+    private static readonly Brush FocusRingBrush = IslandTokens.Frozen(IslandTokens.Timer);
+    private static readonly Brush BreakRingBrush = IslandTokens.Frozen(IslandTokens.Agent);
 
     private Brush TimerBrush() =>
-        _timer.Mode == TimerMode.Pomodoro && _timer.Phase != PomodoroPhase.Focus ? TimerBreakBrush : TimerFocusBrush;
+        _timer.Mode == TimerMode.Stopwatch ? TimerFocusBrush
+        : _timer.Mode == TimerMode.Pomodoro && _timer.Phase != PomodoroPhase.Focus ? BreakRingBrush : FocusRingBrush;
 
     private static SolidColorBrush Tint(Brush brush, byte alpha)
     {
@@ -352,24 +394,33 @@ public partial class NotchWindow
         {
             var brush = TimerBrush();
             var running = _timer.Run == TimerRun.Running;
-            TimerPlayButton.Background = Tint(brush, 0x38);
-            TimerPlayGlyph.Fill = brush;
-            TimerPauseGlyph.Fill = brush;
             TimerPlayGlyph.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
             TimerPauseGlyph.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
             System.Windows.Automation.AutomationProperties.SetName(TimerPlayButton, running ? Tr.Text("Jeda", "Pause") : Tr.Text("Lanjut", "Resume"));
             var stopwatch = _timer.Mode == TimerMode.Stopwatch;
-            TimerStopGlyph.Visibility = stopwatch ? Visibility.Collapsed : Visibility.Visible;
-            TimerResetGlyph.Visibility = stopwatch ? Visibility.Visible : Visibility.Collapsed;
-            System.Windows.Automation.AutomationProperties.SetName(TimerStopButton, stopwatch ? "Reset" : Tr.Text("Hentikan", "Stop"));
+            TimerStopValue.Text = stopwatch ? "Reset" : Tr.Text("Hentikan", "Stop");
+            System.Windows.Automation.AutomationProperties.SetName(TimerStopButton, TimerStopValue.Text);
 
             ShowTyped(TimerCaption, typed, TimerCaptionText(), TimerQuietBrush);
             var icon = TimerCaptionIcon_();
             TimerCaptionIcon.Data = icon;
             TimerCaptionIcon.Visibility = typed.Length == 0 && icon is not null ? Visibility.Visible : Visibility.Collapsed;
             TimerBig.Text = result ?? (stopwatch ? NotchTimer.FormatPrecise(_timer.Elapsed(now)) : NotchTimer.Format(_timer.Remaining(now)));
-            TimerBig.Foreground = brush;
-            TimerBig.Opacity = running || result is not null ? 1 : 0.55;
+            TimerBig.Foreground = running || result is not null ? IslandTokens.Text1 : IslandTokens.Text2;
+            TimerBig.Opacity = 1;
+            TimerCaptionIcon.Visibility = Visibility.Collapsed;
+
+            var left = _timer.Remaining(now);
+            var length = stopwatch ? _timer.Elapsed(now) : _timer.Duration;
+            var gone = stopwatch ? _timer.Elapsed(now) : length - left;
+            TimerRunMeta.Text = running && !stopwatch
+                ? string.Format(CultureInfo.CurrentCulture, Tr.Text("Selesai pukul {0}", "Done at {0}"), AlarmClock(now + left))
+                : running ? string.Empty : Tr.Text("Dijeda", "Paused");
+            TimerRunRuler.Visibility = stopwatch ? Visibility.Hidden : Visibility.Visible;
+            TimerRunRuler.Value = left > TimeSpan.Zero ? left : TimeSpan.Zero;
+            TimerFootStart.Text = AlarmClock(now - gone);
+            TimerFootGone.Text = NotchTimer.Format(gone);
+            TimerFootLength.Text = stopwatch ? "—" : MinutesText(length);
         }
 
         // Stopwatch row, stacked under the countdown.
@@ -400,18 +451,19 @@ public partial class NotchWindow
         }
 
         // Nothing running at all: the chosen mode, ready to start.
-        var idle = !active && !_watch.IsActive;
+        var idle = !active && !_watch.IsActive && !ShutdownShowing;
         TimerIdle.Visibility = idle ? Visibility.Visible : Visibility.Collapsed;
         if (idle)
         {
             TimerIdle.Margin = new Thickness(0, _timer.AlarmAt is null ? 0 : 8, 0, 0);
-            // Timer: the hour / minute / second wheels; the other modes (or anything typed) show their number.
-            var wheel = _idleMode == TimerMode.Timer && typed.Length == 0;
-            TimerWheel.Visibility = wheel ? Visibility.Visible : Visibility.Collapsed;
-            TimerIdleShown.Visibility = wheel ? Visibility.Collapsed : Visibility.Visible;
+            // The ruler sets a timer or the shutdown; a pomodoro shows its focus length; a stopwatch has none.
+            TimerWheel.MaxMinutes = _idleShutdown ? 1440 : 180;
+            TimerWheel.ClockFace = _idleShutdown && _shutdownByClock;
+            TimerWheel.IsHitTestVisible = _idleShutdown || _idleMode == TimerMode.Timer;
+            TimerWheel.Visibility = !_idleShutdown && _idleMode == TimerMode.Stopwatch ? Visibility.Hidden : Visibility.Visible;
             if (!TimerWheel.IsMouseCaptured)
             {
-                TimerWheel.Value = _timer.LastTimer;
+                TimerWheel.Value = _idleShutdown ? (_shutdownByClock ? _shutdownClock : _shutdownLength) : _idleMode == TimerMode.Pomodoro ? _timer.FocusLength : _timer.LastTimer;
             }
 
             System.Windows.Automation.AutomationProperties.SetName(TimerStartButton, _idleMode switch
@@ -420,21 +472,48 @@ public partial class NotchWindow
                 TimerMode.Stopwatch => Tr.Text("Mulai stopwatch", "Start the stopwatch"),
                 _ => Tr.Text("Mulai timer", "Start the timer")
             });
-            var shown = _idleMode switch
+            var shown = _idleShutdown ? (_shutdownByClock ? ClockText(_shutdownClock) : NotchTimer.Format(_shutdownLength)) : _idleMode switch
             {
                 TimerMode.Pomodoro => NotchTimer.Format(_timer.FocusLength),
                 TimerMode.Stopwatch => NotchTimer.FormatPrecise(TimeSpan.Zero),
                 _ => NotchTimer.Format(TimerWheel.Value)
             };
             TimerIdleDigits.Text = result ?? shown;
-            ShowTyped(TimerIdleCaption, typed, string.Empty, TimerQuietBrush);
-            TimerModeTimer.Tag = _idleMode == TimerMode.Timer ? "selected" : null;
-            TimerModePomodoro.Tag = _idleMode == TimerMode.Pomodoro ? "selected" : null;
-            TimerModeStopwatch.Tag = _idleMode == TimerMode.Stopwatch ? "selected" : null;
+            var name = _idleShutdown ? ShutdownCaption(now) : _idleMode switch
+            {
+                TimerMode.Pomodoro => Tr.Text("Fokus", "Focus"),
+                TimerMode.Stopwatch => "Stopwatch",
+                _ => "Timer"
+            };
+            ShowTyped(TimerIdleCaption, typed, name, IslandTokens.Text2);
+            // Windows force-closes apps on a timed shutdown, so the page says it before start is pressed.
+            var finish = now + (_idleShutdown ? _shutdownLength : _idleMode == TimerMode.Pomodoro ? _timer.FocusLength : TimerWheel.Value);
+            TimerIdleMeta.Text = _idleShutdown ? _shutdownProblem ?? Tr.Text("Aplikasi ditutup paksa", "Apps close by force")
+                : _idleMode == TimerMode.Stopwatch ? string.Empty
+                : string.Format(CultureInfo.CurrentCulture, Tr.Text("Selesai pukul {0}", "Done at {0}"), AlarmClock(finish));
+            TimerIdleMeta.Foreground = _idleShutdown ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text2;
+            TimerStartButton.Background = _idleShutdown ? IslandTokens.Frozen(IslandTokens.Error) : IslandTokens.Text1;
+
+            TimerModeTimerValue.Text = MinutesText(_timer.LastTimer);
+            TimerModePomodoroValue.Text = MinutesText(_timer.FocusLength);
+            TimerModeStopwatchValue.Text = "0:00";
+            TimerModeAlarmValue.Text = Tr.Text("Ketik @", "Type @");
+            TimerModeShutdownValue.Text = _shutdownByClock ? ClockText(_shutdownClock) : MinutesText(_shutdownLength);
+            ShutdownKind.Visibility = _idleShutdown ? Visibility.Visible : Visibility.Collapsed;
+            ShutdownKind.Content = _shutdownByClock ? Tr.Text("Pakai durasi", "Use a length") : Tr.Text("Pakai jam", "Use a time");
+            TimerModeTimer.Tag = !_idleShutdown && _idleMode == TimerMode.Timer ? "selected" : null;
+            TimerModePomodoro.Tag = !_idleShutdown && _idleMode == TimerMode.Pomodoro ? "selected" : null;
+            TimerModeStopwatch.Tag = !_idleShutdown && _idleMode == TimerMode.Stopwatch ? "selected" : null;
             TimerModeAlarm.Tag = typed.StartsWith('@') ? "selected" : null;
+            TimerModeShutdown.Tag = _idleShutdown ? "selected" : null;
         }
 
+        RenderShutdown(now);
         RenderPageDots();
+        if (_view is NotchView.Timer)
+        {
+            ApplyTimerObject();
+        }
     }
 
     // The label slot shows the typed text (white, with a caret) while typing, else its usual label.
@@ -463,7 +542,10 @@ public partial class NotchWindow
     // Words only where an icon can't say it: a label the person typed, or which lap it is.
     private string TimerCaptionText() => _timer.Mode == TimerMode.Stopwatch
         ? (_timer.Laps.Count > 0 ? (_timer.Laps.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : _timer.Label)
-        : _timer.Label;
+        : _timer.Label.Length > 0 ? _timer.Label
+        : _timer.Mode == TimerMode.Pomodoro
+            ? _timer.Phase == PomodoroPhase.Focus ? Tr.Text("Fokus", "Focus") : Tr.Text("Istirahat", "Break")
+            : "Timer";
 
     private Geometry? TimerCaptionIcon_() => _timer.Mode switch
     {
@@ -511,6 +593,14 @@ public partial class NotchWindow
             return;
         }
 
+        if (_idleShutdown)
+        {
+            _ = StartShutdown(_shutdownByClock
+                ? ShutdownCommand.SecondsUntil(TimeOnly.FromTimeSpan(_shutdownClock), DateTimeOffset.Now)
+                : (int)_shutdownLength.TotalSeconds);
+            return;
+        }
+
         var now = DateTimeOffset.Now;
         switch (_idleMode)
         {
@@ -543,6 +633,7 @@ public partial class NotchWindow
             return;
         }
 
+        _idleShutdown = sender == TimerModeShutdown;
         _idleMode = sender == TimerModePomodoro ? TimerMode.Pomodoro : sender == TimerModeStopwatch ? TimerMode.Stopwatch : TimerMode.Timer;
         TimerInput.Clear();
         RenderTimer();
@@ -615,6 +706,14 @@ public partial class NotchWindow
 
     private void SubmitTimerInput()
     {
+        if (ShutdownCommand.TryParse(TimerInput.Text, out var power))
+        {
+            TimerInput.Clear();
+            _ = power.Cancel ? CancelShutdown()
+                : StartShutdown(power.At is { } at ? ShutdownCommand.SecondsUntil(at, DateTimeOffset.Now) : power.Seconds);
+            return;
+        }
+
         var command = TimerCommandParser.Parse(TimerInput.Text);
         TimerInput.Clear();
         if (command.Kind != TimerCommandKind.None)
@@ -724,6 +823,11 @@ public partial class NotchWindow
 
     private void OnTimerFinished(TimerFinished finished)
     {
+        if (finished is { Mode: TimerMode.Pomodoro, Phase: PomodoroPhase.Focus } && !_timerPreview)
+        {
+            RecordDay(day => day.Focus(finished.Duration));
+        }
+
         if (!_timerPreview)
         {
             CompletionNotifier.PlaySound();
@@ -748,18 +852,19 @@ public partial class NotchWindow
             var nextLength = finished.Mode == TimerMode.Timer ? finished.Duration
                 : nextBreak ? _timer.PhaseLength(_timer.Phase == PomodoroPhase.LongBreak ? PomodoroPhase.LongBreak : PomodoroPhase.ShortBreak)
                 : _timer.FocusLength;
-            TimerDoneIcon.Data = finished.Mode == TimerMode.Timer ? TimerIcon : nextBreak ? BreakIcon : FocusIcon;
-            TimerDoneTitle.Text = finished.Label.Length > 0 && finished.Mode == TimerMode.Timer
-                ? finished.Label
-                : nextLength.TotalMinutes >= 1 && nextLength.TotalSeconds % 60 == 0
-                    ? ((int)nextLength.TotalMinutes).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    : NotchTimer.Format(nextLength);
-            System.Windows.Automation.AutomationProperties.SetName(TimerDoneNext, finished.Mode == TimerMode.Timer
-                ? Tr.Text("Ulangi", "Repeat") : nextBreak ? Tr.Text("Mulai istirahat", "Start the break") : Tr.Text("Fokus lagi", "Focus again"));
-            TimerDoneTitle.Foreground = TimerQuietBrush;
-            TimerDoneDigits.Foreground = accent;
-            TimerDoneNextGlyph.Stroke = accent;
-            TimerDoneNext.Background = Tint(accent, 0x38);
+            // Board 06: a headline, what just finished under it, and the next step as the primary action.
+            var minutes = (int)Math.Round(finished.Duration.TotalMinutes);
+            TimerDoneTitle.Text = finished.Label.Length > 0 && finished.Mode == TimerMode.Timer ? finished.Label : Tr.Text("Waktu habis", "Time's up");
+            TimerDoneSub.Text = finished.Mode == TimerMode.Timer
+                ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Tr.Text("Timer {0} menit selesai", "{0}-minute timer done"), minutes)
+                : finished.Phase == PomodoroPhase.Focus
+                    ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Tr.Text("Fokus {0} menit selesai", "{0} minutes of focus done"), minutes)
+                    : Tr.Text("Istirahat selesai", "Break over");
+            TimerDoneNextText.Text = finished.Mode == TimerMode.Timer
+                ? Tr.Text("Ulangi", "Repeat") : nextBreak ? Tr.Text("Mulai istirahat", "Start the break") : Tr.Text("Fokus lagi", "Focus again");
+            TimerDoneCloseText.Text = Tr.Text("Tutup", "Close");
+            System.Windows.Automation.AutomationProperties.SetName(TimerDoneNext, TimerDoneNextText.Text);
+            _ = nextLength;
         }
 
         TimerRipple1.Stroke = accent;
@@ -837,8 +942,9 @@ public partial class NotchWindow
             });
         }
 
-        // Rings only where there is room under the notch: docked to the top edge.
-        if (Edge == "top")
+        // Rings only where there is room under the notch: docked to the top edge. The top-centre island
+        // has the pulsing dial instead (Page 2), so it stays clean.
+        if (Edge == "top" && !LiveObjectAllowed)
         {
             TimerRipples.Margin = new Thickness(0, height + Shell.Margin.Top, 0, 0);
             TimerRipples.Visibility = Visibility.Visible;
@@ -980,7 +1086,7 @@ public partial class NotchWindow
                 return;
             }
 
-            SnapshotShell(System.IO.Path.Combine(dir, $"notch-timer-{mode}.png"));
+            SnapshotShell(System.IO.Path.Combine(dir, $"notch-timer-{mode}.png"), Root);
         }
     }
 }

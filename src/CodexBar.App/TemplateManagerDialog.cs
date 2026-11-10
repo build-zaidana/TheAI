@@ -1,10 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using CodexBar.Core;
-using Button = System.Windows.Controls.Button;
-using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
 using ListBox = System.Windows.Controls.ListBox;
 using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
@@ -26,22 +22,19 @@ internal sealed class TemplateManagerDialog : Window
             .ToList();
 
         Title = loc["templates.manage"];
-        Width = 720;
-        Height = 470;
-        MinWidth = 560;
-        MinHeight = 360;
+        FluentDialog.Prepare(this, 720);
+        Height = 520 + 44;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(0x20, 0x24, 0x2C));
-        Foreground = Brushes.White;
 
-        var root = new Grid { Margin = new Thickness(18) };
+        var root = new Grid();
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(210) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
+        _list.Style = FluentDialog.Style(this, "FluentList");
         _list.DisplayMemberPath = nameof(PromptTemplate.Name);
         _list.SelectionChanged += (_, _) => LoadSelected();
         System.Windows.Automation.AutomationProperties.SetName(_list, loc["templates.listName"]);
@@ -53,63 +46,50 @@ internal sealed class TemplateManagerDialog : Window
         editor.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         editor.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         editor.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        editor.Children.Add(new TextBlock
-        {
-            Text = loc["templates.name"],
-            Margin = new Thickness(0, 0, 0, 5),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC))
-        });
-        _name.MinHeight = 32;
-        _name.Padding = new Thickness(8, 4, 8, 4);
+        var nameLabel = FluentDialog.Label(loc["templates.name"]);
+        nameLabel.Margin = new Thickness(0, 0, 0, 8);
+        editor.Children.Add(nameLabel);
+        _name.Style = FluentDialog.Style(this, "FluentField");
         System.Windows.Automation.AutomationProperties.SetName(_name, loc["templates.name"]);
         Grid.SetRow(_name, 1);
         editor.Children.Add(_name);
-        var contentLabel = new TextBlock
-        {
-            Text = loc["templates.content"],
-            Margin = new Thickness(0, 12, 0, 5),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC))
-        };
+        var contentLabel = FluentDialog.Label(loc["templates.content"]);
+        contentLabel.Margin = new Thickness(0, 12, 0, 8);
         Grid.SetRow(contentLabel, 2);
         editor.Children.Add(contentLabel);
+        _content.Style = FluentDialog.Style(this, "FluentArea");
         _content.AcceptsReturn = true;
         _content.AcceptsTab = true;
-        _content.TextWrapping = TextWrapping.Wrap;
         _content.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        _content.Padding = new Thickness(8);
         System.Windows.Automation.AutomationProperties.SetName(_content, loc["templates.content"]);
         Grid.SetRow(_content, 3);
         editor.Children.Add(_content);
         Grid.SetColumn(editor, 2);
         root.Children.Add(editor);
 
-        var actions = new Grid { Margin = new Thickness(0, 14, 0, 0) };
-        actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        actions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        // New and Delete act on the list; the rest on the dialog.
+        var actions = new Grid { Margin = new Thickness(0, 16, 0, 0) };
+        var listActions = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
+        var dialogActions = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
+        actions.Children.Add(listActions);
+        actions.Children.Add(dialogActions);
 
-        var create = CreateButton(loc["templates.new"]);
+        var create = FluentDialog.Button(this, loc["templates.new"]);
         create.Click += (_, _) => BeginNew();
-        actions.Children.Add(create);
-        var delete = CreateButton(loc["templates.delete"]);
+        listActions.Children.Add(create);
+        var delete = FluentDialog.Button(this, loc["templates.delete"]);
         delete.Margin = new Thickness(8, 0, 0, 0);
         delete.Click += (_, _) => DeleteSelected();
-        Grid.SetColumn(delete, 1);
-        actions.Children.Add(delete);
-        var save = CreateButton(loc["templates.save"]);
-        save.Margin = new Thickness(8, 0, 0, 0);
+        listActions.Children.Add(delete);
+        var save = FluentDialog.Button(this, loc["templates.save"]);
         save.Click += (_, _) => SaveEditor();
-        Grid.SetColumn(save, 2);
-        actions.Children.Add(save);
-        var cancel = CreateButton(loc["dialog.cancel"]);
+        dialogActions.Children.Add(save);
+        var cancel = FluentDialog.Button(this, loc["dialog.cancel"]);
         cancel.Margin = new Thickness(8, 0, 0, 0);
         cancel.IsCancel = true;
         cancel.Click += (_, _) => Close();
-        Grid.SetColumn(cancel, 3);
-        actions.Children.Add(cancel);
-        var done = CreateButton(loc["templates.done"], primary: true);
+        dialogActions.Children.Add(cancel);
+        var done = FluentDialog.Button(this, loc["templates.done"], primary: true);
         done.Margin = new Thickness(8, 0, 0, 0);
         done.IsDefault = true;
         done.Click += (_, _) =>
@@ -118,13 +98,12 @@ internal sealed class TemplateManagerDialog : Window
             DialogResult = true;
             Close();
         };
-        Grid.SetColumn(done, 4);
-        actions.Children.Add(done);
+        dialogActions.Children.Add(done);
         Grid.SetRow(actions, 1);
         Grid.SetColumnSpan(actions, 3);
         root.Children.Add(actions);
 
-        Content = root;
+        FluentDialog.Dress(this, loc["templates.manage"], root);
         RefreshList();
         if (_templates.Count > 0)
         {
@@ -215,17 +194,4 @@ internal sealed class TemplateManagerDialog : Window
         _list.ItemsSource = null;
         _list.ItemsSource = _templates;
     }
-
-    private static Button CreateButton(string text, bool primary = false) => new()
-    {
-        Content = text,
-        MinWidth = 82,
-        Height = 32,
-        Padding = new Thickness(12, 0, 12, 0),
-        Background = primary
-            ? new SolidColorBrush(Color.FromRgb(0x2F, 0x7B, 0xF6))
-            : new SolidColorBrush(Color.FromRgb(0x36, 0x3B, 0x46)),
-        Foreground = Brushes.White,
-        BorderThickness = new Thickness(0)
-    };
 }

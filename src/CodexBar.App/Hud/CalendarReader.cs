@@ -11,7 +11,7 @@ namespace CodexBar.App.Hud;
 /// </summary>
 internal static class CalendarReader
 {
-    public const string IcsCredential = "CodexBar/CalendarIcs";
+    public const string IcsCredential = "TheAI/CalendarIcs";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     public static async Task<IReadOnlyList<CalendarEvent>> TodayAsync(string source)

@@ -10,7 +10,7 @@ public static class ClaudeCodeExecutableLocator
     public static string Locate() =>
         TryLocate() ?? throw new FileNotFoundException(
             // Not localized: this is caught by onboarding, which shows a localized install panel.
-            "Claude Code CLI tidak ditemukan. Instal dengan: npm install -g @anthropic-ai/claude-code");
+            "Claude Code CLI not found. Install it with: npm install -g @anthropic-ai/claude-code");
 
     public static string? TryLocate()
     {

@@ -18,8 +18,7 @@ public sealed class JsonSettingsStore
     public JsonSettingsStore(string? baseDirectory = null)
     {
         BaseDirectory = baseDirectory ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CodexBar");
+            CodexBar.Providers.AppPaths.DataRoot);
         SettingsPath = Path.Combine(BaseDirectory, "settings.json");
     }
 
@@ -93,7 +92,7 @@ public sealed class JsonSettingsStore
     {
         var fullPath = Path.GetFullPath(destinationPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)
-            ?? throw new InvalidOperationException("Folder tujuan export tidak valid."));
+            ?? throw new InvalidOperationException(CodexBar.Core.Localization.Text("Folder tujuan export tidak valid.", "The export folder isn't valid.")));
         var temporaryPath = $"{fullPath}.{Guid.NewGuid():N}.tmp";
         try
         {
@@ -136,8 +135,9 @@ public sealed class JsonSettingsStore
         settings.QuickCaptureReveal = settings.QuickCaptureReveal?.ToLowerInvariant() switch
         {
             "capture" => "capture",
+            "done" => "done",
             "clipboard" => "clipboard",
-            _ => "done"
+            _ => "notch"
         };
         if (string.IsNullOrWhiteSpace(settings.QuickCaptureHotkey))
         {
@@ -182,7 +182,7 @@ public sealed class JsonSettingsStore
             "openrouter" => "openrouter",
             _ => "codex"
         };
-        settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "id";
+        settings.Language = settings.Language?.ToLowerInvariant() is "en" or "id" ? settings.Language.ToLowerInvariant() : "auto";
         settings.Appearance ??= new AppearanceSettings();
         settings.Window ??= new WindowSettings();
         settings.NotchOffset = double.IsFinite(settings.NotchOffset) ? Math.Clamp(settings.NotchOffset, -0.45, 0.45) : 0;

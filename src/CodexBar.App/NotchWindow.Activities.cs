@@ -162,6 +162,7 @@ public partial class NotchWindow
         var running = _activities.Count(a => a.IsBusy);
         CompactCount.Text = running.ToString();
         CompactCount.Visibility = running > 1 ? Visibility.Visible : Visibility.Collapsed;
+        ApplyHeldBadge();
     }
 
     /// <summary>Bring one conversation up in the activity view (from a notification).</summary>
@@ -253,7 +254,7 @@ public partial class NotchWindow
             var meta = new TextBlock
             {
                 Text = StateLabel(activity.State) + "  " + activity.Workspace,
-                FontSize = 11,
+                FontSize = 12,
                 Margin = new Thickness(12, 0, 0, 0),
                 Foreground = (Brush)FindResource("NotchText3"),
                 VerticalAlignment = VerticalAlignment.Center

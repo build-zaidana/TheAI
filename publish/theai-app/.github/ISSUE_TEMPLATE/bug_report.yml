@@ -1,0 +1,44 @@
+name: Something doesn't work
+description: A bug, a crash, or something that behaves unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TheAI version
+      description: Settings → About, or the installer's name (TheAI-Setup-1.5.0.exe)
+      placeholder: "1.5.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Which AI were you using?
+      options:
+        - Claude Code
+        - Codex
+        - Gemini CLI
+        - Anthropic API key
+        - OpenAI API key
+        - OpenRouter
+        - Not related to an agent
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: textarea
+    id: log
+    attributes:
+      label: Diagnostics log (optional)
+      description: |
+        Turn on Settings → Advanced → Diagnostics log, reproduce the problem, then click "Open folder"
+        and paste from the newest theai-*.log. Read it first and remove anything you don't want to share.
+      render: text

@@ -23,21 +23,27 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <ApplicationIcon>codexbar.ico</ApplicationIcon>
-    <AssemblyName>CodexBar.App</AssemblyName>
-    <Product>CodexBar</Product>
-    <Company>CodexBar</Company>
-    <Authors>CodexBar</Authors>
-    <Description>Companion ringan untuk mengirim prompt ke Codex lewat hotkey.</Description>
-    <Version>1.4.0</Version>
-    <FileVersion>1.4.0.0</FileVersion>
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <Copyright>© 2026 CodexBar</Copyright>
+    <AssemblyName>TheAI</AssemblyName>
+    <Product>TheAI</Product>
+    <Company>TheAI</Company>
+    <Authors>build-zaidana</Authors>
+    <Description>TheAI — AI agents, music, timers and your day in a notch for Windows.</Description>
+    <Version>1.7.0</Version>
+    <FileVersion>1.7.0.0</FileVersion>
+    <AssemblyVersion>1.7.0.0</AssemblyVersion>
+    <Copyright>© 2026 build-zaidana</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="codexbar.ico" />
+    <Resource Include="Previews\*.png" />
     <Resource Include="Fonts\Sora-SemiBold.ttf" />
     <Content Include="Fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Licenses\Lucide-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

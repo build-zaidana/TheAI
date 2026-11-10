@@ -21,7 +21,7 @@ internal sealed class ProcessJob : IDisposable
         var handle = CreateJobObject(IntPtr.Zero, null);
         if (handle.IsInvalid)
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows Job Object gagal dibuat.");
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Couldn't create the Windows Job Object.");
         }
 
         var job = new ProcessJob(handle);
@@ -41,7 +41,7 @@ internal sealed class ProcessJob : IDisposable
                 Marshal.StructureToPtr(limits, pointer, false);
                 if (!SetInformationJobObject(handle, JobObjectInfoType.ExtendedLimitInformation, pointer, (uint)size))
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Batas Windows Job Object gagal diatur.");
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Couldn't set the Windows Job Object's limits.");
                 }
             }
             finally
@@ -51,7 +51,7 @@ internal sealed class ProcessJob : IDisposable
 
             if (!AssignProcessToJobObject(handle, process.Handle))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Proses Codex gagal dimasukkan ke Windows Job Object.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Couldn't add the Codex process to the Windows Job Object.");
             }
 
             return job;

@@ -17,7 +17,7 @@ internal static class LyricsClient
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("CodexBar (Windows notch; lyrics in the notch)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("TheAI (Windows notch; lyrics in the notch)");
         return client;
     }
 

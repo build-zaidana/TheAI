@@ -5,8 +5,8 @@ public sealed class AppSettings
     public int SchemaVersion { get; set; } = 12;
     public string Provider { get; set; } = "codex";
 
-    /// <summary>Bahasa UI: "id" (default) atau "en".</summary>
-    public string Language { get; set; } = "id";
+    /// <summary>Bahasa UI: "auto" (ikuti Windows: Indonesia bila Windows berbahasa Indonesia, selain itu Inggris), "id" atau "en".</summary>
+    public string Language { get; set; } = "auto";
     public string Hotkey { get; set; } = "Win+Shift+C";
 
     /// <summary>Hotkey khusus quick-capture: kirim teks terseleksi langsung tanpa membuka window.</summary>
@@ -33,6 +33,9 @@ public sealed class AppSettings
     /// <summary>Sesi Claude Code dari terminal/IDE/desktop tampil live di notch (lewat hooks di ~/.claude/settings.json).</summary>
     public bool ClaudeLiveSessions { get; set; }
 
+    /// <summary>Sesi Gemini CLI tampil live di notch (lewat hooks di ~/.gemini/settings.json).</summary>
+    public bool GeminiLiveSessions { get; set; }
+
     /// <summary>Sesi lama Claude Code (dari ~/.claude/projects) ikut tampil di daftar Lanjutkan.</summary>
     public bool ClaudeImportSessions { get; set; } = true;
 
@@ -46,7 +49,9 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
 
     /// <summary>Repositori rilis publik ("pemilik/nama").</summary>
-    public string UpdateRepository { get; set; } = "build-zaidana/CodexBar";
+    public const string ReleaseRepository = "build-zaidana/theai-app";
+
+    public string UpdateRepository { get; set; } = ReleaseRepository;
 
     /// <summary>Tag rilis yang dipilih untuk dilewati (tidak diberi tahu lagi).</summary>
     public string? SkippedUpdate { get; set; }
@@ -57,8 +62,8 @@ public sealed class AppSettings
     /// <summary>Sisi chat yang tumbuh dari notch: "auto" (terdekat dengan notch), "right", atau "left".</summary>
     public string ChatSide { get; set; } = "auto";
 
-    /// <summary>Kapan window muncul untuk quick-capture: "capture" (saat kirim), "done" (saat selesai), atau "clipboard" (tidak, jawaban ke clipboard).</summary>
-    public string QuickCaptureReveal { get; set; } = "done";
+    /// <summary>Quick-capture: "notch" (notch menawarkan terjemahkan/jelaskan/ringkas/perbaiki/tanya), "capture" (kirim ke chat, tampil saat kirim), "done" (tampil saat selesai), atau "clipboard" (jawaban ke clipboard).</summary>
+    public string QuickCaptureReveal { get; set; } = "notch";
     public bool LaunchAtLogin { get; set; }
 
     /// <summary>Tampilan utama: "notch" (menempel tepi atas), "island" (Dynamic Island melayang) atau "bar" (di atas taskbar).</summary>
@@ -81,6 +86,104 @@ public sealed class AppSettings
 
     /// <summary>Sumber kalender di notch: "off", "outlook" (lokal) atau "ics" (tautan iCal, disimpan di Credential Manager).</summary>
     public string CalendarSource { get; set; } = "off";
+
+    /// <summary>Sembunyikan notch selama aplikasi layar penuh (game, video, presentasi) menutupi monitornya.</summary>
+    public bool HideInFullscreen { get; set; } = true;
+
+    /// <summary>Skrip boleh menampilkan aktivitas di notch lewat `TheAI.exe activity` / named pipe pengguna ini.</summary>
+    public bool LiveActivities { get; set; } = true;
+
+    /// <summary>CI pull request branch yang sedang dikerjakan tampil di notch (lewat GitHub CLI yang sudah login).</summary>
+    public bool GitHubChecks { get; set; }
+
+    /// <summary>Rekap hari ini muncul sendiri sekali di sore hari (17.00).</summary>
+    public bool RecapEvening { get; set; } = true;
+
+    /// <summary>Riwayat clipboard di notch (hanya di memori; yang disematkan disimpan). Isian pribadi dari password manager dilewati.</summary>
+    public bool ClipboardHistory { get; set; }
+
+    /// <summary>Unduhan yang selesai masuk rak file selama 2 jam.</summary>
+    public bool DownloadsToShelf { get; set; } = true;
+
+    /// <summary>Halaman sistem (CPU, GPU, RAM, disk) di notch dan peringatan saat RAM / disk C: hampir penuh.</summary>
+    public bool SystemMonitor { get; set; } = true;
+
+    /// <summary>Selama pomodoro fokus atau rapat, hasil agent dan permintaan izin ditahan dan muncul sekaligus saat istirahat.</summary>
+    public bool HoldDuringFocus { get; set; } = true;
+
+    /// <summary>Timer, stopwatch, pomodoro dan alarm sebagai halaman notch.</summary>
+    public bool TimerInNotch { get; set; } = true;
+
+    /// <summary>Cuaca (Open-Meteo, tanpa API key) dan jam dunia sebagai halaman notch.</summary>
+    public bool WeatherEnabled { get; set; }
+
+    /// <summary>Kota untuk cuaca (dicari lewat geocoding Open-Meteo); kosong = belum diatur.</summary>
+    public string WeatherCity { get; set; } = string.Empty;
+
+    /// <summary>Zona waktu tambahan untuk jam dunia (ID Windows atau IANA), dipisah koma.</summary>
+    public string WorldClocks { get; set; } = string.Empty;
+
+    /// <summary>HUD Caps Lock dan pergantian bahasa keyboard (hanya tombol Caps Lock yang dibaca; tidak ada yang disimpan).</summary>
+    public bool KeyboardHud { get; set; }
+
+    /// <summary>Cuaca, rapat berikutnya, air, dan pengingat digabung jadi satu halaman "Hari ini" (false = satu halaman per fitur).</summary>
+    public bool CombinedPages { get; set; }
+
+    /// <summary>Titik di notch saat mikrofon atau kamera dipakai, dari catatan privasi Windows sendiri.</summary>
+    public bool PrivacyDot { get; set; }
+
+    /// <summary>Jadwal sholat untuk kota cuaca, dihitung di PC (sudut Kemenag).</summary>
+    public bool PrayerTimes { get; set; }
+
+    /// <summary>Sepasang mata kecil di notch saat tidak ada apa-apa: berkedip, tertidur saat komputer ditinggal.</summary>
+    public bool CompanionEyes { get; set; }
+
+    /// <summary>Pengingat minum air yang lembut, dengan catatan harian di notch.</summary>
+    public bool WaterEnabled { get; set; }
+
+    public int WaterGoalMl { get; set; } = 2000;
+
+    public int WaterGlassMl { get; set; } = 250;
+
+    /// <summary>Menit antar pengingat setelah gelas terakhir; 0 = tanpa pengingat (catatan saja).</summary>
+    public int WaterEveryMinutes { get; set; } = 60;
+
+    public int WaterFromHour { get; set; } = 8;
+
+    public int WaterUntilHour { get; set; } = 21;
+
+    /// <summary>Pengingat dan to-do singkat di notch.</summary>
+    public bool RemindersEnabled { get; set; }
+
+    /// <summary>Jendela sambutan (tur + pilih fitur) sudah ditunjukkan.</summary>
+    public bool WelcomeShown { get; set; } = true;
+
+    /// <summary>"Not now" on the agent setup: it no longer opens by itself at start, only when an agent is asked something.</summary>
+    public bool AgentSetupSkipped { get; set; }
+
+    /// <summary>
+    /// A new user starts with only the core (the agent and the launcher): every notch feature is off
+    /// until they pick it in the welcome window. Existing users keep what they had.
+    /// </summary>
+    public void ApplyNewUserDefaults()
+    {
+        MusicInNotch = false;
+        SystemHud = false;
+        KeyboardHud = false;
+        CombinedPages = true;
+        TimerInNotch = false;
+        LiveActivities = false;
+        HoldDuringFocus = false;
+        RecapEvening = false;
+        DownloadsToShelf = false;
+        SystemMonitor = false;
+        ClipboardHistory = false;
+        GitHubChecks = false;
+        WeatherEnabled = false;
+        RemindersEnabled = false;
+        CalendarSource = "off";
+        WelcomeShown = false;
+    }
 
     /// <summary>Sisi layar tempat notch menempel: top, bottom, left, right.</summary>
     public string NotchEdge { get; set; } = "top";
@@ -155,12 +258,43 @@ public sealed class AppSettings
         VoiceLanguage = source.VoiceLanguage;
         VoiceModel = source.VoiceModel;
         ClaudeLiveSessions = source.ClaudeLiveSessions;
+        GeminiLiveSessions = source.GeminiLiveSessions;
+        MusicInNotch = source.MusicInNotch;
+        MusicTrackToast = source.MusicTrackToast;
+        MusicLyrics = source.MusicLyrics;
+        SystemHud = source.SystemHud;
+        KeyboardHud = source.KeyboardHud;
+        WaterEnabled = source.WaterEnabled;
+        CompanionEyes = source.CompanionEyes;
+        CombinedPages = source.CombinedPages;
+        PrivacyDot = source.PrivacyDot;
+        PrayerTimes = source.PrayerTimes;
+        WaterGoalMl = source.WaterGoalMl;
+        WaterGlassMl = source.WaterGlassMl;
+        WaterEveryMinutes = source.WaterEveryMinutes;
+        WaterFromHour = source.WaterFromHour;
+        WaterUntilHour = source.WaterUntilHour;
+        CalendarSource = source.CalendarSource;
+        HideInFullscreen = source.HideInFullscreen;
+        LiveActivities = source.LiveActivities;
+        GitHubChecks = source.GitHubChecks;
+        RecapEvening = source.RecapEvening;
+        ClipboardHistory = source.ClipboardHistory;
+        DownloadsToShelf = source.DownloadsToShelf;
+        SystemMonitor = source.SystemMonitor;
+        HoldDuringFocus = source.HoldDuringFocus;
+        TimerInNotch = source.TimerInNotch;
+        WeatherEnabled = source.WeatherEnabled;
+        WeatherCity = source.WeatherCity;
+        WorldClocks = source.WorldClocks;
+        RemindersEnabled = source.RemindersEnabled;
         ClaudeImportSessions = source.ClaudeImportSessions;
         PromptSuggestions = source.PromptSuggestions;
         AutoForkElsewhere = source.AutoForkElsewhere;
         CheckForUpdates = source.CheckForUpdates;
         UpdateRepository = source.UpdateRepository;
         SkippedUpdate = source.SkippedUpdate;
+        AgentSetupSkipped = source.AgentSetupSkipped;
         PromptSuggestionSource = source.PromptSuggestionSource;
         ChatSide = source.ChatSide;
         QuickCaptureReveal = source.QuickCaptureReveal;
@@ -241,6 +375,27 @@ public sealed class PromptTemplate
         new() { Name = "Tulis unit test", Content = "Tulis unit test yang menyeluruh untuk kode berikut:\n\n" },
         new() { Name = "Review & rapikan", Content = "Review kode ini untuk keterbacaan, dan sederhanakan tanpa mengubah perilaku:\n\n" },
     ];
+
+    private static readonly (string IdName, string Name, string Content)[] SeedsInEnglish =
+    [
+        ("Jelaskan kode", "Explain code", "Explain what the following code does and any likely problems:\n\n"),
+        ("Perbaiki bug", "Fix a bug", "Find and fix the bug in this code. Explain the cause and the fix:\n\n"),
+        ("Tulis unit test", "Write unit tests", "Write thorough unit tests for the following code:\n\n"),
+        ("Review & rapikan", "Review & tidy", "Review this code for readability, and simplify it without changing behaviour:\n\n"),
+    ];
+
+    /// <summary>How a template reads in English: an untouched seed is translated, anything the user wrote stays theirs.</summary>
+    public static PromptTemplate InEnglish(PromptTemplate template)
+    {
+        var seed = CreateDefaults().FirstOrDefault(item => item.Name == template.Name && item.Content == template.Content);
+        if (seed is null)
+        {
+            return template;
+        }
+
+        var english = SeedsInEnglish.First(item => item.IdName == seed.Name);
+        return new PromptTemplate { Name = english.Name, Content = english.Content };
+    }
 
     /// <summary>
     /// Clean a template list: trim fields, drop entries with an empty name or content,

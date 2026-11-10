@@ -1,8 +1,8 @@
-# CodexBar
+# TheAI
 
-CodexBar adalah companion Windows ringan untuk mengirim prompt ke AI dari launcher yang mengambang di atas taskbar. Default-nya memakai **Codex** (login Codex/ChatGPT yang sudah aktif, tanpa OpenAI API key), dan kini mendukung **multi-provider** — kamu dapat beralih ke **Claude** (Anthropic API), **OpenAI**, atau **OpenRouter** dari Settings; API key disimpan aman di Windows Credential Manager.
+TheAI adalah companion Windows ringan untuk mengirim prompt ke AI dari launcher yang mengambang di atas taskbar. Default-nya memakai **Codex** (login Codex/ChatGPT yang sudah aktif, tanpa OpenAI API key), dan kini mendukung **multi-provider** — kamu dapat beralih ke **Claude** (Anthropic API), **OpenAI**, atau **OpenRouter** dari Settings; API key disimpan aman di Windows Credential Manager.
 
-CodexBar adalah aplikasi komunitas tidak resmi, bukan produk OpenAI dan tidak berafiliasi dengan atau didukung oleh OpenAI. Penggunaan Codex dan layanan OpenAI tetap mengikuti ketentuan serta kebijakan akun pengguna.
+TheAI adalah aplikasi komunitas tidak resmi, bukan produk OpenAI dan tidak berafiliasi dengan atau didukung oleh OpenAI. Penggunaan Codex dan layanan OpenAI tetap mengikuti ketentuan serta kebijakan akun pengguna.
 
 Antarmuka dibagi menjadi tiga floating window:
 
@@ -10,7 +10,7 @@ Antarmuka dibagi menjadi tiga floating window:
 - **Output window** untuk respons streaming dan riwayat percakapan aktif.
 - **Codex menu** untuk status login, pencarian, percakapan baru, dan thread Codex terbaru.
 
-Status akun dan riwayat dibaca langsung dari Codex App Server. Thread yang dibuat atau dilanjutkan di CodexBar memakai penyimpanan thread Codex lokal yang sama, sehingga dapat dibuka kembali di Codex Desktop. Ini bukan sinkronisasi dengan riwayat ChatGPT umum.
+Status akun dan riwayat dibaca langsung dari Codex App Server. Thread yang dibuat atau dilanjutkan di TheAI memakai penyimpanan thread Codex lokal yang sama, sehingga dapat dibuka kembali di Codex Desktop. Ini bukan sinkronisasi dengan riwayat ChatGPT umum.
 
 ## Menjalankan build siap pakai
 
@@ -23,10 +23,10 @@ Status akun dan riwayat dibaca langsung dari Codex App Server. Thread yang dibua
 
    Jika langkah ini terlewat, onboarding menyediakan tombol **Pasang otomatis** dan **Buka login**; perintah manual tetap tersedia sebagai fallback.
 
-2. Pasang lewat installer (`CodexBar-Setup-x.y.z.exe`, lihat *Membangun installer*), pasang dari build tanpa installer (lihat *Pasang tanpa installer*), atau jalankan langsung `artifacts\win-x64\CodexBar.App.exe`.
+2. Pasang lewat installer (`TheAI-Setup-x.y.z.exe`, lihat *Membangun installer*), pasang dari build tanpa installer (lihat *Pasang tanpa installer*), atau jalankan langsung `artifacts\win-x64\TheAI.exe`.
 3. Tekan hotkey global (default `Win+Shift+C`) untuk menampilkan atau menyembunyikan overlay. Kombinasi dapat diubah dari Settings.
 
-Build pada `artifacts\win-x64` bersifat self-contained: pengguna akhir tidak perlu memasang .NET Runtime. Codex CLI tetap harus terpasang dan login. Rilis saat ini mendukung Windows 11 x64.
+Build pada `artifacts\release\win-x64` bersifat self-contained: pengguna akhir tidak perlu memasang .NET Runtime. Codex CLI tetap harus terpasang dan login. Rilis saat ini mendukung Windows 10 (1809+) dan Windows 11 x64.
 
 Lihat [PRIVACY.md](PRIVACY.md) sebelum mendistribusikan atau memakai aplikasi pada workspace sensitif.
 
@@ -35,7 +35,7 @@ Lihat [PRIVACY.md](PRIVACY.md) sebelum mendistribusikan atau memakai aplikasi pa
 Tanpa Inno Setup, build bisa dipasang langsung untuk user ini (tanpa hak admin):
 
 ```powershell
-.\scripts\install.ps1 -Publish -LaunchAtLogin   # publish, salin ke %LOCALAPPDATA%\Programs\CodexBar, shortcut Start Menu, jalan saat login
+.\scripts\install.ps1 -Publish -LaunchAtLogin   # publish, salin ke %LOCALAPPDATA%\Programs\TheAI, shortcut Start Menu, jalan saat login
 .\scripts\uninstall.ps1                         # lepas lagi; pengaturan & riwayat tetap (tambah -RemoveData untuk ikut menghapus)
 ```
 
@@ -47,7 +47,7 @@ Opsi lain: `-Desktop` (shortcut desktop), `-NoStartMenu`, `-NoLaunch`. Folder pe
 .\scripts\build-installer.ps1
 ```
 
-Script ini mem-publish build self-contained lalu mengompilasi installer per-user (tanpa hak admin) dengan [Inno Setup](https://jrsoftware.org/isdl.php) ke `artifacts\installer\CodexBar-Setup-x.y.z.exe`. Installer menambahkan shortcut Start Menu, opsi ikon desktop, dan opsi *Jalankan saat login*. Jika hanya membutuhkan exe tanpa Inno Setup, gunakan `-AllowPublishOnly`.
+Script ini mem-publish build self-contained lalu mengompilasi installer per-user (tanpa hak admin) dengan [Inno Setup](https://jrsoftware.org/isdl.php) ke `artifacts\installer\TheAI-Setup-x.y.z.exe`. Installer menambahkan shortcut Start Menu, opsi ikon desktop, dan opsi *Jalankan saat login*. Jika hanya membutuhkan exe tanpa Inno Setup, gunakan `-AllowPublishOnly`.
 
 **Code signing.** Build belum ditandatangani, sehingga Windows SmartScreen menampilkan peringatan "Unknown publisher". Untuk distribusi, sediakan sertifikat code-signing lalu set env var sebelum build:
 
@@ -59,13 +59,28 @@ $env:CODEXBAR_PFX_PASSWORD = "rahasia"
 
 ## Rilis & pembaruan
 
-CodexBar mengecek rilis terbaru di repositori GitHub **publik** saat mulai dan setiap 24 jam (Pengaturan → *Cek pembaruan otomatis*; repositori bawaan `build-zaidana/CodexBar`, bisa diganti di sana). Versi yang lebih baru muncul sebagai notifikasi (*Unduh* / *Lewati versi ini*) dan baris di tray menu; *Unduh* membuka file rilis di browser, tidak ada yang terpasang sendiri. Selama repositorinya belum ada atau belum punya rilis, pengecekan diam saja.
+TheAI mengecek rilis terbaru di repositori GitHub **publik** saat mulai dan setiap 24 jam (Pengaturan → *Cek pembaruan otomatis*; repositori bawaan `build-zaidana/TheAI`, bisa diganti di sana). Versi yang lebih baru muncul sebagai notifikasi (*Unduh* / *Lewati versi ini*) dan baris di tray menu; *Unduh* membuka file rilis di browser, tidak ada yang terpasang sendiri. Selama repositorinya belum ada atau belum punya rilis, pengecekan diam saja.
 
 Membuat rilis:
 
 1. Naikkan `<Version>` di `src\CodexBar.App\CodexBar.App.csproj` (mis. `1.3.0`).
 2. Bangun: `.\scripts\build-installer.ps1` (installer) atau `.\scripts\publish.ps1` (exe saja).
-3. Di repositori rilis publik, buat release dengan tag `v1.3.0` dan lampirkan `CodexBar-Setup-1.3.0.exe` (atau `CodexBar.App.exe`). Tag harus berupa versi (`v` di depan boleh); installer dengan "Setup" di namanya dipilih lebih dulu untuk diunduh.
+3. Di repositori rilis publik, buat release dengan tag `v1.3.0` dan lampirkan `TheAI-Setup-1.3.0.exe` (atau `TheAI.exe`). Tag harus berupa versi (`v` di depan boleh); installer dengan "Setup" di namanya dipilih lebih dulu untuk diunduh.
+
+## Aktivitas dari skrip
+
+Skrip, build, atau unduhan apa pun bisa tampil di notch selama TheAI berjalan:
+
+```powershell
+TheAI.exe activity build --title "npm run build" --progress 0.4
+TheAI.exe activity build --done
+TheAI.exe activity deploy --failed "exit 1"
+TheAI.exe activity build --remove
+```
+
+Opsi lain: `--detail "teks"` (ditampilkan bila tidak ada persen) dan `--url https://…` (dibuka saat barisnya diklik). Tanpa CLI, tulis satu baris JSON per pembaruan ke named pipe `\\.\pipe\theai-<nama pengguna>`, misalnya `{"id":"build","progress":0.4}`. Hanya proses milik pengguna Windows yang sama yang diterima; tidak ada port atau jaringan.
+
+Perintah PowerShell yang berjalan ≥ 10 detik bisa tampil otomatis: nyalakan **Pengaturan → Notch → Perintah terminal yang lama di notch** (menambah satu baris bertanda di `$PROFILE`; mematikannya menghapus baris itu lagi).
 
 ## Shortcut
 
@@ -82,20 +97,33 @@ Membuat rilis:
 | `Ctrl+Shift+T` | Toggle always-on-top |
 | `Ctrl+Shift+W` | Toggle word wrap kode |
 | `Ctrl+V` saat clipboard berisi gambar/file | Tambahkan screenshot atau file sebagai lampiran |
-| Drag file/gambar ke CodexBar | Tambahkan sebagai lampiran prompt |
+| Drag file/gambar ke TheAI | Tambahkan sebagai lampiran prompt |
 
 Gunakan tombol `☰` untuk membuka menu/riwayat. Tombol **template prompt** (ikon daftar) di input bar membuka daftar template untuk sisip cepat, atau menyimpan prompt saat ini sebagai template baru. Tombol output `▤` hanya muncul saat output disetel terpisah (lihat Tampilan). `Top` (always-on-top) dan `Wrap kode` kini ada di panel Settings, bukan di toolbar, agar input bar tetap minimalis.
 
+## Mematikan PC nanti
+
+Di halaman Timer, pilih mode **Matikan**, atur durasinya di penggaris (atau tekan **Pakai jam** untuk memilih pukul berapa), lalu tekan tombol merah. Bisa juga diketik di halaman itu:
+
+```text
+shutdown -s -t 3600   # mati dalam 3600 detik
+shutdown 30m          # atau: matikan 1 jam
+shutdown 22:30        # mati pukul 22:30; kalau sudah lewat, besok. Atau: matikan jam 22
+shutdown -a           # batalkan
+```
+
+Ini menjalankan `shutdown /s /t X` milik Windows, yang **menutup paksa aplikasi yang terbuka**, jadi simpan pekerjaanmu. Sisa waktu tampil di notch, dan notch terbuka sendiri satu menit sebelumnya supaya masih bisa dibatalkan. Nilai di bawah 30 detik dinaikkan jadi 30 detik.
+
 ## Tampilan
 
-CodexBar tampil sebagai **launcher satu baris** yang mengambang tepat di atas taskbar (gaya command palette), muncul/menyembunyi dengan hotkey global yang dapat diatur. Kartu memakai permukaan solid dengan sudut membulat native dan kontrol modern (ikon Segoe Fluent, slider/checkbox/combobox kustom, tombol kirim ikon Enter di dalam field).
+TheAI tampil sebagai **launcher satu baris** yang mengambang tepat di atas taskbar (gaya command palette), muncul/menyembunyi dengan hotkey global yang dapat diatur. Kartu memakai permukaan solid dengan sudut membulat native dan kontrol modern (ikon Segoe Fluent, slider/checkbox/combobox kustom, tombol kirim ikon Enter di dalam field).
 
 - Baris berisi: tombol menu, chip direktori (dengan indikator status), field input dengan placeholder, dan tombol Settings.
 - **Field dan chip direktori saling menyesuaikan**: saat input dipakai/di-hover, field membesar dan chip direktori menyusut; saat chip direktori di-hover, ia melebar menampilkan path lebih lengkap.
 - Tinggi window menyesuaikan isi (`SizeToContent`); saat ada output/Settings, window tumbuh ke atas sehingga tepi bawah tetap menempel di atas taskbar.
 - Tema `System`/`Light`/`Dark` tersedia di panel Settings.
 
-Di panel Settings tersedia opsi **Output menyatu** dan **Menu menyatu** untuk menentukan apakah output dan Codex menu tampil menyatu (docked) dengan input bar atau sebagai window terpisah, plus info versi dan catatan privasi. Tersedia juga toggle **Log diagnostik** (opt-in, default mati) beserta tombol **Buka folder log** — bila diaktifkan, CodexBar menulis log ke `%LOCALAPPDATA%\CodexBar\logs` (rotasi 7 hari) untuk memudahkan pelaporan bug.
+Di panel Settings tersedia opsi **Output menyatu** dan **Menu menyatu** untuk menentukan apakah output dan Codex menu tampil menyatu (docked) dengan input bar atau sebagai window terpisah, plus info versi dan catatan privasi. Tersedia juga toggle **Log diagnostik** (opt-in, default mati) beserta tombol **Buka folder log** — bila diaktifkan, TheAI menulis log ke `%LOCALAPPDATA%\TheAI\logs` (rotasi 7 hari) untuk memudahkan pelaporan bug.
 
 ## Build
 
@@ -126,9 +154,9 @@ Lihat [DPPL](../DPPL-CodexBar.md) untuk rancangan lengkap.
 - **Variabel template `{selection}`/`{clipboard}`**, kelola template (edit/rename/hapus), riwayat prompt (↑/↓), serta ekspor/impor settings & template.
 - **Laporkan bug**: bundel log diagnostik jadi satu zip untuk dilampirkan.
 - **Template prompt**: simpan dan sisip cepat prompt yang sering dipakai lewat tombol template di input bar; instal baru di-seed dengan beberapa contoh (Jelaskan kode, Perbaiki bug, Tulis test, Review).
-- **Diagnostics logging opt-in**: toggle di Settings menulis log rotasi harian (7 hari) ke `%LOCALAPPDATA%\CodexBar\logs`, plus penangkap unhandled exception, untuk mempermudah pelaporan bug. Default mati.
+- **Diagnostics logging opt-in**: toggle di Settings menulis log rotasi harian (7 hari) ke `%LOCALAPPDATA%\TheAI\logs`, plus penangkap unhandled exception, untuk mempermudah pelaporan bug. Default mati.
 - **Aksesibilitas**: `AutomationProperties` lengkap di input bar serta window Output dan Sidebar (nama window, region percakapan, dan tiap item thread) untuk screen reader.
-- **Fix proses background saat keluar dari tray.** Dulu `CodexBar.App.exe` (dan proses `codex` anak) tetap berjalan/menggantung setelah klik "Keluar". Penyebab: deadlock saat shutdown (`OnExit` memblokir UI thread + `DisposeAsync` menunggu read loop yang tidak pernah selesai). Kini dispose dijalankan di thread pool dengan batas waktu, dan penutupan child process dijamin. **Terverifikasi**: app + child `codex` benar-benar berhenti tanpa orphan.
+- **Fix proses background saat keluar dari tray.** Dulu `TheAI.exe` (dan proses `codex` anak) tetap berjalan/menggantung setelah klik "Keluar". Penyebab: deadlock saat shutdown (`OnExit` memblokir UI thread + `DisposeAsync` menunggu read loop yang tidak pernah selesai). Kini dispose dijalankan di thread pool dengan batas waktu, dan penutupan child process dijamin. **Terverifikasi**: app + child `codex` benar-benar berhenti tanpa orphan.
 - **Output bisa diseleksi & berformat.** Respons kini dirender sebagai Markdown (heading, bold, italic, inline code, list, blockquote, blok kode) di dalam `RichTextBox` read-only, sehingga teks dapat diblok dan disalin.
 - **Setting docked/separated** untuk Output dan Codex menu (default menyatu).
 - **Input bar diminimaliskan**: tombol Copy/Top/Wrap dipindah ke panel Settings.

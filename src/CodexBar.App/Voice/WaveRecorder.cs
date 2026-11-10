@@ -67,7 +67,7 @@ internal sealed class WaveRecorder : IDisposable
         _next = 0;
         _running = true;
         Check(waveInStart(_device), "waveInStart");
-        _pump = new Thread(Pump) { IsBackground = true, Name = "CodexBar mic" };
+        _pump = new Thread(Pump) { IsBackground = true, Name = "TheAI mic" };
         _pump.Start();
     }
 

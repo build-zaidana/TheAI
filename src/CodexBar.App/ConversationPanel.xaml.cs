@@ -174,7 +174,7 @@ public partial class ConversationPanel : Window
                 label.Children.Add(new TextBlock
                 {
                     Text = choice.Hint,
-                    FontSize = 11.5,
+                    FontSize = 12.5,
                     Foreground = (Brush)FindResource("PanelText2"),
                     Margin = new Thickness(0, 1, 0, 0),
                     MaxWidth = 260,
@@ -666,7 +666,7 @@ public partial class ConversationPanel : Window
         {
             Text = Tr.Text("Compact meringkas percakapan sejauh ini supaya ada ruang lagi; agen melanjutkan dari ringkasannya.",
                 "Compacting summarizes the conversation so far to free up space; the agent continues from the summary."),
-            FontSize = 11.5,
+            FontSize = 12.5,
             Foreground = muted,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 10)
@@ -1074,19 +1074,19 @@ public partial class ConversationPanel : Window
 
     private sealed record SlashCommand(string Name, string Hint);
 
-    private static readonly SlashCommand[] SlashCommands =
+    private static SlashCommand[] SlashCommands =>
     [
-        new("clear", "Mulai percakapan baru"),
-        new("model", "Ganti model"),
-        new("effort", "Ganti effort"),
-        new("mode", "Ganti mode persetujuan"),
-        new("attach", "Lampirkan file atau gambar"),
-        new("voice", "Dikte dengan suara"),
-        new("copy", "Salin jawaban terakhir"),
-        new("wide", "Perlebar / perkecil chat"),
-        new("find", "Cari di percakapan (Ctrl+F)"),
-        new("export", "Ekspor percakapan ke Markdown"),
-        new("settings", "Buka pengaturan")
+        new("clear", Tr.Text("Mulai percakapan baru", "Start a new conversation")),
+        new("model", Tr.Text("Ganti model", "Change the model")),
+        new("effort", Tr.Text("Ganti effort", "Change the effort")),
+        new("mode", Tr.Text("Ganti mode persetujuan", "Change the approval mode")),
+        new("attach", Tr.Text("Lampirkan file atau gambar", "Attach a file or image")),
+        new("voice", Tr.Text("Dikte dengan suara", "Dictate by voice")),
+        new("copy", Tr.Text("Salin jawaban terakhir", "Copy the last answer")),
+        new("wide", Tr.Text("Perlebar / perkecil chat", "Widen or narrow the chat")),
+        new("find", Tr.Text("Cari di percakapan (Ctrl+F)", "Find in the conversation (Ctrl+F)")),
+        new("export", Tr.Text("Ekspor percakapan ke Markdown", "Export the conversation to Markdown")),
+        new("settings", Tr.Text("Buka pengaturan", "Open settings"))
     ];
 
     private System.Windows.Controls.Primitives.Popup? _slashPopup;

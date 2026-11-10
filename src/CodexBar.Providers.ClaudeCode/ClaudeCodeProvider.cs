@@ -75,9 +75,9 @@ public sealed class ClaudeCodeProvider : IAgentProvider
             threadId = Guid.NewGuid().ToString();
         }
 
-        // A Claude Code transcript can be tens of megabytes: read it off the caller's (UI) thread.
-        var id = threadId;
-        await Task.Run(() => LoadThread(id), cancellationToken).ConfigureAwait(false);
+        // The history is read when it's needed (the first prompt, or opening the conversation), not
+        // here: at startup this would read a transcript of 100+ MB that nobody may look at.
+        await Task.CompletedTask.ConfigureAwait(false);
         return threadId;
     }
 
@@ -151,7 +151,8 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         CancellationToken cancellationToken = default)
     {
         var executable = _executable ?? ClaudeCodeExecutableLocator.Locate();
-        LoadThread(threadId);
+        // A Claude Code transcript can be tens of megabytes: read it off the caller's (UI) thread.
+        await Task.Run(() => LoadThread(threadId), cancellationToken).ConfigureAwait(false);
 
         var fullPrompt = AppendAttachments(prompt, attachments);
         var resume = _messages.Any(m => m.Role == "assistant");
@@ -211,7 +212,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
         using var process = new Process { StartInfo = CreateStartInfo(executable, arguments, _workspacePath) };
         if (!process.Start())
         {
-            throw new InvalidOperationException("claude gagal dijalankan.");
+            throw new InvalidOperationException("claude couldn't be started.");
         }
 
         _turnProcess = process;
@@ -323,7 +324,7 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         if (!process.Start())
         {
-            throw new InvalidOperationException("claude gagal dijalankan.");
+            throw new InvalidOperationException("claude couldn't be started.");
         }
 
         _turnProcess = process;
@@ -587,10 +588,10 @@ public sealed class ClaudeCodeProvider : IAgentProvider
 
         // An API key in the environment would take precedence over the subscription login.
         startInfo.Environment.Remove("ANTHROPIC_API_KEY");
-        // Lets CodexBar's own hook relay recognise (and skip) the sessions it runs itself.
+        // Lets TheAI's own hook relay recognise (and skip) the sessions it runs itself.
         startInfo.Environment["CODEXBAR_CHILD"] = "1";
-        // Don't pass on the identity of a Claude Code session CodexBar itself may have been started
-        // from (it would label CodexBar's sessions as that session's entrypoint).
+        // Don't pass on the identity of a Claude Code session TheAI itself may have been started
+        // from (it would label TheAI's sessions as that session's entrypoint).
         startInfo.Environment.Remove("CLAUDE_CODE_ENTRYPOINT");
         startInfo.Environment.Remove("CLAUDECODE");
         startInfo.Environment.Remove("ANTHROPIC_AUTH_TOKEN");

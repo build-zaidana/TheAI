@@ -13,6 +13,8 @@ using CodexBar.Providers.OpenAI;
 using CodexBar.Providers.OpenAiCompatible;
 using CodexBar.Providers.OpenRouter;
 
+// Never the user's own data: settings, conversations and caches go to a throwaway folder.
+Environment.SetEnvironmentVariable("THEAI_DATA_DIR", Path.Combine(Path.GetTempPath(), "theai-tests", Environment.ProcessId.ToString()));
 var metadataOnly = args.Contains("--metadata", StringComparer.OrdinalIgnoreCase);
 var resumeCheck = args.Contains("--resume-check", StringComparer.OrdinalIgnoreCase);
 var reconnectCheck = args.Contains("--reconnect-check", StringComparer.OrdinalIgnoreCase);
@@ -94,6 +96,36 @@ if (!metadataOnly && !resumeCheck && !reconnectCheck && !activeReconnectCheck &&
     if (calendar != 0)
     {
         return calendar;
+    }
+
+    var liveJobs = RunLiveJobTests();
+    if (liveJobs != 0)
+    {
+        return liveJobs;
+    }
+
+    var pullRequests = RunPullRequestTests();
+    if (pullRequests != 0)
+    {
+        return pullRequests;
+    }
+
+    var dayLog = RunDayLogTests();
+    if (dayLog != 0)
+    {
+        return dayLog;
+    }
+
+    var clipboard = RunClipboardTests();
+    if (clipboard != 0)
+    {
+        return clipboard;
+    }
+
+    var commands = RunSmartCommandTests();
+    if (commands != 0)
+    {
+        return commands;
     }
 
     return await RunDeterministicTestsAsync();
@@ -231,7 +263,7 @@ return 0;
 
 static async Task<int> RunDeterministicTestsAsync()
 {
-    var temporaryRoot = Path.Combine(Path.GetTempPath(), $"CodexBar-tests-{Guid.NewGuid():N}");
+    var temporaryRoot = Path.Combine(Path.GetTempPath(), $"TheAI-tests-{Guid.NewGuid():N}");
     Directory.CreateDirectory(temporaryRoot);
 
     try
@@ -316,8 +348,8 @@ static async Task<int> RunDeterministicTestsAsync()
         await File.WriteAllTextAsync(store.SettingsPath, "{ bukan json");
         var recovered = await store.LoadAsync();
         Assert(recovered.SchemaVersion == 12, "Settings rusak harus dipulihkan ke schema terbaru.");
-        Assert(recovered.QuickCaptureReveal == "done" && recovered.QuickCaptureHotkey.Length > 0,
-            "Default quick-capture harus reveal=done + hotkey terisi.");
+        Assert(recovered.QuickCaptureReveal == "notch" && recovered.QuickCaptureHotkey.Length > 0,
+            "Default quick-capture harus reveal=notch + hotkey terisi.");
 
         await File.WriteAllTextAsync(store.SettingsPath,
             """{ "quickCaptureReveal": "CLIPBOARD", "quickCaptureHotkey": "" }""");
@@ -418,9 +450,10 @@ static async Task<int> RunDeterministicTestsAsync()
             "Navigasi prompt history Up/Down harus mempertahankan draft input.");
 
         // Localization: parsing, lookup with fallback, and live-switch notification.
+        var windows = System.Globalization.CultureInfo.InstalledUICulture.TwoLetterISOLanguageName == "id" ? AppLanguage.Id : AppLanguage.En;
         Assert(Localization.Parse("en") == AppLanguage.En && Localization.Parse("ID") == AppLanguage.Id &&
-               Localization.Parse("xx") == AppLanguage.Id && Localization.ToCode(AppLanguage.En) == "en",
-            "Parsing/serialisasi kode bahasa harus benar dengan fallback ke Indonesia.");
+               Localization.Parse("auto") == windows && Localization.Parse("xx") == windows && Localization.ToCode(AppLanguage.En) == "en",
+            "Parsing/serialisasi kode bahasa harus benar; 'auto' dan yang tak dikenal mengikuti bahasa Windows.");
         Assert(Strings.Get(AppLanguage.En, "settings.close") == "Close" &&
                Strings.Get(AppLanguage.Id, "settings.close") == "Tutup" &&
                Strings.Get(AppLanguage.En, "kunci.tidak.ada") == "kunci.tidak.ada",
@@ -431,7 +464,9 @@ static async Task<int> RunDeterministicTestsAsync()
         Localization.Instance.SetLanguage(AppLanguage.En);
         Assert(localizationChanged && Localization.Instance["settings.close"] == "Close",
             "Ganti bahasa harus memicu notifikasi dan indexer mengikuti bahasa baru.");
+        Assert(Localization.Text("Tutup", "Close") == "Close", "Teks tanpa tabel harus ikut bahasa Inggris.");
         Localization.Instance.SetLanguage(AppLanguage.Id);
+        Assert(Localization.Text("Tutup", "Close") == "Tutup", "Teks tanpa tabel harus ikut bahasa Indonesia.");
         Localization.Instance.PropertyChanged -= OnLocalizationChanged;
         await store.SaveAsync(normalized);
         Assert(Directory.GetFiles(settingsRoot, "*.tmp").Length == 0,
@@ -482,7 +517,7 @@ static async Task<int> RunDeterministicTestsAsync()
         Assert(DiagnosticsLog.IsEnabled && DiagnosticsLog.LogDirectory is not null,
             "DiagnosticsLog harus aktif setelah Configure(enabled:true).");
         DiagnosticsLog.Error("Test", "pesan diagnostik", new InvalidOperationException("boom"));
-        var logFiles = Directory.GetFiles(DiagnosticsLog.LogDirectory!, "codexbar-*.log");
+        var logFiles = Directory.GetFiles(DiagnosticsLog.LogDirectory!, "theai-*.log");
         Assert(logFiles.Length == 1, "DiagnosticsLog harus menulis satu file log per hari.");
         var logText = await File.ReadAllTextAsync(logFiles[0]);
         Assert(logText.Contains("pesan diagnostik", StringComparison.Ordinal) &&
@@ -623,7 +658,7 @@ static async Task<int> RunDeterministicTestsAsync()
             """);
         var mcpUrl = protocolEvent as ProviderUserInputEvent;
         Assert(mcpUrl is not null && mcpUrl.Title == "Connect test-server" &&
-               mcpUrl.Message == "Complete the steps in your browser, then return to CodexBar." &&
+               mcpUrl.Message == "Complete the steps in your browser, then return to TheAI." &&
                mcpUrl.Questions.Single().Header == "Confirmation" &&
                mcpUrl.Questions.Single().Options.Single().Label == "I'm finished",
             "Teks fallback MCP URL elicitation harus mengikuti bahasa aplikasi.");
@@ -699,6 +734,26 @@ static async Task<int> RunDeterministicTestsAsync()
                threadStatus.Status == "active" && threadStatus.ActiveFlags.Contains("waitingOnApproval"),
             "Status thread dan attention flag harus diteruskan ke UI.");
 
+        Assert(ShutdownCommand.TryParse("shutdown -s -t 3600", out var power) && power is { Cancel: false, Seconds: 3600 }, "shutdown -s -t X");
+        Assert(ShutdownCommand.TryParse("SHUTDOWN /s /t 120", out power) && power.Seconds == 120, "shutdown /s /t X");
+        Assert(ShutdownCommand.TryParse("shutdown -s -t 0", out power) && power.Seconds == ShutdownCommand.MinSeconds, "0 seconds is raised to the minimum");
+        Assert(ShutdownCommand.TryParse("matikan 1 jam", out power) && power.Seconds == 3600, "matikan 1 jam");
+        Assert(ShutdownCommand.TryParse("shutdown 30m", out power) && power.Seconds == 1800, "shutdown 30m");
+        Assert(ShutdownCommand.TryParse("shutdown -a", out power) && power.Cancel, "shutdown -a");
+        Assert(!ShutdownCommand.TryParse("25m", out _) && !ShutdownCommand.TryParse("shutdown -r -t 5", out _) && !ShutdownCommand.TryParse("shutdown -s", out _), "other text is not a shutdown");
+        Assert(CodexBar.Core.WeatherClient.ParseForecast("{\"current\":{\"temperature_2m\":31,\"weather_code\":2,\"is_day\":1},\"daily\":{\"temperature_2m_max\":[33],\"temperature_2m_min\":[25],\"precipitation_probability_max\":[70]},\"hourly\":{\"temperature_2m\":[25,26,27]}}") is { Hourly.Count: 3 }, "hourly temperatures are read");
+        Console.WriteLine("PASS weather hours");
+        Assert(ShutdownCommand.TryParse("shutdown 22:30", out power) && power.At == new TimeOnly(22, 30), "shutdown 22:30");
+        Assert(ShutdownCommand.TryParse("matikan jam 22", out power) && power.At == new TimeOnly(22, 0), "matikan jam 22");
+        Assert(ShutdownCommand.TryParse("matikan pukul 7.15", out power) && power.At == new TimeOnly(7, 15), "matikan pukul 7.15");
+        Assert(ShutdownCommand.TryParse("shutdown @23:05", out power) && power.At == new TimeOnly(23, 5), "shutdown @23:05");
+        Assert(!ShutdownCommand.TryParse("shutdown 25:00", out _) && !ShutdownCommand.TryParse("shutdown 22:75", out _), "not a time of day");
+        Assert(ShutdownCommand.TryParse("matikan 1 jam", out power) && power is { At: null, Seconds: 3600 }, "a length is still a length");
+        var evening = new DateTimeOffset(2026, 11, 8, 21, 0, 0, TimeSpan.FromHours(7));
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(22, 30), evening) == 5400, "later today");
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(6, 0), evening) == 32400, "passed already: tomorrow");
+        Assert(ShutdownCommand.SecondsUntil(new TimeOnly(21, 0), evening) == 86400, "right now means tomorrow");
+        Console.WriteLine("PASS shutdown command");
         Console.WriteLine("PASS deterministic controller/settings/protocol tests");
         return 0;
     }
@@ -1003,6 +1058,21 @@ static int RunFileChangeTests()
         var info = ClaudeSessionFiles.Parse(new FileInfo(sessionFile));
         Assert(info is { Cwd: @"C:\proj\web", Entrypoint: "cli", Title: "Bug login", Source: "Terminal" },
             $"Ringkasan sesi Claude Code salah: {info}");
+
+        // Lines are picked by their first bytes: a huge line is skipped (or kept whole), CRLF and a
+        // last line without a newline still come out right, across the 1 MB read buffer.
+        var scanFile = Path.Combine(sessionDir, "scan.jsonl");
+        var huge = new string('x', 3 << 20);
+        File.WriteAllText(scanFile,
+            "{\"type\":\"tool\",\"out\":\"" + huge + "\"}\r\n" +
+            "{\"type\":\"keep\",\"n\":1}\r\n" +
+            "{\"type\":\"keep\",\"out\":\"" + huge + "\"}\n" +
+            "{\"type\":\"skip\"}\n" +
+            "{\"type\":\"keep\",\"n\":2}");
+        var kept = ClaudeSessionFiles.MatchingLines(scanFile, prefix => prefix.IndexOf("\"type\":\"keep\""u8) >= 0).ToList();
+        Assert(kept.Count == 3 && kept[0] == "{\"type\":\"keep\",\"n\":1}" && kept[1].Length == huge.Length + 24 &&
+               kept[1].EndsWith("\"}", StringComparison.Ordinal) && kept[2] == "{\"type\":\"keep\",\"n\":2}",
+            $"Pemindaian baris salah: {kept.Count} baris, {string.Join(" | ", kept.Select(line => line.Length > 40 ? line.Length.ToString() : line))}");
         var history = ClaudeSessionFiles.ReadMessages(sessionFile);
         Assert(history.Count == 4 && history[2] is { Role: "user", Text: "lihat ini", Images: [var image] } && File.Exists(image) &&
                history[3] is { Text: "Selesai.", Steps: { Count: 6 } turn } && turn[4].IsNote && turn[4].Detail == "Catatan progres.",
@@ -1082,13 +1152,30 @@ static int RunFileChangeTests()
         // Update check: a GitHub "latest release" response, the installer preferred, versions compared.
         var release = UpdateChecker.Parse("""
             {"tag_name":"v1.3.0","html_url":"https://github.com/o/r/releases/tag/v1.3.0","body":"Baru",
-             "assets":[{"name":"CodexBar.App.exe","browser_download_url":"https://x/app.exe"},
-                       {"name":"CodexBar-Setup-1.3.0.exe","browser_download_url":"https://x/setup.exe"}]}
+             "assets":[{"name":"TheAI.exe","browser_download_url":"https://x/app.exe"},
+                       {"name":"TheAI-Setup-1.3.0.exe","browser_download_url":"https://x/setup.exe"}]}
             """);
         Assert(release is { Tag: "v1.3.0", DownloadUrl: "https://x/setup.exe" } && release.Version == new Version(1, 3, 0, 0),
             $"Rilis GitHub salah terbaca: {release}");
         Assert(UpdateChecker.Parse("""{"tag_name":"nightly"}""") is null, "Tag tanpa versi bukan rilis.");
-        Assert(UpdateChecker.IsRepository("build-zaidana/CodexBar") && !UpdateChecker.IsRepository("https://github.com/x"),
+        Assert(release is { CanInstall: false }, "Tanpa checksum: tidak dipasang dari dalam app.");
+        var installable = UpdateChecker.Parse("""
+            {"tag_name":"v1.5.0","assets":[
+              {"name":"TheAI-Setup-1.5.0.exe","browser_download_url":"https://github.com/o/r/releases/download/v1.5.0/TheAI-Setup-1.5.0.exe"},
+              {"name":"TheAI-Setup-1.5.0.exe.sha256","browser_download_url":"https://github.com/o/r/releases/download/v1.5.0/TheAI-Setup-1.5.0.exe.sha256"}]}
+            """);
+        Assert(installable is { CanInstall: true, InstallerName: "TheAI-Setup-1.5.0.exe" } && installable.ChecksumUrl!.EndsWith(".sha256"),
+            $"Rilis dengan checksum bisa dipasang: {installable}");
+        var hash = new string('a', 64);
+        Assert(UpdateInstaller.ExpectedHash(hash + "\n", "x.exe") == hash, "Checksum satu baris.");
+        Assert(UpdateInstaller.ExpectedHash($"{new string('b', 64)}  other.exe\n{hash} *TheAI-Setup-1.5.0.exe\n", "TheAI-Setup-1.5.0.exe") == hash,
+            "Checksum format sha256sum.");
+        Assert(UpdateInstaller.ExpectedHash("not a hash", "x.exe") is null, "Bukan checksum: null.");
+        var payload = Path.Combine(Path.GetTempPath(), "theai-update-test.bin");
+        File.WriteAllText(payload, "installer");
+        var real = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(payload)));
+        Assert(UpdateInstaller.Matches(payload, real.ToLowerInvariant()) && !UpdateInstaller.Matches(payload, hash), "Hash diperiksa.");
+        Assert(UpdateChecker.IsRepository("build-zaidana/TheAI") && !UpdateChecker.IsRepository("https://github.com/x"),
             "Format repositori pemilik/nama harus dikenali.");
 
         var habits = new PromptHabits();
@@ -1325,8 +1412,7 @@ static async Task AssertLocalConversationPersistsAsync(string providerId, Func<I
     finally
     {
         var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CodexBar", "conversations", providerId, $"{threadId}.json");
+            CodexBar.Providers.AppPaths.DataRoot, "conversations", providerId, $"{threadId}.json");
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -1383,7 +1469,7 @@ static int RunRateLimitTests()
 
 static int RunBugReportTests()
 {
-    var root = Path.Combine(Path.GetTempPath(), $"CodexBar-bugreport-{Guid.NewGuid():N}");
+    var root = Path.Combine(Path.GetTempPath(), $"TheAI-bugreport-{Guid.NewGuid():N}");
     try
     {
         var logsDir = Path.Combine(root, "logs");
@@ -1392,7 +1478,7 @@ static int RunBugReportTests()
         File.WriteAllText(Path.Combine(logsDir, "codexbar-20260102.log"), "baris log lain");
         File.WriteAllText(Path.Combine(logsDir, "ignore.txt"), "bukan log");
 
-        var zipPath = BugReport.Create(root, "CodexBar 9.9.9\nOS: test");
+        var zipPath = BugReport.Create(root, "TheAI 9.9.9\nOS: test");
         Assert(File.Exists(zipPath), "Zip laporan bug harus dibuat.");
 
         using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
@@ -1414,6 +1500,409 @@ static int RunBugReportTests()
     finally
     {
         try { Directory.Delete(root, recursive: true); } catch { }
+    }
+}
+
+static int RunSmartCommandTests()
+{
+    try
+    {
+        static string En(string id, string en) => en;
+        Assert(SmartCommands.Split("/review the auth module") == ("review", "the auth module"), "Pisah perintah + argumen.");
+        Assert(SmartCommands.Split("/Explain") == ("explain", "") && SmartCommands.Split("hello") is null && SmartCommands.Split("/ x") is null && SmartCommands.Split("/") is null,
+            "Bukan perintah: null.");
+
+        var all = SmartCommands.BuiltIn;
+        Assert(SmartCommands.Match("/", all, En).Count == all.Count, "'/' saja: semua.");
+        Assert(SmartCommands.Match("/re", all, En) is [{ Name: "review" }, { Name: "recap" }, ..], "Awalan: review, recap.");
+        Assert(SmartCommands.Match("/clip", all, En)[0].Name == "clipboard", "Awalan clipboard.");
+        Assert(SmartCommands.Match("/translate", all, En)[0].Name == "translate", "Nama persis di atas.");
+        Assert(SmartCommands.Match("/pomodoro", all, En)[0].Name == "focus", "Cocok lewat deskripsi.");
+        Assert(SmartCommands.Match("/zzz", all, En).Count == 0, "Tidak ada yang cocok.");
+
+        var none = new SmartCommandContext(string.Empty, string.Empty, English: true);
+        var clip = new SmartCommandContext("int x = 1;", string.Empty, English: false);
+        var explain = all.First(c => c.Name == "explain");
+        Assert(SmartCommands.Expand(explain, "var y = 2;", none)!.EndsWith("var y = 2;"), "Argumen jadi isi.");
+        Assert(SmartCommands.Expand(explain, string.Empty, clip)!.EndsWith("int x = 1;"), "Tanpa argumen: isi clipboard.");
+        Assert(SmartCommands.Expand(explain, string.Empty, none) is null, "Tanpa argumen dan clipboard kosong: null.");
+
+        var translate = all.First(c => c.Name == "translate");
+        Assert(SmartCommands.Expand(translate, "ja selamat pagi", none) is { } ja && ja.Contains("into Japanese") && ja.EndsWith("selamat pagi"), "Terjemah ke bahasa yang disebut.");
+        Assert(SmartCommands.Expand(translate, "good morning", clip) is { } id && id.Contains("into Indonesian") && id.EndsWith("good morning"), "Bawaan: bahasa UI.");
+        Assert(SmartCommands.Expand(translate, "en", clip) is { } en && en.Contains("into English") && en.EndsWith("int x = 1;"), "Hanya bahasa: isi dari clipboard.");
+
+        var review = all.First(c => c.Name == "review");
+        Assert(SmartCommands.Expand(review, string.Empty, none) is { } r && !r.Contains("{") && !r.Contains("Focus on"), "Review tanpa fokus.");
+        Assert(SmartCommands.Expand(review, "auth", none)!.EndsWith("Focus on: auth"), "Review dengan fokus.");
+        var fix = all.First(c => c.Name == "fix");
+        Assert(SmartCommands.Expand(fix, string.Empty, none with { LastFailure = "`npm test` (exit 1)" })!.StartsWith("This command just failed: `npm test` (exit 1)."), "Fix memakai kegagalan terakhir.");
+        Assert(SmartCommands.Expand(all.First(c => c.Name == "settings"), "", none) is null, "Aksi tidak punya prompt.");
+
+        var templates = SmartCommands.FromTemplates([new PromptTemplate { Name = "Tulis Unit Test!", Content = "Tulis unit test:" }, new PromptTemplate { Name = "Review", Content = "x" }]).ToList();
+        Assert(templates is [{ Name: "tulis-unit-test" }] && SmartCommands.Expand(templates[0], "Foo()", none) == "Tulis unit test:\n\nFoo()",
+            "Template jadi /nama; nama yang bentrok dengan bawaan dilewati.");
+        // Features: a new user starts with only the core; the welcome window switches on what's chosen.
+        var fresh = new AppSettings();
+        Assert(fresh.MusicInNotch && fresh.TimerInNotch && fresh.WelcomeShown, "Bawaan kelas = pengguna lama (tidak berubah).");
+        fresh.ApplyNewUserDefaults();
+        Assert(NotchFeatures.All.All(feature => !feature.IsOn(fresh)) && !fresh.WelcomeShown, "Pengguna baru: semua fitur mati.");
+        NotchFeatures.Apply(fresh, ["music", "calendar", "reminders"]);
+        Assert(fresh is { MusicInNotch: true, CalendarSource: "outlook", RemindersEnabled: true, TimerInNotch: false, SystemHud: false },
+            "Hanya yang dipilih menyala.");
+        fresh.CalendarSource = "ics";
+        NotchFeatures.Find("calendar")!.Set(fresh, true);
+        Assert(fresh.CalendarSource == "ics", "Menyalakan kalender tidak menimpa sumber yang sudah dipilih.");
+        Assert(NotchFeatures.All.Select(f => f.Key).Distinct().Count() == NotchFeatures.All.Count &&
+               NotchFeatures.All.Where(f => f.Recommended).Select(f => f.Key).SequenceEqual(["music", "timer", "hud", "privacy"]), "Kunci unik; saran: musik, timer, HUD, mic & kamera.");
+        var imported = new AppSettings();
+        imported.ApplyFrom(fresh);
+        Assert(imported is { MusicInNotch: true, TimerInNotch: false, RemindersEnabled: true, CalendarSource: "ics" }, "Impor membawa pengaturan notch.");
+        // Reminders: said the way people say them.
+        var at = new DateTimeOffset(2026, 10, 22, 18, 0, 0, TimeSpan.FromHours(7));
+        Assert(ReminderList.Parse("15m stretch", at) == ("stretch", at.AddMinutes(15)), "15m.");
+        Assert(ReminderList.Parse("1h30m call mom", at) == ("call mom", at.AddMinutes(90)), "1h30m.");
+        Assert(ReminderList.Parse("2 jam rapat", at) is null || ReminderList.Parse("2jam rapat", at) == ("rapat", at.AddHours(2)), "2jam.");
+        Assert(ReminderList.Parse("19:30 gym", at)!.Value.DueAt == at.Date.AddHours(19.5).ToDateTimeOffsetAt(at), "19:30 hari ini.");
+        Assert(ReminderList.Parse("7:30 lari pagi", at)!.Value.DueAt == at.Date.AddDays(1).AddHours(7.5).ToDateTimeOffsetAt(at), "7:30 yang sudah lewat = besok.");
+        Assert(ReminderList.Parse("7pm makan", at)!.Value.DueAt == at.Date.AddHours(19).ToDateTimeOffsetAt(at), "7pm.");
+        Assert(ReminderList.Parse("besok 9.00 standup", at) == ("standup", at.Date.AddDays(1).AddHours(9).ToDateTimeOffsetAt(at)), "besok 9.00.");
+        Assert(ReminderList.Parse("tomorrow call the bank", at) == ("call the bank", at.Date.AddDays(1).AddHours(9).ToDateTimeOffsetAt(at)), "besok tanpa jam = 9:00.");
+        Assert(ReminderList.Parse("buy milk", at) == ("buy milk", null) && ReminderList.Parse("3 apples", at) == ("3 apples", null), "Tanpa waktu = to-do.");
+        Assert(ReminderList.Parse("   ", at) is null && ReminderList.Parse("15m", at) is null, "Tanpa teks: null.");
+
+        var list = new ReminderList();
+        var stretch = list.Add("15m stretch", at)!;
+        var milk = list.Add("buy milk", at)!;
+        Assert(list.DueNow(at.AddMinutes(14)).Count == 0 && list.DueNow(at.AddMinutes(15)) is [{ Text: "stretch" }], "Jatuh tempo tepat waktu.");
+        stretch.Announced = true;
+        Assert(list.DueNow(at.AddMinutes(20)).Count == 0, "Diumumkan sekali.");
+        list.Snooze(stretch.Id, TimeSpan.FromMinutes(10), at.AddMinutes(20));
+        Assert(list.DueNow(at.AddMinutes(30)) is [{ Text: "stretch" }], "Tunda 10 menit.");
+        Assert(list.Open.First() == stretch && list.Open.Last() == milk, "Yang berwaktu di atas.");
+        list.Complete(milk.Id);
+        Assert(list.Open.Count() == 1, "Selesai hilang dari daftar.");
+        var remindersPath = Path.Combine(Path.GetTempPath(), "theai-reminders-test.json");
+        list.Save(remindersPath);
+        Assert(ReminderList.Load(remindersPath).Items.Count == 2, "Disimpan dan dibaca lagi.");
+        list.Prune(at.AddDays(9));
+        Assert(list.Items.All(item => !item.Done), "Yang selesai lebih dari seminggu dihapus.");
+        Assert(ReminderList.When(stretch, at.AddMinutes(21), (id, en) => en) == "9m", "Sisa waktu.");
+        // Feature presets on the first start only name real features; Minimal sits inside Recommended.
+        Assert(NotchFeatures.Minimal.All(key => NotchFeatures.Find(key) is not null), "Preset Minimal: fitur yang ada.");
+        Assert(NotchFeatures.Minimal.All(NotchFeatures.Suggested.Contains), "Preset Minimal termasuk dalam Disarankan.");
+        Assert(NotchFeatures.Everything.Count == NotchFeatures.All.Count, "Preset Semua: semua fitur.");
+
+        // Water: glasses per day, the week, and when the gentle reminder is due.
+        var plan = new WaterPlan(2000, 250, 60, 8, 21);
+        var morning = new DateTimeOffset(2026, 10, 22, 7, 0, 0, TimeSpan.FromHours(7));
+        var water = new WaterLog();
+        Assert(WaterLog.NextNudge(water, plan, morning) == morning.Date.AddHours(9).ToDateTimeOffsetAt(morning), "Air: pengingat pertama satu interval setelah jam mulai.");
+        water.Add(250, morning.AddHours(3));
+        Assert(water.Today(morning) == 250 && water.LastDrink == morning.AddHours(3), "Air: segelas tercatat.");
+        Assert(WaterLog.NextNudge(water, plan, morning.AddHours(3)) == morning.AddHours(4), "Air: interval dihitung dari gelas terakhir.");
+        water.Add(-500, morning.AddHours(3));
+        Assert(water.Today(morning) == 0, "Air: tidak pernah negatif.");
+        water.Add(2000, morning.AddHours(4));
+        Assert(WaterLog.NextNudge(water, plan, morning.AddHours(4)) is null, "Air: target tercapai = tanpa pengingat.");
+        Assert(WaterLog.NextNudge(new WaterLog(), plan, morning.AddHours(14.5)) is null, "Air: tidak ada pengingat setelah jam aktif.");
+        Assert(WaterLog.NextNudge(new WaterLog(), plan with { EveryMinutes = 0 }, morning.AddHours(3)) is null, "Air: interval 0 = catatan saja.");
+        var week = water.Week(morning);
+        Assert(week.Count == 7 && week[^1].Millilitres == 2000 && week[0].Millilitres == 0, "Air: tujuh hari, hari ini terakhir.");
+        water.Days["2026-08-01"] = 900;
+        water.Prune(morning);
+        Assert(!water.Days.ContainsKey("2026-08-01"), "Air: catatan lebih dari 30 hari dibuang.");
+        var waterPath = Path.Combine(Path.GetTempPath(), "theai-water-" + Guid.NewGuid().ToString("N") + ".json");
+        water.Save(waterPath);
+        Assert(WaterLog.Load(waterPath).Today(morning) == 2000, "Air: tersimpan dan terbaca lagi.");
+        File.Delete(waterPath);
+        Assert(WaterPlan.From(new AppSettings { WaterGoalMl = 50, WaterEveryMinutes = 5 }) is { GoalMl: 500, EveryMinutes: 15 }, "Air: angka dibatasi ke rentang wajar.");
+
+        // Prayer times: Jakarta on 22 Oct 2026, against Aladhan (Kemenag angles) plus ihtiyat, within 3 minutes.
+        var jakarta = PrayerTimes.For(new DateOnly(2026, 10, 22), -6.2, 106.8167, TimeSpan.FromHours(7));
+        var expected = new[] { (4, 12), (11, 39), (14, 51), (17, 48), (18, 58) };   // Aladhan method 20 + 2 min ihtiyat
+        for (var i = 0; i < 5; i++)
+        {
+            var want = new DateTimeOffset(2026, 10, 22, expected[i].Item1, expected[i].Item2, 0, TimeSpan.FromHours(7));
+            Assert(Math.Abs((jakarta[i].At - want).TotalMinutes) <= 3, $"Sholat: {jakarta[i].NameId} {jakarta[i].At:HH:mm}, tabel {want:HH:mm}.");
+        }
+
+        var lateNight = new DateTimeOffset(2026, 10, 22, 22, 0, 0, TimeSpan.FromHours(7));
+        Assert(PrayerTimes.Next(lateNight, -6.2, 106.8167) is { NameId: "Subuh" } fajr && fajr.At.Day == 23, "Sholat: setelah Isya, berikutnya Subuh besok.");
+
+        // Weather: Open-Meteo's geocoding and forecast answers, WMO codes, and world clocks.
+        var place = WeatherClient.ParsePlace("""{"results":[{"name":"Jakarta","country":"Indonesia","latitude":-6.21462,"longitude":106.84513,"timezone":"Asia/Jakarta"}]}""");
+        Assert(place is { Name: "Jakarta", Country: "Indonesia", TimeZone: "Asia/Jakarta" } && Math.Abs(place.Latitude + 6.21462) < 1e-6, "Geocoding dibaca.");
+        Assert(WeatherClient.ParsePlace("""{"generationtime_ms":0.5}""") is null, "Kota tidak ditemukan: null.");
+        var report = WeatherClient.ParseForecast("""
+            {"current":{"time":"2026-10-22T10:00","temperature_2m":31.4,"weather_code":2,"is_day":1},
+             "daily":{"time":["2026-10-22"],"temperature_2m_max":[33.1],"temperature_2m_min":[25.0],"precipitation_probability_max":[70]}}
+            """);
+        Assert(report is { Temperature: 31.4, Code: 2, IsDay: true, High: 33.1, Low: 25.0, RainChance: 70 }, $"Prakiraan dibaca: {report}");
+        Assert(WeatherClient.Kind(0) == WeatherKind.Clear && WeatherClient.Kind(63) == WeatherKind.Rain && WeatherClient.Kind(81) == WeatherKind.Rain &&
+               WeatherClient.Kind(95) == WeatherKind.Storm && WeatherClient.Kind(45) == WeatherKind.Fog, "Kode WMO.");
+        var clocks = WorldClock.ParseList("Tokyo=Asia/Tokyo, America/New_York, Nowhere/Atlantis, UTC");
+        Assert(clocks.Count == 3 && clocks[0].Label == "Tokyo" && clocks[1].Label == "New York", "Jam dunia: label & zona; yang salah dilewati.");
+        var noon = new DateTimeOffset(2026, 10, 22, 23, 30, 0, TimeSpan.Zero);
+        Assert(clocks[0].Time(noon) == "8:30" && clocks[0].DayShift(noon.ToLocalTime()) is "+1" or "", "Waktu Tokyo.");
+        Console.WriteLine("PASS smart command tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunClipboardTests()
+{
+    try
+    {
+        var t0 = new DateTimeOffset(2026, 10, 21, 9, 0, 0, TimeSpan.Zero);
+        var history = new ClipboardHistory();
+        Assert(history.AddText("   ", t0) is null, "Teks kosong diabaikan.");
+        var first = history.AddText("git push", t0)!;
+        history.AddText("https://example.com", t0.AddSeconds(1));
+        var again = history.AddText("git push", t0.AddSeconds(2));
+        Assert(ReferenceEquals(first, again) && history.Items.Count == 2 && history.Items[0].Text == "git push", "Disalin lagi: naik ke atas, tidak dobel.");
+
+        history.TogglePin(first.Id);
+        for (var i = 0; i < ClipboardHistory.MaxItems + 5; i++)
+        {
+            history.AddText($"item {i}", t0.AddMinutes(i));
+        }
+
+        Assert(history.Items.Count == ClipboardHistory.MaxItems && history.Items.Any(item => item.Text == "git push" && item.Pinned),
+            "Maksimal 30; yang disematkan tidak terdorong keluar.");
+
+        for (var i = 0; i < 8; i++)
+        {
+            history.AddImage([1, 2, (byte)i], t0.AddHours(1).AddMinutes(i));
+        }
+
+        Assert(history.Items.Count(item => item.IsImage) == ClipboardHistory.MaxImages, "Maksimal 5 gambar.");
+        Assert(history.AddImage([1, 2, 7], t0.AddHours(2)) is { IsImage: true } && history.Items.Count(item => item.IsImage) == ClipboardHistory.MaxImages,
+            "Gambar yang sama tidak dobel.");
+        Assert(history.AddText(new string('x', 30_000), t0)!.Text!.Length == ClipboardHistory.MaxText, "Teks panjang dipotong.");
+
+        var path = Path.Combine(Path.GetTempPath(), "codexbar-clip-test", "pins.json");
+        history.SavePins(path);
+        Assert(!File.ReadAllText(path).Contains("item 3") && File.ReadAllText(path).Contains("git push"), "Hanya yang disematkan yang ditulis ke disk.");
+        var restored = new ClipboardHistory();
+        restored.LoadPins(path);
+        Assert(restored.Items is [{ Text: "git push", Pinned: true }], "Pin dibaca lagi.");
+        history.Clear();
+        Assert(history.Items.All(item => item.Pinned) && history.Items.Count == 1, "Bersihkan: hanya pin yang tersisa.");
+        foreach (var partial in new[] { "a.crdownload", "b.PART", "Unconfirmed 123.crdownload", "~$report.docx", ".hidden", "c.tmp", "desktop.ini" })
+        {
+            Assert(!DownloadFilter.IsCandidate(Path.Combine("C:\\Downloads", partial)), $"Bukan unduhan selesai: {partial}");
+        }
+
+        Assert(DownloadFilter.IsCandidate(@"C:\Downloads\laporan-Q3.pdf") && DownloadFilter.IsCandidate(@"C:\Downloads\setup.exe"), "Unduhan selesai diterima.");
+        var alerts = new SystemAlerts();
+        const ulong GB = 1024UL * 1024 * 1024;
+        SystemSample Sample(double memory, ulong free) => new(99, 99, memory, 0, 32 * GB, free, 500 * GB);
+        var s0 = DateTimeOffset.Now;
+        Assert(alerts.Check(Sample(50, 200 * GB), s0) is null, "Normal (CPU/GPU 99 % bukan peringatan).");
+        Assert(alerts.Check(Sample(93, 200 * GB), s0) is null, "RAM tinggi sekali: belum.");
+        Assert(alerts.Check(Sample(94, 200 * GB), s0) is { Kind: SystemAlertKind.Memory, Value: 94 }, "RAM tinggi dua kali: peringatan.");
+        Assert(alerts.Check(Sample(95, 200 * GB), s0.AddMinutes(1)) is null, "Lalu diam 10 menit.");
+        Assert(alerts.Check(Sample(95, 200 * GB), s0.AddMinutes(11)) is { Kind: SystemAlertKind.Memory }, "Setelah 10 menit boleh lagi.");
+        Assert(alerts.Check(Sample(40, 4 * GB), s0.AddMinutes(12)) is { Kind: SystemAlertKind.Disk }, "Disk C: < 5 GB: peringatan.");
+        Assert(SystemAlerts.Bytes(20 * GB) == "20 GB" && SystemAlerts.Bytes(512UL * 1024 * 1024) == "512 MB", "Format ukuran.");
+        Console.WriteLine("PASS clipboard tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunDayLogTests()
+{
+    try
+    {
+        static string En(string id, string en) => en;
+        var folder = Path.Combine(Path.GetTempPath(), "codexbar-daylog-test");
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+
+        var day = new DateOnly(2026, 10, 21);
+        var log = DayLog.Load(day, folder);
+        Assert(log.IsEmpty && log.Day == day, "Hari baru: kosong.");
+        log.Focus(TimeSpan.FromMinutes(25));
+        log.Focus(TimeSpan.FromMinutes(25));
+        log.Focus(TimeSpan.FromMinutes(50));
+        log.AgentTask("Claude", "Refactor   auth\nmodule");
+        log.AgentTask("Codex", "Fix the login test");
+        log.AgentTask("Claude", "Refactor auth module");   // the same task again: once, moved last
+        log.ChangedFiles([@"C:\p\a.cs", @"C:\P\A.cs", @"C:\p\b.cs"]);
+        log.Command(true);
+        log.Command(false);
+        log.PullRequest("CI #128 passed");
+        Assert(log is { FocusSessions: 3, FocusMinutes: 100, Commands: 2, FailedCommands: 1 } && log.Files.Count == 2 &&
+               log.AgentTasks.SequenceEqual(["Fix the login test", "Refactor auth module"]) && log.Agents.SequenceEqual(["Claude", "Codex"]),
+            "Catatan hari salah.");
+        log.Save(folder);
+        var again = DayLog.Load(day, folder);
+        Assert(again.FocusMinutes == 100 && again.Files.Contains(@"c:\p\A.CS") && again.AgentTasks.Count == 2, "Disimpan dan dibaca lagi.");
+
+        var markdown = again.ToMarkdown(En);
+        Assert(markdown.Contains("Focus: 3 sessions, 1h 40m") && markdown.Contains("Done with agents (Claude, Codex):") &&
+               markdown.Contains("  - Refactor auth module") && markdown.Contains("2 files changed, 2 commands (1 failed)") &&
+               markdown.Contains("- CI #128 passed"), $"Markdown standup salah:\n{markdown}");
+        Assert(DayLog.Duration(45, En) == "45m" && DayLog.Duration(120, En) == "2h", "Format durasi.");
+
+        new DayLog { Day = day.AddDays(-40) }.Save(folder);
+        DayLog.Prune(TimeSpan.FromDays(30), day, folder);
+        Assert(!File.Exists(DayLog.PathFor(day.AddDays(-40), folder)) && File.Exists(DayLog.PathFor(day, folder)), "Hari lama dihapus.");
+        // CodexBar -> TheAI: the old folder moves in once; the old copy wins over leftovers; never twice.
+        var migration = Path.Combine(Path.GetTempPath(), "codexbar-migration-test");
+        if (Directory.Exists(migration))
+        {
+            Directory.Delete(migration, recursive: true);
+        }
+
+        var legacy = Path.Combine(migration, "CodexBar");
+        var target = Path.Combine(migration, "TheAI");
+        Directory.CreateDirectory(Path.Combine(legacy, "conversations"));
+        File.WriteAllText(Path.Combine(legacy, "settings.json"), "real");
+        File.WriteAllText(Path.Combine(legacy, "conversations", "a.json"), "a");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "settings.json"), "trial run");
+        File.WriteAllText(Path.Combine(target, "extra.json"), "x");
+        Assert(AppPaths.MigrateLegacyData(legacy, target), "Migrasi berjalan.");
+        Assert(File.ReadAllText(Path.Combine(target, "settings.json")) == "real" && File.Exists(Path.Combine(target, "conversations", "a.json")) &&
+               File.Exists(Path.Combine(target, "extra.json")) && !Directory.Exists(legacy), "Data lama menang dan pindah semua.");
+        Directory.CreateDirectory(legacy);
+        File.WriteAllText(Path.Combine(legacy, "settings.json"), "again");
+        Assert(!AppPaths.MigrateLegacyData(legacy, target) && File.ReadAllText(Path.Combine(target, "settings.json")) == "real", "Tidak diulang.");
+        var fresh = Path.Combine(migration, "TheAI2");
+        Assert(AppPaths.MigrateLegacyData(legacy, fresh) && File.ReadAllText(Path.Combine(fresh, "settings.json")) == "again", "Folder baru: dipindah utuh.");
+        Console.WriteLine("PASS day log tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunPullRequestTests()
+{
+    try
+    {
+        const string running = """
+            {"number":128,"title":"Live activity API","url":"https://github.com/o/r/pull/128","headRefOid":"abc",
+             "statusCheckRollup":[
+               {"__typename":"CheckRun","name":"build","status":"COMPLETED","conclusion":"SUCCESS"},
+               {"__typename":"CheckRun","name":"lint","status":"COMPLETED","conclusion":"FAILURE"},
+               {"__typename":"CheckRun","name":"tests","status":"IN_PROGRESS","conclusion":""},
+               {"__typename":"StatusContext","context":"ci/vercel","state":"PENDING"},
+               {"__typename":"CheckRun","name":"docs","status":"COMPLETED","conclusion":"SKIPPED"}]}
+            """;
+        var pr = PullRequestStatus.Parse(running)!;
+        Assert(pr is { Number: 128, Total: 5, Finished: 3, Pending: true, Passed: false }, $"PR dibaca salah: {pr}");
+        Assert(pr.Failed.SequenceEqual(["lint"]) && pr.Running.SequenceEqual(["tests", "ci/vercel"]), "Check gagal/berjalan salah.");
+
+        var job = pr.ToJob(@"C:\r", "abc/passed-earlier", out var reported);
+        Assert(job is { Id: "gh-pr", Title: "CI #128", Progress: 0.6, Done: false, Failed: null } && job.Url == "https://github.com/o/r/pull/128/checks",
+            $"Job PR berjalan salah: {job}");
+        Assert(pr.ToJob(@"C:\r", reported, out _) is null, "Keadaan sama tidak dilaporkan dua kali.");
+
+        var failed = PullRequestStatus.Parse(running.Replace("IN_PROGRESS", "COMPLETED").Replace("\"conclusion\":\"\"", "\"conclusion\":\"SUCCESS\"").Replace("PENDING", "SUCCESS"))!;
+        Assert(failed is { Pending: false, Passed: false }, "Semua selesai, satu gagal.");
+        Assert(failed.ToJob(@"C:\r", reported, out var end) is { Failed: "lint" }, "Gagal dilaporkan sekali di akhir.");
+        Assert(failed.ToJob(@"C:\r", end, out _) is null, "Akhir yang sama tidak diulang.");
+        Assert(failed.ToJob(@"C:\r", string.Empty, out var fresh) is null && fresh == "abc/failed", "Yang selesai sebelum TheAI melihat: diam.");
+
+        // A re-run: the later entry of the same name wins.
+        var rerun = PullRequestStatus.Parse("""
+            {"number":7,"headRefOid":"d","statusCheckRollup":[
+              {"name":"tests","status":"COMPLETED","conclusion":"FAILURE"},
+              {"name":"tests","status":"COMPLETED","conclusion":"SUCCESS"}]}
+            """)!;
+        Assert(rerun is { Total: 1, Passed: true }, "Check yang diulang: yang terakhir berlaku.");
+        Assert(rerun.ToJob("", "d/running/0", out _) is { Done: true, Progress: 1 }, "Lulus = selesai.");
+        Assert(PullRequestStatus.Parse("""{"number":9,"statusCheckRollup":[]}""")!.ToJob("", "x", out _) is null, "Tanpa check: tidak ada apa-apa.");
+        Assert(PullRequestStatus.Parse("no pull requests found") is null, "Bukan JSON: null.");
+        Console.WriteLine("PASS pull request tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
+    }
+}
+
+static int RunLiveJobTests()
+{
+    try
+    {
+        var t0 = new DateTimeOffset(2026, 10, 15, 9, 0, 0, TimeSpan.Zero);
+        var (update, error) = LiveJobUpdate.FromArgs(["build", "--title", "npm run build", "--progress", "40%"]);
+        Assert(error is null && update is { Id: "build", Title: "npm run build", Progress: 0.4 }, "CLI: judul + 40%.");
+        Assert(LiveJobUpdate.FromArgs(["build", "--progress", "0.25"]).Update?.Progress == 0.25, "CLI: pecahan.");
+        Assert(LiveJobUpdate.FromArgs(["build", "--progress", "75"]).Update?.Progress == 0.75, "CLI: 75 berarti 75%.");
+        Assert(LiveJobUpdate.FromArgs(["--done"]).Error is not null, "CLI: tanpa id = galat.");
+        Assert(LiveJobUpdate.FromArgs(["x", "--wat"]).Error is not null, "CLI: opsi tak dikenal = galat.");
+        Assert(LiveJobUpdate.FromArgs(["deploy", "--failed"]).Update?.Failed == string.Empty, "CLI: --failed tanpa alasan.");
+        Assert(LiveJobUpdate.Parse(update!.ToJson()) == update, "JSON bolak-balik.");
+        Assert(LiveJobUpdate.Parse("{\"title\":\"x\"}") is null && LiveJobUpdate.Parse("nope") is null, "JSON tanpa id / rusak ditolak.");
+        Assert(LiveJobUpdate.Parse("{\"id\":\"a\",\"progress\":7}")?.Progress == 1, "Progres dijepit ke 0–1.");
+
+        var board = new LiveJobBoard();
+        board.Apply(update, t0);
+        Assert(board.Headline(t0) is { Id: "build", State: LiveJobState.Running }, "Berjalan jadi headline.");
+        board.Apply(new LiveJobUpdate("build", Url: "file:///C:/Windows/System32/calc.exe"), t0);
+        Assert(board.Jobs[0].Url is null, "Hanya URL http(s) yang diterima.");
+        board.Apply(new LiveJobUpdate("build", Url: "https://ci.example.com/run/1"), t0);
+        Assert(board.Jobs[0].Url?.Host == "ci.example.com", "URL https diterima.");
+        board.Apply(new LiveJobUpdate("deploy", Failed: "exit 1"), t0.AddSeconds(5));
+        board.Apply(new LiveJobUpdate("build", Done: true), t0.AddSeconds(10));
+        Assert(board.Headline(t0.AddSeconds(10))?.Id == "deploy", "Gagal didahulukan dari selesai.");
+        board.Dismiss("deploy");
+        Assert(board.Headline(t0.AddSeconds(11)) is { Id: "build", State: LiveJobState.Done, Progress: 1 }, "Selesai jadi headline.");
+        Assert(board.Jobs[0].Elapsed(t0.AddHours(1)) == TimeSpan.FromSeconds(10), "Durasi berhenti saat selesai.");
+        Assert(!board.Prune(t0.AddSeconds(15)) && board.Prune(t0.AddSeconds(17)) && board.Jobs.Count == 0, "Selesai hilang setelah 6 detik.");
+
+        board.Apply(new LiveJobUpdate("a"), t0);
+        board.Apply(new LiveJobUpdate("a", Done: true), t0);
+        board.Apply(new LiveJobUpdate("a", Progress: 0.1), t0.AddSeconds(1));
+        Assert(board.Jobs[0] is { State: LiveJobState.Running, Progress: 0.1, Finished: null }, "Id dipakai lagi = putaran baru.");
+        Assert(board.Prune(t0.AddMinutes(11)) && board.Jobs.Count == 0, "Diam 10 menit = kedaluwarsa.");
+        for (var i = 0; i < 6; i++)
+        {
+            board.Apply(new LiveJobUpdate($"j{i}"), t0);
+        }
+
+        Assert(board.Jobs.Count == LiveJobBoard.MaxJobs && board.Jobs[0].Id == "j2", "Maksimal 4, yang tertua keluar.");
+
+        var shell = new LiveJobBoard();
+        shell.Apply(new LiveJobUpdate("sh-1", "npm install", After: 10, Folder: @"C:\proj"), t0);
+        Assert(shell.Headline(t0.AddSeconds(9)) is null && shell.Headline(t0.AddSeconds(10))?.Id == "sh-1", "Perintah terminal tampil setelah 10 detik.");
+        shell.Apply(new LiveJobUpdate("sh-1", Remove: true), t0.AddSeconds(3));
+        Assert(shell.Jobs.Count == 0, "Perintah cepat ditarik lagi.");
+        shell.Apply(new LiveJobUpdate("sh-1", "npm test", After: 10), t0);
+        shell.Apply(new LiveJobUpdate("sh-1", Failed: "exit 1"), t0.AddSeconds(2));
+        Assert(shell.Headline(t0.AddSeconds(2)) is { State: LiveJobState.Failed, Detail: "exit 1" }, "Selesai/gagal langsung tampil.");
+        Assert(LiveJobUpdate.Parse("{\"id\":\"sh-9\",\"after\":10,\"folder\":\"C:\\\\p\"}") is { After: 10, Folder: @"C:\p" }, "JSON after + folder.");
+        board.Apply(new LiveJobUpdate("j5", Remove: true), t0);
+        Assert(board.Jobs.All(job => job.Id != "j5"), "--remove menghapus.");
+        Console.WriteLine("PASS live job tests");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"FAIL {exception.Message}");
+        return 1;
     }
 }
 
@@ -1645,7 +2134,7 @@ static int RunSyncedLyricsTests()
 
 static int RunCredentialStoreTests()
 {
-    var target = $"CodexBar-tests-{Guid.NewGuid():N}";
+    var target = $"TheAI-tests-{Guid.NewGuid():N}";
     try
     {
         Assert(CredentialStore.TryRead(target) is null, "Target belum tersimpan harus mengembalikan null.");
@@ -1798,7 +2287,7 @@ static async Task<int> RunCrashHostAsync(string[] arguments)
     await provider.InitializeAsync();
     var child = GetChildProcess(provider);
     await File.WriteAllTextAsync(pidFile, child.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
-    Environment.FailFast("CodexBar lifecycle crash smoke test");
+    Environment.FailFast("TheAI lifecycle crash smoke test");
     return 99;
 }
 
@@ -2059,4 +2548,9 @@ sealed class TestCodexTransport : ICodexTransport
 
         return null;
     }
+}
+
+static class ReminderTestExtensions
+{
+    public static DateTimeOffset ToDateTimeOffsetAt(this DateTime local, DateTimeOffset reference) => new(local, reference.Offset);
 }

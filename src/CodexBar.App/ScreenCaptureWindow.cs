@@ -21,7 +21,7 @@ namespace CodexBar.App;
 /// <summary>
 /// Region screenshot for attaching to a prompt. The monitor under the cursor is frozen into an
 /// image; the user drags a rectangle (or clicks for the whole screen, Esc cancels) and the crop
-/// is saved as a PNG in %TEMP%\CodexBar\screenshots. Everything stays in the same pixel space:
+/// is saved as a PNG in %TEMP%\TheAI\screenshots. Everything stays in the same pixel space:
 /// the monitor rectangle, the capture and the window placement all come from the same API.
 /// </summary>
 internal sealed class ScreenCaptureWindow : Window
@@ -55,7 +55,7 @@ internal sealed class ScreenCaptureWindow : Window
         Topmost = true;
         Cursor = System.Windows.Input.Cursors.Cross;
         Background = Brushes.Black;
-        Title = "CodexBar screenshot";
+        Title = "TheAI screenshot";
 
         var root = new Grid();
         root.Children.Add(new Image { Source = frozen, Stretch = Stretch.Fill });
@@ -213,7 +213,7 @@ internal sealed class ScreenCaptureWindow : Window
         var w = (int)Math.Clamp(Math.Round(area.Width * ScaleX), 1, _frozen.PixelWidth - x);
         var h = (int)Math.Clamp(Math.Round(area.Height * ScaleY), 1, _frozen.PixelHeight - y);
 
-        var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "CodexBar", "screenshots");
+        var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "TheAI", "screenshots");
         Directory.CreateDirectory(folder);
         var path = System.IO.Path.Combine(folder, $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss-fff}.png");
         var encoder = new PngBitmapEncoder();

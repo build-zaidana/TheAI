@@ -71,7 +71,7 @@ public partial class NotchWindow
         grid.Children.Add(new TextBlock
         {
             Text = WindowLabel(window.Id),
-            FontSize = 11,
+            FontSize = 12,
             Foreground = (Brush)FindResource("NotchText3"),
             VerticalAlignment = VerticalAlignment.Center
         });
@@ -89,7 +89,7 @@ public partial class NotchWindow
         var text = new TextBlock
         {
             Text = QuotaText(window, limitReached),
-            FontSize = 11,
+            FontSize = 12,
             Foreground = used >= 0.75 ? brush : (Brush)FindResource("NotchText2"),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center

@@ -117,7 +117,7 @@ public sealed class ConversationController
 
         if (!Directory.Exists(workspacePath))
         {
-            throw new DirectoryNotFoundException($"Workspace tidak ditemukan: {workspacePath}");
+            throw new DirectoryNotFoundException(string.Format(Localization.Text("Workspace tidak ditemukan: {0}", "Workspace not found: {0}"), workspacePath));
         }
 
         await EnsureConnectedAsync(cancellationToken);
@@ -161,7 +161,7 @@ public sealed class ConversationController
     {
         if (IsBusy)
         {
-            throw new InvalidOperationException("Tidak bisa memadatkan konteks saat Codex sedang bekerja.");
+            throw new InvalidOperationException(Localization.Text("Tidak bisa memadatkan konteks saat agent sedang bekerja.", "Can't compact the conversation while the agent is working."));
         }
 
         if (ThreadId is null)
@@ -202,7 +202,7 @@ public sealed class ConversationController
 
         if (ThreadId is null)
         {
-            throw new InvalidOperationException("Workspace/thread belum diinisialisasi.");
+            throw new InvalidOperationException(Localization.Text("Workspace/thread belum diinisialisasi.", "The workspace or thread isn't ready yet."));
         }
 
         IsBusy = true;
@@ -225,7 +225,7 @@ public sealed class ConversationController
     {
         if (IsBusy)
         {
-            throw new InvalidOperationException("Permission tidak dapat diubah saat Codex sedang bekerja.");
+            throw new InvalidOperationException(Localization.Text("Izin tidak dapat diubah saat agent sedang bekerja.", "Permissions can't change while the agent is working."));
         }
 
         if (WorkspacePath is null || ThreadId is null)

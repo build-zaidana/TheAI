@@ -45,7 +45,7 @@ internal sealed class ProcessCodexTransport(string executable) : ICodexTransport
 
         if (!_process.Start())
         {
-            throw new InvalidOperationException("Codex App Server gagal dijalankan.");
+            throw new InvalidOperationException("The Codex App Server couldn't be started.");
         }
 
         _process.StandardInput.AutoFlush = true;
@@ -57,7 +57,7 @@ internal sealed class ProcessCodexTransport(string executable) : ICodexTransport
     {
         if (!IsRunning || _process is null)
         {
-            throw new InvalidOperationException("Codex App Server belum berjalan.");
+            throw new InvalidOperationException("The Codex App Server isn't running.");
         }
 
         return new ValueTask(_process.StandardInput.WriteLineAsync(line.AsMemory(), cancellationToken));

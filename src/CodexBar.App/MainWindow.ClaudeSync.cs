@@ -10,7 +10,7 @@ namespace CodexBar.App;
 // IDE and desktop session to the notch as its own activity ("cc:<session id>"): the prompt, each
 // tool step, the final answer, and permission requests the notch can answer (Claude Code asks in
 // its own UI if nobody answers within 30 s). History: past sessions are read from
-// ~/.claude/projects and listed under "Lanjutkan" next to CodexBar's own threads.
+// ~/.claude/projects and listed under "Lanjutkan" next to TheAI's own threads.
 public partial class MainWindow
 {
     private const string ExternalKeyPrefix = "cc:";
@@ -24,6 +24,9 @@ public partial class MainWindow
         public string Key => ExternalKeyPrefix + Id;
         public string Cwd { get; set; } = cwd;
         public string Source { get; set; } = "Claude Code";
+        /// <summary>Who answers in this session: "Claude" or "Gemini" (Gemini CLI relays the same way).</summary>
+        public string Agent { get; set; } = "Claude";
+        public bool IsGemini => Agent == "Gemini";
         public string Project => Cwd.Length > 0 ? new DirectoryInfo(Cwd).Name : "Claude Code";
         public bool Started { get; set; }
         public bool Busy { get; set; }
@@ -36,6 +39,8 @@ public partial class MainWindow
     private readonly bool _claudeLiveTest = Environment.GetEnvironmentVariable("CODEXBAR_TEST_CLAUDE_SYNC") is { Length: > 0 };
 
     private bool ClaudeLiveActive => _settings.ClaudeLiveSessions || _claudeLiveTest;
+
+    private bool GeminiLiveActive => _settings.GeminiLiveSessions || _claudeLiveTest;
 
     private static bool IsExternalKey(string key) => key.StartsWith(ExternalKeyPrefix, StringComparison.Ordinal);
 
@@ -67,7 +72,8 @@ public partial class MainWindow
 
     private void ApplyClaudeLive()
     {
-        if (_settings.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled() || _claudeLiveTest)
+        if (_settings.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled() ||
+            _settings.GeminiLiveSessions && GeminiHooksInstaller.IsInstalled() || _claudeLiveTest)
         {
             _hookServer.Start();
         }
@@ -107,6 +113,38 @@ public partial class MainWindow
         }
     }
 
+    (bool Ok, string Message) ISettingsHost.SetGeminiLiveSessions(bool on)
+    {
+        try
+        {
+            if (on)
+            {
+                GeminiHooksInstaller.Install();
+            }
+            else
+            {
+                GeminiHooksInstaller.Uninstall();
+            }
+
+            _settings.GeminiLiveSessions = on;
+            _ = SaveSettingsSafeAsync();
+            ApplyClaudeLive();
+            if (on && !_hookServer.IsRunning)
+            {
+                return (false, LF("claudeSync.portBusy", ClaudeHookServer.Port));
+            }
+
+            return (true, on
+                ? Tr.Text("Hooks terpasang di ~/.gemini/settings.json — mulai sesi Gemini CLI baru", "Hooks installed in ~/.gemini/settings.json — start a new Gemini CLI session")
+                : Tr.Text("Hooks dilepas dari ~/.gemini/settings.json", "Hooks removed from ~/.gemini/settings.json"));
+        }
+        catch (Exception exception)
+        {
+            DiagnosticsLog.Error("GeminiHooks", exception.Message);
+            return (false, exception.Message);
+        }
+    }
+
     // ---- Live events -------------------------------------------------------------------------
 
     private ExternalSession Session(ClaudeHookEvent hook)
@@ -114,7 +152,12 @@ public partial class MainWindow
         if (!_externalSessions.TryGetValue(hook.SessionId, out var session))
         {
             session = new ExternalSession(hook.SessionId, hook.Cwd);
-            if (ClaudeHookServer.Str(hook.Data, "transcript_path") is { } transcript &&
+            if (hook.Agent == "gemini")
+            {
+                session.Agent = "Gemini";
+                session.Source = "Gemini CLI";
+            }
+            else if (ClaudeHookServer.Str(hook.Data, "transcript_path") is { } transcript &&
                 ClaudeSessionFiles.ReadEntrypoint(transcript) is { } entrypoint)
             {
                 session.Source = ClaudeSessionFiles.SourceLabel(entrypoint);
@@ -140,7 +183,7 @@ public partial class MainWindow
         session.Started = true;
         session.Busy = true;
         session.TurnStarted = DateTimeOffset.Now;
-        _notch?.BeginActivity(session.Key, prompt, "Claude", $"{session.Project} · {session.Source}");
+        _notch?.BeginActivity(session.Key, prompt, session.Agent, $"{session.Project} · {session.Source}");
         if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_CLAUDE_SYNC") == "open")
         {
             _notch?.PreviewAgent(session.Key);
@@ -149,13 +192,13 @@ public partial class MainWindow
 
     private void HandleHook(ClaudeHookEvent hook)
     {
-        if (!ClaudeLiveActive)
+        if (hook.Agent == "gemini" ? !GeminiLiveActive : !ClaudeLiveActive)
         {
             return;
         }
 
         var session = Session(hook);
-        if (session.Source == "Claude Code" &&
+        if (!session.IsGemini && session.Source == "Claude Code" &&
             ClaudeHookServer.Str(hook.Data, "transcript_path") is { } transcript &&
             ClaudeSessionFiles.ReadEntrypoint(transcript) is { } entrypoint)
         {
@@ -178,7 +221,11 @@ public partial class MainWindow
                 break;
 
             case "Notification" when ClaudeHookServer.Str(hook.Data, "message") is { Length: > 0 } message && session.Started:
-                _notch?.HandleProviderEvent(new ProviderStatusEvent(message), session.Key);
+                // Gemini's permission prompts can only be answered in its terminal: say where.
+                _notch?.HandleProviderEvent(new ProviderStatusEvent(
+                    session.IsGemini && ClaudeHookServer.Str(hook.Data, "notification_type") == "ToolPermission"
+                        ? Tr.Text("Minta izin di terminal: ", "Asks permission in the terminal: ") + Shorten(message, 90)
+                        : message), session.Key);
                 break;
 
             case "Stop":
@@ -189,14 +236,16 @@ public partial class MainWindow
 
                 session.Busy = false;
                 session.Started = false;
-                session.Answer = ClaudeHookServer.Str(hook.Data, "last_assistant_message") ?? string.Empty;
+                session.Answer = ClaudeHookServer.Str(hook.Data, "last_assistant_message")
+                    ?? ClaudeHookServer.Str(hook.Data, "prompt_response")   // Gemini CLI's AfterAgent
+                    ?? string.Empty;
                 if (session.Answer.Length > 0)
                 {
                     _notch?.HandleProviderEvent(new ProviderTextDeltaEvent(session.Answer), session.Key);
                 }
 
                 _notch?.HandleProviderEvent(new ProviderCompletedEvent("completed"), session.Key);
-                NotifyCompletion(session.Key, "Claude", session.Project, session.Answer, DateTimeOffset.Now - session.TurnStarted);
+                NotifyCompletion(session.Key, session.Agent, session.Project, session.Answer, DateTimeOffset.Now - session.TurnStarted);
                 break;
 
             case "SessionEnd":
@@ -217,7 +266,7 @@ public partial class MainWindow
         }
     }
 
-    // A permission prompt from a session elsewhere, answered in the notch like CodexBar's own.
+    // A permission prompt from a session elsewhere, answered in the notch like TheAI's own.
     private async Task<string?> AskPermissionAsync(ClaudeHookEvent hook, CancellationToken token)
     {
         if (!ClaudeLiveActive)
@@ -281,11 +330,13 @@ public partial class MainWindow
         var input = data.TryGetProperty("tool_input", out var value) ? value : default;
         var detail = tool switch
         {
-            "Bash" or "PowerShell" => Str(input, "command"),
-            "Read" or "Edit" or "Write" or "MultiEdit" => Str(input, "file_path") is { } path ? Path.GetFileName(path) : null,
-            "Grep" or "Glob" => Str(input, "pattern"),
+            "Bash" or "PowerShell" or "run_shell_command" => Str(input, "command"),
+            "Read" or "Edit" or "Write" or "MultiEdit" or "read_file" or "write_file" or "replace" =>
+                (Str(input, "file_path") ?? Str(input, "absolute_path")) is { } path ? Path.GetFileName(path) : null,
+            "Grep" or "Glob" or "glob" or "search_file_content" => Str(input, "pattern"),
             "WebFetch" => Str(input, "url"),
-            "WebSearch" => Str(input, "query"),
+            "web_fetch" => Str(input, "prompt"),
+            "WebSearch" or "google_web_search" => Str(input, "query"),
             "Task" or "Agent" => Str(input, "description"),
             _ => null
         };
@@ -310,6 +361,11 @@ public partial class MainWindow
     private async Task OpenExternalInWindowAsync(string key)
     {
         var id = key[ExternalKeyPrefix.Length..];
+        if (_externalSessions.TryGetValue(id, out var gemini) && gemini.IsGemini)
+        {
+            throw new InvalidOperationException(Tr.Text("Sesi Gemini CLI dilanjutkan di terminalnya.", "Gemini CLI sessions continue in their terminal."));
+        }
+
         if (_externalSessions.TryGetValue(id, out var running) && running.Busy)
         {
             throw new InvalidOperationException(LF("claudeSync.stillRunning", running.Source));
@@ -349,10 +405,10 @@ public partial class MainWindow
 
         var ownIds = own.Select(thread => thread.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var byId = sessions.GroupBy(s => s.SessionId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        // A session continued from CodexBar has a local copy too; the session file knows its folder.
+        // A session continued from TheAI has a local copy too; the session file knows its folder.
         return own.Select(thread => thread with
             {
-                Source = thread.Source ?? "CodexBar",
+                Source = thread.Source ?? "TheAI",
                 WorkspacePath = thread.WorkspacePath is { Length: > 0 } || !byId.TryGetValue(thread.Id, out var session)
                     ? thread.WorkspacePath
                     : session.Cwd

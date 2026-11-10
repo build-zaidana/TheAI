@@ -139,6 +139,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             if (!_renderPending)
             {
+                _renderTimer.Stop();   // idle: no wake-ups until the next streamed text
                 return;
             }
 
@@ -152,16 +153,17 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 }
             }
         };
-        _renderTimer.Start();
-
         _scheduleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
         _scheduleTimer.Tick += ScheduleTick;
-        _scheduleTimer.Start();
+        if (_settings.ScheduledPrompts.Count > 0)
+        {
+            _scheduleTimer.Start();
+        }
 
         _trayIcon = new Forms.NotifyIcon
         {
             Icon = LoadAppIcon(),
-            Text = "CodexBar",
+            Text = "TheAI",
             Visible = true
         };
         _trayIcon.MouseUp += (_, e) =>
@@ -210,26 +212,124 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             PromptBox.Focus();
             _notifier.Initialize();
             _notifier.Activated += (action, key) => Dispatcher.BeginInvoke(() => NotificationActivated(action, key));
+            // A new user sees the welcome first; setup steps (install, sign-in, folder) wait for it.
+            if (!_settings.WelcomeShown)
+            {
+                ShowWelcome(tour: true);
+            }
+
+            _startingUp = true;
             await StartupAsync();
-            ApplyDisplayMode();
+            ApplyDisplayMode();   // shows a setup the start left open, so it counts as the start too
+            _startingUp = false;
             StartClaudeSync();
             StartUpdateChecks();
             _ = Task.Run(() => ImageThumb.PruneCache(TimeSpan.FromDays(30), 300L * 1024 * 1024));
+            _ = Task.Run(Hud.ShellIntegration.Refresh);
             if (_settings.PromptSuggestions)
             {
                 _ = Habits; // seeds the habits from existing conversations on first run
             }
             OpenDevPreviews();
+            DiagnosticsLog.Info("App", $"ready in {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms");
+            _ = SettleMemoryAsync();
+            WatchDispatcher();
+            OfferCrashReport();
         }
         catch (Exception exception)
         {
+            EndUnseenStart();   // the notch never came up: the error has to be seen
             ShowError(exception.Message);
         }
     }
 
+    // Starting up reads a lot once (threads, session lists, habits) and then the app barely
+    // allocates, so that garbage would sit in the heap for hours: a minute in, collect it once and
+    // give the memory back. The numbers go to the diagnostics log.
+    // CODEXBAR_TEST_TICKS=1: which UI-thread work runs while idle (counts per delegate, logged every 30 s).
+    private void WatchDispatcher()
+    {
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_TICKS") is not { Length: > 0 })
+        {
+            return;
+        }
+
+        var counts = new Dictionary<string, int>();
+        Dispatcher.Hooks.OperationCompleted += (_, e) =>
+        {
+            var name = e.Operation.Priority + " " + (e.Operation.GetType().GetField("_method", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(e.Operation) is Delegate d
+                ? d.Method.DeclaringType?.Name + "." + d.Method.Name
+                : "?");
+            counts[name] = counts.GetValueOrDefault(name) + 1;
+        };
+        var report = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        report.Tick += (_, _) =>
+        {
+            DiagnosticsLog.Info("Ticks", string.Join(" | ", counts.OrderByDescending(pair => pair.Value).Take(8).Select(pair => $"{pair.Value}x {pair.Key}")));
+            counts.Clear();
+        };
+        report.Start();
+    }
+
+    private static async Task SettleMemoryAsync()
+    {
+        await Task.Delay(TimeSpan.FromMinutes(1));
+        var heap = GC.GetGCMemoryInfo().HeapSizeBytes;
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        DiagnosticsLog.Info("Memory",
+            $"managed heap {heap >> 20} MB → {GC.GetGCMemoryInfo().HeapSizeBytes >> 20} MB; " +
+            $"private {process.PrivateMemorySize64 >> 20} MB, working set {process.WorkingSet64 >> 20} MB");
+    }
+
+    private WelcomeWindow? _welcome;
+    private (OnboardingKind Kind, string? Detail)? _pendingOnboarding;
+
+    /// <summary>The tour and the feature picker (first start), or just the picker (from Settings).</summary>
+    internal void ShowWelcome(bool tour)
+    {
+        if (_welcome is { IsLoaded: true })
+        {
+            _welcome.Activate();
+            return;
+        }
+
+        var claudeInstalled = CodexBar.Providers.ClaudeCode.ClaudeCodeExecutableLocator.TryLocate() is not null;
+        _welcome = new WelcomeWindow(_settings, _settings.Hotkey, claudeInstalled, tour);
+        _welcome.Finished += (chosen, claudeSessions) =>
+        {
+            NotchFeatures.Apply(_settings, chosen);
+            if (claudeInstalled && claudeSessions != (_settings.ClaudeLiveSessions && ClaudeHooksInstaller.IsInstalled()))
+            {
+                ((ISettingsHost)this).SetClaudeLiveSessions(claudeSessions);
+            }
+
+            DiagnosticsLog.Info("Welcome", "features: " + string.Join(", ", chosen));
+            _notch?.ShowIdle();
+        };
+        _welcome.Closed += (_, _) =>
+        {
+            // Closed either way: it doesn't come back by itself (Settings → Notch → Choose features reopens it).
+            _settings.WelcomeShown = true;
+            _ = SaveSettingsSafeAsync();
+            _welcome = null;
+            if (_pendingOnboarding is { } pending)
+            {
+                _pendingOnboarding = null;
+                ShowOnboardingWindow(pending.Kind, pending.Detail);
+            }
+        };
+        _welcome.Show();
+        _welcome.Activate();
+    }
+
+    void ISettingsHost.ShowFeatures() => ShowWelcome(tour: false);
+
     private async Task StartupAsync()
     {
         HideOnboarding();
+        var modelsTask = Task.CompletedTask;
 
         try
         {
@@ -249,6 +349,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         try
         {
+            // The model list doesn't need the sign-in: it loads while `auth status` runs (~0.5 s saved).
+            modelsTask = LoadModelsAsync();
             var account = await _controller.GetAccountAsync();
             if (!account.IsAuthenticated)
             {
@@ -275,7 +377,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                 {
                     ShowOnboarding(
                         OnboardingKind.LoginNeeded,
-                        "Login CLI saat ini memakai API key. Jalankan codex logout lalu codex login untuk menggunakan akun ChatGPT.");
+                        Tr.Text("Login CLI saat ini memakai API key. Jalankan codex logout lalu codex login untuk menggunakan akun ChatGPT.", "The CLI is signed in with an API key. Run codex logout, then codex login, to use your ChatGPT account."));
                     return;
                 }
 
@@ -292,7 +394,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         try
         {
             HideOnboarding();
-            await LoadModelsAsync();
+            await modelsTask;
             if (!_controller.Capabilities.SupportsWorkspace)
             {
                 // Threadless provider (e.g. Claude): no workspace needed; CWD is an inert placeholder.
@@ -462,6 +564,29 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         if (_quickCaptureActive)
         {
+            return;
+        }
+
+        if (_settings.QuickCaptureReveal == "notch")
+        {
+            // The notch asks what to do; the answer runs beside whatever is going on.
+            _quickCaptureActive = true;
+            try
+            {
+                if (await SelectionCapture.TryCaptureTextAsync() is { } picked && !string.IsNullOrWhiteSpace(picked))
+                {
+                    _notch?.ShowSelectionActions(picked);
+                }
+            }
+            catch (Exception exception)
+            {
+                DiagnosticsLog.Error("QuickCapture", exception.Message);
+            }
+            finally
+            {
+                _quickCaptureActive = false;
+            }
+
             return;
         }
 
@@ -696,7 +821,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         StatusDot.ToolTip = message;
         if (_trayIcon is not null)
         {
-            var trayText = $"CodexBar — {message}";
+            var trayText = $"TheAI — {message}";
             _trayIcon.Text = trayText.Length <= 63 ? trayText : trayText[..60] + "…";
         }
     }
@@ -889,7 +1014,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _responseZoomDelta = 0;
         RenderConversation();
         SetBusyUi(true);
-        _outputWindow?.SetContext(_workspaceLabel, "Mengirim…");
+        _outputWindow?.SetContext(_workspaceLabel, Tr.Text("Mengirim…", "Sending…"));
         if (IsVisible)
         {
             ShowOutputSurface();
@@ -922,6 +1047,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _messages.Remove(userMessage);
             RenderConversation();
             SetBusyUi(false);
+            if (AgentMissing(exception))
+            {
+                ShowOnboarding(OnboardingKind.InstallNeeded);
+                return false;
+            }
+
             _notch?.HandleProviderEvent(new ProviderErrorEvent(exception.Message));
             ShowError(exception.Message);
             return false;
@@ -1099,6 +1230,10 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             if (dialog.ShowDialog() == true)
             {
                 _settings.ScheduledPrompts = new List<CodexBar.Core.ScheduledPrompt>(dialog.Schedules);
+                if (_settings.ScheduledPrompts.Count > 0)
+                {
+                    _scheduleTimer.Start();
+                }
                 await SaveSettingsSafeAsync();
                 SetStatus(LF("schedule.saved", _settings.ScheduledPrompts.Count), StatusReadyBrush);
             }
@@ -1111,7 +1246,13 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private void ScheduleTick(object? sender, EventArgs e)
     {
-        if (_controller.IsBusy || _controller.ThreadId is null || _settings.ScheduledPrompts.Count == 0)
+        if (_settings.ScheduledPrompts.Count == 0)
+        {
+            _scheduleTimer.Stop();   // nothing scheduled: no need to look every 20 s
+            return;
+        }
+
+        if (_controller.IsBusy || _controller.ThreadId is null)
         {
             return;
         }
@@ -1204,7 +1345,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     return false;
                 }
 
-                var folder = Path.Combine(Path.GetTempPath(), "CodexBar", "clipboard");
+                var folder = Path.Combine(Path.GetTempPath(), "TheAI", "clipboard");
                 Directory.CreateDirectory(folder);
                 var path = Path.Combine(folder, $"screenshot-{DateTime.Now:yyyyMMdd-HHmmss-fff}.png");
                 var encoder = new PngBitmapEncoder();
@@ -1385,6 +1526,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     {
                         _streamingAgent.Markdown += textDelta.Delta;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     if (!_autoFollow)
                     {
@@ -1410,6 +1552,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                         _streamingAgent.Steps = activity.Steps;
                         _streamingAgent.Markdown = activity.Answer;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     break;
 
@@ -1427,6 +1570,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
                     {
                         _streamingAgent.Reasoning += reasoningDelta.Delta;
                         _renderPending = true;
+                        _renderTimer.Start();
                     }
                     if (!_autoFollow)
                     {
@@ -1837,11 +1981,12 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         QuickCaptureRevealCombo.SelectedIndex = _settings.QuickCaptureReveal switch
         {
             "capture" => 0,
+            "done" => 1,
             "clipboard" => 2,
-            _ => 1
+            _ => 3
         };
         DiagnosticsLoggingCheck.IsChecked = _settings.EnableDiagnosticsLogging;
-        LanguageCombo.SelectedIndex = _settings.Language == "en" ? 1 : 0;
+        LanguageCombo.SelectedIndex = _settings.Language switch { "id" => 1, "en" => 2, _ => 0 };
         SelectProviderComboItem(_settings.Provider);
         ApiKeyPanel.Visibility = IsApiKeyProvider(_settings.Provider) ? Visibility.Visible : Visibility.Collapsed;
         ThemeCombo.SelectedIndex = _settings.Appearance.Theme.ToLowerInvariant() switch
@@ -1876,6 +2021,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private void ApplyTheme()
     {
         var dark = !IsLightTheme();
+        WindowTheme.Apply(dark);
         if (!dark)
         {
             RootBorder.Background = new SolidColorBrush(Color.FromRgb(247, 248, 250));
@@ -2009,12 +2155,13 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         _settings.QuickCaptureReveal = (QuickCaptureRevealCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch
         {
             "capture" => "capture",
+            "done" => "done",
             "clipboard" => "clipboard",
-            _ => "done"
+            _ => "notch"
         };
         _settings.EnableDiagnosticsLogging = DiagnosticsLoggingCheck.IsChecked == true;
         DiagnosticsLog.Configure(_settings.EnableDiagnosticsLogging, _settingsStore.BaseDirectory);
-        _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "en" ? "en" : "id";
+        _settings.Language = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() switch { "en" => "en", "id" => "id", _ => "auto" };
         CodexBar.Core.Localization.Instance.SetLanguage(CodexBar.Core.Localization.Parse(_settings.Language));
         _settings.Appearance.Theme = (ThemeCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
 
@@ -2088,6 +2235,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             Hide();
         }
+
+        EndUnseenStart();   // hidden from here on, so it looks right whenever it's opened
 
         if (OnboardingPanel.Visibility == Visibility.Visible)
         {
@@ -2269,7 +2418,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     private readonly Dictionary<string, ProviderQuotaEvent> _quota = LoadQuotaCache();
 
     private static string QuotaCachePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "quota.json");
+        CodexBar.Providers.AppPaths.DataRoot, "quota.json");
 
     private sealed record QuotaCacheEntry(List<ProviderQuotaWindow> Windows, bool LimitReached);
 
@@ -2322,8 +2471,38 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     bool INotchHost.MusicLyrics => _settings.MusicLyrics;
 
     bool INotchHost.SystemHud => _settings.SystemHud;
+    bool INotchHost.KeyboardHud => _settings.KeyboardHud;
+    bool INotchHost.CompanionEyes => _settings.CompanionEyes;
+    bool INotchHost.CombinedPages => _settings.CombinedPages;
+    bool INotchHost.PrivacyDot => _settings.PrivacyDot;
+    bool INotchHost.PrayerTimes => _settings.PrayerTimes;
 
     string INotchHost.CalendarSource => _settings.CalendarSource;
+
+    bool INotchHost.HideInFullscreen => _settings.HideInFullscreen;
+    bool INotchHost.LiveActivities => _settings.LiveActivities;
+    bool INotchHost.GitHubChecks => _settings.GitHubChecks;
+    bool INotchHost.RecapEvening => _settings.RecapEvening;
+    bool INotchHost.ClipboardHistory => _settings.ClipboardHistory;
+    bool INotchHost.DownloadsToShelf => _settings.DownloadsToShelf;
+    bool INotchHost.SystemMonitor => _settings.SystemMonitor;
+    bool INotchHost.TimerInNotch => _settings.TimerInNotch;
+    bool INotchHost.RemindersEnabled => _settings.RemindersEnabled;
+    bool INotchHost.WeatherEnabled => _settings.WeatherEnabled;
+    bool INotchHost.WaterEnabled => _settings.WaterEnabled;
+    WaterPlan INotchHost.Water => WaterPlan.From(_settings);
+    string INotchHost.WeatherCity => _settings.WeatherCity;
+    string INotchHost.WorldClocks => _settings.WorldClocks;
+
+    void INotchHost.ShowReminder(string text, int more) =>
+        _notifier.Show(
+            Tr.Text("Pengingat", "Reminder"),
+            more > 0 ? string.Format(Tr.Text("{0} (+{1} lagi)", "{0} (+{1} more)"), text, more) : text,
+            "reminder",
+            withSound: false,
+            [(Tr.Text("Selesai", "Done"), "reminder-done"), (Tr.Text("Tunda 10m", "Snooze 10m"), "reminder-snooze")],
+            "reminder");
+    bool INotchHost.HoldDuringFocus => _settings.HoldDuringFocus;
 
     string INotchHost.NotchEdge
     {
@@ -2345,7 +2524,8 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         }
     }
 
-    IReadOnlyList<PromptTemplate> INotchHost.Templates => _settings.PromptTemplates;
+    IReadOnlyList<PromptTemplate> INotchHost.Templates =>
+        Tr.Text("id", "en") == "en" ? _settings.PromptTemplates.Select(PromptTemplate.InEnglish).ToList() : _settings.PromptTemplates;
 
     IReadOnlyList<ProviderInputAttachment> INotchHost.Attachments => _attachments;
 
@@ -2405,6 +2585,24 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     async Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.ListRecentThreadsAsync() =>
         await WithClaudeSessionsAsync(await _controller.ListThreadsAsync(20));
+
+    async Task<IReadOnlyList<ProviderThreadSummary>> INotchHost.SearchThreadsAsync(string query)
+    {
+        try
+        {
+            return await _controller.SearchThreadsAsync(query, 8);
+        }
+        catch (Exception exception)
+        {
+            // Some providers can't search (or are offline): titles still match in the launcher.
+            DiagnosticsLog.Error("Search", exception.Message);
+            return [];
+        }
+    }
+
+    Task INotchHost.NewConversationAsync() => RunUiTaskAsync(CreateThreadFromSidebarAsync);
+
+    void INotchHost.OpenSettings() => OpenSettingsWindow();
 
     async Task INotchHost.OpenThreadFromNotchAsync(ProviderThreadSummary thread)
     {
@@ -2677,8 +2875,66 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
     {
         // Card harus selalu opaque. Area di luar card ditangani oleh per-pixel
         // transparency window, bukan dengan menurunkan opacity card.
+        if (_unseenStart)
+        {
+            return;   // settings and activation land here while the app starts: the bar stays unseen
+        }
+
         Opacity = 1;
         RootBorder.Opacity = 1;
+    }
+
+    private bool _unseenStart;
+
+    /// <summary>
+    /// The bar is only a host until the notch is up. It has to be shown to load, but nothing of it may be
+    /// seen, clicked or take focus: no drawing, click-through, off every screen.
+    /// </summary>
+    public void ShowUnseenUntilNotch()
+    {
+        _unseenStart = true;
+        ShowActivated = false;
+        Opacity = 0;
+        RootBorder.Visibility = Visibility.Hidden;
+        WatchBarForTest();
+        Show();
+    }
+
+    // CODEXBAR_TEST_BAR=1: every change in whether the bar could be seen goes to the log.
+    private void WatchBarForTest()
+    {
+        if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_BAR") is not { Length: > 0 })
+        {
+            return;
+        }
+
+        var last = string.Empty;
+        var watch = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(10) };
+        watch.Tick += (_, _) =>
+        {
+            var seen = IsVisible && Opacity > 0 && RootBorder.Visibility == Visibility.Visible;
+            var now = $"seen={seen} visible={IsVisible} opacity={Opacity} border={RootBorder.Visibility} starting={_unseenStart} active={IsActive}";
+            if (now != last)
+            {
+                last = now;
+                DiagnosticsLog.Info("BarTest", now);
+            }
+        };
+        watch.Start();
+    }
+
+    private void EndUnseenStart()
+    {
+        if (!_unseenStart)
+        {
+            return;
+        }
+
+        _unseenStart = false;
+        ShowActivated = true;
+        Opacity = 1;
+        RootBorder.Opacity = 1;
+        RootBorder.Visibility = Visibility.Visible;
     }
 
     private void ShowOutputSurface()
@@ -2776,7 +3032,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         PromptBox.Focus();
     }
 
-    // The bar is gone: "show CodexBar" from outside (a notification, the single-instance
+    // The bar is gone: "show TheAI" from outside (a notification, the single-instance
     // activation, quick capture) brings up the conversation panel.
     public void ShowFromExternalActivation()
     {
@@ -2793,7 +3049,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             _attentionActionable ? ShowAttentionCenter : null);
         if (_availableUpdate is { } update)
         {
-            menu.AddItem(TrayIcons.Update, string.Format(Tr.Text("Unduh CodexBar {0}", "Download CodexBar {0}"), update.Version.ToString(3)), OpenUpdateDownload);
+            menu.AddItem(TrayIcons.Update, string.Format(Tr.Text("Unduh TheAI {0}", "Download TheAI {0}"), update.Version.ToString(3)), OpenUpdateDownload);
         }
         menu.AddItem(TrayIcons.Open, L("tray.show"), () =>
         {
@@ -3257,7 +3513,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
             }
 
             var checkpoint = new StringBuilder();
-            checkpoint.AppendLine("# CodexBar conversation checkpoint");
+            checkpoint.AppendLine("# TheAI conversation checkpoint");
             checkpoint.AppendLine();
             checkpoint.AppendLine($"- Exported: {DateTimeOffset.Now:O}");
             checkpoint.AppendLine($"- Workspace: `{_settings.WorkspacePath}`");
@@ -3383,7 +3639,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
         try
         {
-            var path = Path.Combine(Path.GetTempPath(), $"codexbar-response-{DateTime.Now:yyyyMMdd-HHmmss}.md");
+            var path = Path.Combine(Path.GetTempPath(), $"theai-response-{DateTime.Now:yyyyMMdd-HHmmss}.md");
             File.WriteAllText(path, last.Markdown);
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
@@ -3399,7 +3655,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         {
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?";
             var info = string.Join(Environment.NewLine,
-                $"CodexBar {version}",
+                $"TheAI {version}",
                 $"OS: {Environment.OSVersion}",
                 $"Provider: {_settings.Provider}",
                 $"DiagnosticsLogging: {_settings.EnableDiagnosticsLogging}",
@@ -3597,7 +3853,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private async void ManageTemplatesButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new TemplateManagerDialog(_settings.PromptTemplates) { Owner = this };
+        var dialog = new TemplateManagerDialog(((INotchHost)this).Templates) { Owner = this };
         _dialogVisible = true;
         try
         {
@@ -3625,7 +3881,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = L("settings.exportTitle"),
-            FileName = $"CodexBar-settings-{DateTime.Now:yyyyMMdd}.json",
+            FileName = $"TheAI-settings-{DateTime.Now:yyyyMMdd}.json",
             DefaultExt = ".json",
             AddExtension = true,
             Filter = "JSON|*.json"
@@ -4030,6 +4286,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private void ShowError(string message)
     {
+        DiagnosticsLog.Error("UI", message);
         SetStatus(L("status.error"), StatusErrorBrush);
         _streamingAgent = null;
         var markdown = $"**Error:** {message}";

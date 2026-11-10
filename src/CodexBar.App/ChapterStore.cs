@@ -6,11 +6,11 @@ namespace CodexBar.App;
 /// <summary>A pinned point in a conversation ("Pin as chapter"): the message's key and a title.</summary>
 public sealed record Chapter(string Key, string Title);
 
-/// <summary>Chapters per conversation, kept in %LOCALAPPDATA%\CodexBar\chapters.</summary>
+/// <summary>Chapters per conversation, kept in %LOCALAPPDATA%\TheAI\chapters.</summary>
 internal static class ChapterStore
 {
     private static string Folder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar", "chapters");
+        CodexBar.Providers.AppPaths.DataRoot, "chapters");
 
     private static string FileFor(string provider, string thread) =>
         Path.Combine(Folder, provider, string.Concat(thread.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)) + ".json");

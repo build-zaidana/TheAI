@@ -35,7 +35,7 @@ internal sealed partial class CompletionNotifier
             SetCurrentProcessExplicitAppUserModelID(AppId);
             using (var key = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}"))
             {
-                key.SetValue("DisplayName", "CodexBar");
+                key.SetValue("DisplayName", "TheAI");
                 if (WriteIcon() is { } iconPath)
                 {
                     key.SetValue("IconUri", iconPath);
@@ -173,9 +173,16 @@ internal sealed partial class CompletionNotifier
     {
         try
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CodexBar");
+            var folder = Path.Combine(CodexBar.Providers.AppPaths.DataRoot);
             Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, "notification-icon.png");
+            // Versioned: a new icon gets a new file (the TheAI notch replaced CodexBar's arrow).
+            var path = Path.Combine(folder, "notification-icon-theai.png");
+            var old = Path.Combine(folder, "notification-icon.png");
+            if (File.Exists(old))
+            {
+                File.Delete(old);
+            }
+
             if (!File.Exists(path) &&
                 System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/codexbar.ico")) is { } resource)
             {

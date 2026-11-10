@@ -126,7 +126,7 @@ internal sealed class TrayMenuWindow : Window
         grid.Children.Add(text);
         if (trailing is not null)
         {
-            var hint = new TextBlock { Text = trailing, FontSize = 11, Foreground = TextDim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
+            var hint = new TextBlock { Text = trailing, FontSize = 12, Foreground = TextDim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
             Grid.SetColumn(hint, 2);
             grid.Children.Add(hint);
         }
@@ -138,7 +138,7 @@ internal sealed class TrayMenuWindow : Window
     public void AddSegments(string label, IReadOnlyList<(string Key, string Text)> options, string selected, Action<string> pick)
     {
         var block = new StackPanel { Margin = new Thickness(10, 6, 10, 8) };
-        block.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = TextDim, Margin = new Thickness(0, 0, 0, 6) });
+        block.Children.Add(new TextBlock { Text = label, FontSize = 12, Foreground = TextDim, Margin = new Thickness(0, 0, 0, 6) });
         var track = new Border
         {
             Padding = new Thickness(2),
