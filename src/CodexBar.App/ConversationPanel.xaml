@@ -164,7 +164,7 @@
                                    TextTrimming="CharacterEllipsis" />
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                             <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#30D158" Margin="0,0,6,0" VerticalAlignment="Center" />
-                            <TextBlock x:Name="ContextText" FontSize="11" Foreground="{StaticResource PanelText2}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="ContextText" FontSize="12" Foreground="{StaticResource PanelText2}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -237,7 +237,7 @@
                     </Button>
                 </Grid>
 
-                <TextBlock x:Name="NoticeText" Grid.Row="2" Margin="18,6,18,0" FontSize="11.5" Foreground="#E8A15B"
+                <TextBlock x:Name="NoticeText" Grid.Row="2" Margin="18,6,18,0" FontSize="12" Foreground="#E8A15B"
                            TextWrapping="Wrap" Visibility="Collapsed" />
 
                 <!-- Composer, as in Claude Code: a framed text box with ↵ inside, and under it

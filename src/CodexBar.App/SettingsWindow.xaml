@@ -59,6 +59,7 @@
             <!-- Display-mode picker: miniature screens -->
             <Style x:Key="ModeCard" TargetType="RadioButton">
                 <Setter Property="GroupName" Value="mode" />
+                <Setter Property="AutomationProperties.Name" Value="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Margin" Value="11,0" />
                 <Setter Property="Template">
@@ -101,7 +102,7 @@
             <!-- Sidebar -->
             <Border Background="Transparent" MouseLeftButtonDown="DragArea_MouseLeftButtonDown">
                 <DockPanel Margin="12,16,4,16" LastChildFill="True">
-                    <Button DockPanel.Dock="Top" Margin="0,0,0,12" Click="AccountCard_Click" Cursor="Hand" Foreground="{DynamicResource FluentText}">
+                    <Button DockPanel.Dock="Top" Margin="0,0,0,12" Click="AccountCard_Click" Cursor="Hand" Foreground="{DynamicResource FluentText}" AutomationProperties.Name="{Binding Text, ElementName=AccountName}">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Bg" CornerRadius="4" Padding="8,6" Background="Transparent">
@@ -140,45 +141,45 @@
                     </Border>
 
                     <StackPanel>
-                        <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Tag="general" Checked="Nav_Checked" IsChecked="True">
+                        <RadioButton x:Name="NavGeneral" AutomationProperties.Name="{local:Tr Umum, En=General}" Style="{StaticResource NavItem}" Tag="general" Checked="Nav_Checked" IsChecked="True">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE713;" />
                                 <TextBlock Text="{local:Tr Umum, En=General}" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
-                        <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Tag="appearance" Checked="Nav_Checked">
+                        <RadioButton x:Name="NavAppearance" AutomationProperties.Name="{local:Tr Tampilan, En=Appearance}" Style="{StaticResource NavItem}" Tag="appearance" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE790;" />
                                 <TextBlock Text="{local:Tr Tampilan, En=Appearance}" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
 
-                        <RadioButton x:Name="NavProvider" Style="{StaticResource NavItem}" Tag="provider" Checked="Nav_Checked" Margin="0,8,0,2">
+                        <RadioButton x:Name="NavProvider" AutomationProperties.Name="{local:Tr Provider, En=Provider}" Style="{StaticResource NavItem}" Tag="provider" Checked="Nav_Checked" Margin="0,8,0,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE756;" />
                                 <TextBlock Text="Provider" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
-                        <RadioButton x:Name="NavModel" Style="{StaticResource NavItem}" Tag="model" Checked="Nav_Checked">
+                        <RadioButton x:Name="NavModel" AutomationProperties.Name="{local:Tr Model, En=Model}" Style="{StaticResource NavItem}" Tag="model" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE9F5;" />
                                 <TextBlock Text="Model" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
-                        <RadioButton x:Name="NavWorkspace" Style="{StaticResource NavItem}" Tag="workspace" Checked="Nav_Checked">
+                        <RadioButton x:Name="NavWorkspace" AutomationProperties.Name="{local:Tr Workspace &amp; izin, En=Workspace &amp; permissions}" Style="{StaticResource NavItem}" Tag="workspace" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8B7;" />
                                 <TextBlock Text="{local:Tr Workspace &amp; izin, En=Workspace &amp; permissions}" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
 
-                        <RadioButton x:Name="NavShortcuts" Style="{StaticResource NavItem}" Tag="shortcuts" Checked="Nav_Checked" Margin="0,8,0,2">
+                        <RadioButton x:Name="NavShortcuts" AutomationProperties.Name="{local:Tr Pintasan, En=Shortcuts}" Style="{StaticResource NavItem}" Tag="shortcuts" Checked="Nav_Checked" Margin="0,8,0,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE92E;" />
                                 <TextBlock Text="{local:Tr Pintasan, En=Shortcuts}" VerticalAlignment="Center" />
                             </StackPanel>
                         </RadioButton>
-                        <RadioButton x:Name="NavAdvanced" Style="{StaticResource NavItem}" Tag="advanced" Checked="Nav_Checked">
+                        <RadioButton x:Name="NavAdvanced" AutomationProperties.Name="{local:Tr Lanjutan, En=Advanced}" Style="{StaticResource NavItem}" Tag="advanced" Checked="Nav_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource NavIcon}" Text="&#xE9E9;" />
                                 <TextBlock Text="{local:Tr Lanjutan, En=Advanced}" VerticalAlignment="Center" />

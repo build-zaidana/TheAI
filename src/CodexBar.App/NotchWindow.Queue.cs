@@ -65,7 +65,7 @@ public partial class NotchWindow
         grid.Children.Add(new TextBlock
         {
             Text = (index + 1).ToString(),
-            FontSize = 11,
+            FontSize = 12,
             Foreground = (Brush)FindResource("NotchText3"),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center

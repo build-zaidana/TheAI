@@ -181,7 +181,7 @@ public partial class NotchWindow
         meta.Children.Add(new TextBlock
         {
             Text = _activity.IsMain ? $"{_quickKind} · {_host.WorkspaceName}" : $"{_quickKind} · {L("notch.agents.parallel")}",
-            FontSize = 11,
+            FontSize = 12,
             Foreground = (Brush)FindResource("NotchText3")
         });
         text.Children.Add(meta);

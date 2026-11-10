@@ -623,7 +623,7 @@
                             <Path x:Name="CompactJobMark" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Visibility="Collapsed" />
                         </Grid>
-                        <TextBlock x:Name="CompactJobTitle" FontSize="12.5" Margin="7,0,0,0" Foreground="#F5F5F7" MaxWidth="92"
+                        <TextBlock x:Name="CompactJobTitle" FontSize="13" Margin="7,0,0,0" Foreground="#F5F5F7" MaxWidth="92"
                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock x:Name="CompactJobText" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7" HorizontalAlignment="Right"
@@ -643,12 +643,12 @@
                     </Button>
                     <!-- How many agents run at once (shown from two). -->
                     <TextBlock x:Name="CompactCount" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,21,0"
-                               FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText2}" Visibility="Collapsed" />
+                               FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchText2}" Visibility="Collapsed" />
                     <!-- At rest: the time, and one glance on the right (temperature or the next prayer). -->
                     <TextBlock x:Name="CompactClock" FontFamily="{StaticResource SoraFont}" FontSize="13" Foreground="#F5F5F7"
                                HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0,0,0" Visibility="Collapsed"
                                Typography.NumeralAlignment="Tabular" IsHitTestVisible="False" />
-                    <TextBlock x:Name="CompactGlance" FontSize="12.5" Foreground="#A1A1A6" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    <TextBlock x:Name="CompactGlance" FontSize="13" Foreground="#A1A1A6" HorizontalAlignment="Right" VerticalAlignment="Center"
                                Margin="0,0,2,0" Visibility="Collapsed" IsHitTestVisible="False" />
                     <Ellipse x:Name="PrivacyDot" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,-8,0"
                              Visibility="Collapsed" AutomationProperties.Name="{local:Tr Mikrofon atau kamera dipakai, En=Microphone or camera in use}" />
@@ -1418,7 +1418,7 @@
                                 <Border Background="#FF1C1C1E" CornerRadius="14" Padding="6" MinWidth="230"
                                         BorderBrush="#33FFFFFF" BorderThickness="1">
                                     <StackPanel>
-                                        <TextBlock x:Name="ProviderPopupHeader" FontSize="11" Foreground="{StaticResource NotchText3}" Margin="10,6,10,6" />
+                                        <TextBlock x:Name="ProviderPopupHeader" FontSize="12" Foreground="{StaticResource NotchText3}" Margin="10,6,10,6" />
                                         <StackPanel x:Name="ProviderList" />
                                     </StackPanel>
                                 </Border>
@@ -1434,7 +1434,7 @@
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
                                     <TextBlock x:Name="LauncherSuggestionAi" Text="✦" Foreground="#BF9BFF" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
                                     <Border Height="20" CornerRadius="6" BorderBrush="#38FFFFFF" BorderThickness="1" Padding="6,0" VerticalAlignment="Center">
-                                        <TextBlock Text="Tab" FontSize="10" Foreground="#99FFFFFF" VerticalAlignment="Center" />
+                                        <TextBlock Text="Tab" FontSize="12" Foreground="#99FFFFFF" VerticalAlignment="Center" />
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -1509,19 +1509,19 @@
 
                     <!-- A request waiting for the user, with its recommended answer. -->
                     <StackPanel x:Name="WaitingPanel" Visibility="Collapsed">
-                        <TextBlock x:Name="WaitingHeader" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchOrange}" Margin="12,14,12,6" />
+                        <TextBlock x:Name="WaitingHeader" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchOrange}" Margin="12,14,12,6" />
                         <StackPanel x:Name="WaitingList" />
                     </StackPanel>
 
                     <!-- Parallel agents (running or finished, until closed). -->
                     <StackPanel x:Name="AgentListPanel" Visibility="Collapsed">
-                        <TextBlock x:Name="AgentHeader" Text="{local:Tr Agent paralel, En=Parallel agents}" FontSize="11" FontWeight="SemiBold"
+                        <TextBlock x:Name="AgentHeader" Text="{local:Tr Agent paralel, En=Parallel agents}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource NotchText3}" Margin="12,12,12,4" />
                         <StackPanel x:Name="AgentList" />
                     </StackPanel>
 
-                    <Grid Margin="12,12,8,4">
-                        <TextBlock x:Name="RecentHeader" Visibility="Collapsed" Text="{local:Tr Lanjutkan, En=Continue}" FontSize="11" FontWeight="SemiBold"
+                    <Grid x:Name="RecentHeaderRow">
+                        <TextBlock x:Name="RecentHeader" Visibility="Collapsed" Text="{local:Tr Lanjutkan, En=Continue}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
                         <!-- Source filters when sessions from elsewhere are listed (Terminal · IDE · Desktop · TheAI). -->
                         <StackPanel x:Name="RecentFilters" Orientation="Horizontal" HorizontalAlignment="Right" />
@@ -1538,7 +1538,7 @@
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Width="6" Height="6" Fill="{Binding Dot}" Margin="0,0,10,0" VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="2" Text="{Binding Meta}" FontSize="11" Margin="12,0,0,0"
+                                        <TextBlock Grid.Column="2" Text="{Binding Meta}" FontSize="12" Margin="12,0,0,0"
                                                    Foreground="{StaticResource NotchText3}" VerticalAlignment="Center" />
                                     </Grid>
                                 </Button>
@@ -1551,7 +1551,7 @@
                         <StackPanel x:Name="CommandRows" />
                         <TextBlock x:Name="CommandEmpty" Visibility="Collapsed" Margin="12,6,12,2" FontSize="12" Foreground="{StaticResource NotchText3}"
                                    TextWrapping="Wrap" Text="{local:Tr Tidak ada perintah seperti itu — hapus / untuk bertanya biasa., En=No such command — remove the / to just ask.}" />
-                        <TextBlock Margin="12,8,12,0" FontSize="11" Foreground="{StaticResource NotchText3}"
+                        <TextBlock Margin="12,8,12,0" FontSize="12" Foreground="{StaticResource NotchText3}"
                                    Text="{local:Tr ↑↓ pilih · Tab lengkapi · Enter jalankan, En=↑↓ choose · Tab complete · Enter run}" />
                     </StackPanel>
 
@@ -1641,7 +1641,7 @@
                                     <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M 6,1 L 2,5 L 6,9" />
                                 </Button>
-                                <TextBlock x:Name="ActivityPagerText" FontSize="11" Foreground="{StaticResource NotchText3}"
+                                <TextBlock x:Name="ActivityPagerText" FontSize="12" Foreground="{StaticResource NotchText3}"
                                            VerticalAlignment="Center" Margin="2,0" FontFamily="Segoe UI Variable Text, Segoe UI" />
                                 <Button Style="{StaticResource NotchIconButton}" Width="24" Click="NextActivity_Click" AutomationProperties.Name="{local:Tr Agent berikutnya, En=Next agent}">
                                     <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.5"
@@ -1733,8 +1733,8 @@
                     <StackPanel x:Name="QueueBox" Margin="0,10,0,0" Visibility="Collapsed">
                         <Grid Height="22" Margin="2,0,0,2">
                             <TextBlock VerticalAlignment="Center">
-                                <Run x:Name="QueueTitleRun" Text="{local:Tr Antrean, En=Queue}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchText3}" />
-                                <Run x:Name="QueueStateRun" FontSize="11" Foreground="{StaticResource NotchOrange}" />
+                                <Run x:Name="QueueTitleRun" Text="{local:Tr Antrean, En=Queue}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchText3}" />
+                                <Run x:Name="QueueStateRun" FontSize="12" Foreground="{StaticResource NotchOrange}" />
                             </TextBlock>
                             <Button x:Name="QueueSendNowButton" Style="{StaticResource NotchTextLink}" HorizontalAlignment="Right"
                                     Click="QueueSendNow_Click" Content="{local:Tr Kirim sekarang, En=Send now}" Visibility="Collapsed" />
@@ -1761,7 +1761,7 @@
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
                                         <TextBlock x:Name="FollowUpSuggestionAi" Text="✦" Foreground="#BF9BFF" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" />
                                         <Border Height="20" CornerRadius="6" BorderBrush="#38FFFFFF" BorderThickness="1" Padding="6,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Tab" FontSize="10" Foreground="#99FFFFFF" VerticalAlignment="Center" />
+                                            <TextBlock Text="Tab" FontSize="12" Foreground="#99FFFFFF" VerticalAlignment="Center" />
                                         </Border>
                                     </StackPanel>
                                 </Grid>

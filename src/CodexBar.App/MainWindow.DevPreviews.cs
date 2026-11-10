@@ -40,6 +40,25 @@ public partial class MainWindow
             OpenSettingsWindow(page);
         }
 
+        // CODEXBAR_PREVIEW_DIALOG=templates|schedule|approval|input: a code-built dialog with sample content.
+        if (Environment.GetEnvironmentVariable("CODEXBAR_PREVIEW_DIALOG") is { Length: > 0 } dialogPreview)
+        {
+            var sample = System.Text.Json.JsonDocument.Parse("{}").RootElement;
+            Window dialog = dialogPreview switch
+            {
+                "schedule" => new SchedulePromptDialog("Run the tests and report what fails", []),
+                "approval" => new ApprovalRequestDialog(new ProviderApprovalEvent("item/commandExecution/requestApproval",
+                    "npm install --save-dev vitest", _ => Task.CompletedTask, sample)),
+                "input" => new InteractiveRequestDialog(new ProviderUserInputEvent("Deploy confirmation", "The agent needs two answers before it continues.",
+                    [new ProviderInputQuestion("target", "Environment", "Where should this go?", [new ProviderInputOption("Staging", "Safe to try"), new ProviderInputOption("Production", "Real users")]),
+                     new ProviderInputQuestion("note", "Note", "Anything for the team?", [], IsRequired: false)],
+                    _ => Task.CompletedTask, sample)),
+                _ => new TemplateManagerDialog(((INotchHost)this).Templates),
+            };
+            dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            dialog.Show();
+        }
+
         // CODEXBAR_TEST_OPEN_THREAD=<Claude Code session id>: open that session in the chat (for UI
         // automation tests on a throwaway session).
         if (Environment.GetEnvironmentVariable("CODEXBAR_TEST_OPEN_THREAD") is { Length: > 0 } testThread &&

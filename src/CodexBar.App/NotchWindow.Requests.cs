@@ -226,7 +226,7 @@ public partial class NotchWindow
             group.Children.Add(new TextBlock
             {
                 Text = question.Header,
-                FontSize = 11,
+                FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (System.Windows.Media.Brush)FindResource("NotchText3"),
                 Margin = new Thickness(2, 0, 0, 4)

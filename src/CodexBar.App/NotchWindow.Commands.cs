@@ -81,6 +81,7 @@ public partial class NotchWindow
         CommandEmpty.Visibility = matches.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         CommandPanel.Visibility = Visibility.Visible;
         RecentHeader.Visibility = Visibility.Collapsed;
+        RecentHeaderRow.Margin = new Thickness(0);
         RecentFilters.Visibility = Visibility.Collapsed;
         RecentList.ItemsSource = null;
         ChipPanel.Visibility = Visibility.Collapsed;
@@ -97,7 +98,7 @@ public partial class NotchWindow
         var hint = new TextBlock
         {
             Text = command.ArgumentHint(Tr.Text),
-            FontSize = 11.5,
+            FontSize = 12.5,
             Margin = new Thickness(8, 0, 0, 0),
             Foreground = (Brush)FindResource("NotchText3"),
             VerticalAlignment = VerticalAlignment.Center,
@@ -108,7 +109,7 @@ public partial class NotchWindow
         var description = new TextBlock
         {
             Text = command.Description(Tr.Text),
-            FontSize = 11.5,
+            FontSize = 12.5,
             Margin = new Thickness(12, 0, 0, 0),
             Foreground = (Brush)FindResource("NotchText3"),
             VerticalAlignment = VerticalAlignment.Center,

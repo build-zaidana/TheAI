@@ -160,13 +160,13 @@
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </ToggleButton.Template>
-                            <StackPanel Orientation="Horizontal">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Margin="12,1,0,0" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Text="&#xE70D;"
+                                           Foreground="{DynamicResource FluentText2}" VerticalAlignment="Center" />
                                 <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
                                                   ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                                   VerticalAlignment="Center" IsHitTestVisible="False" />
-                                <TextBlock Margin="12,1,0,0" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Text="&#xE70D;"
-                                           Foreground="{DynamicResource FluentText2}" VerticalAlignment="Center" />
-                            </StackPanel>
+                            </DockPanel>
                         </ToggleButton>
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
                                Focusable="False" PopupAnimation="Fade" HorizontalOffset="-8">
@@ -287,6 +287,7 @@
 
     <!-- Text fields -->
     <Style x:Key="FluentField" TargetType="TextBox">
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Foreground" Value="{DynamicResource FluentText}" />
@@ -296,8 +297,8 @@
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
                     <Border x:Name="Bg" Background="{DynamicResource FluentControl}" CornerRadius="4" BorderBrush="{DynamicResource FluentControlLine}"
-                            BorderThickness="1" Padding="10,0" SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                            BorderThickness="1" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
@@ -308,7 +309,14 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="FluentArea" TargetType="TextBox" BasedOn="{StaticResource FluentField}">
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
     <Style x:Key="FluentSecretField" TargetType="PasswordBox">
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Foreground" Value="{DynamicResource FluentText}" />
@@ -318,14 +326,64 @@
             <Setter.Value>
                 <ControlTemplate TargetType="PasswordBox">
                     <Border x:Name="Bg" Background="{DynamicResource FluentControl}" CornerRadius="4" BorderBrush="{DynamicResource FluentControlLine}"
-                            BorderThickness="1" Padding="10,0" SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                            BorderThickness="1" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource FluentText}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A list: a selected row is filled and carries the pill, like the Settings navigation. -->
+    <Style x:Key="FluentListItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource FluentText}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid Margin="0,0,0,2">
+                        <Border x:Name="Bg" CornerRadius="4" MinHeight="36" Padding="12,6" Background="Transparent">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="Pill" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                Background="{DynamicResource FluentAccent}" Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource FluentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource FluentFill}" />
+                            <Setter TargetName="Pill" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="FluentList" TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource FluentGroup}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FluentLine}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource FluentListItem}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FluentFocus}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ScrollViewer Focusable="False">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

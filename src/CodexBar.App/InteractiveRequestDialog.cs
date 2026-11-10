@@ -1,12 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
 using System.Diagnostics;
 using CodexBar.Providers;
 using Button = System.Windows.Controls.Button;
-using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
 using ComboBox = System.Windows.Controls.ComboBox;
 using ListBox = System.Windows.Controls.ListBox;
 using Panel = System.Windows.Controls.Panel;
@@ -31,34 +28,24 @@ internal sealed class InteractiveRequestDialog : Window
         _request = request;
         var loc = CodexBar.Core.Localization.Instance;
         Title = request.Title;
-        Width = 520;
+        FluentDialog.Prepare(this, 520);
         MaxHeight = 680;
         SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(0x20, 0x24, 0x2C));
-        Foreground = Brushes.White;
 
-        var root = new Grid { Margin = new Thickness(22) };
+        var root = new Grid();
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var intro = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
-        intro.Children.Add(new TextBlock
-        {
-            Text = request.Title,
-            FontSize = 18,
-            FontWeight = FontWeights.SemiBold,
-            TextWrapping = TextWrapping.Wrap
-        });
+        var intro = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
         if (Uri.TryCreate(request.ActionUrl, UriKind.Absolute, out var actionUri) &&
             actionUri.Scheme is "https" or "http")
         {
             var openLink = CreateButton($"{loc["dialog.openPrefix"]} {actionUri.Host}", true);
             openLink.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            openLink.Margin = new Thickness(0, 12, 0, 0);
+            openLink.Margin = new Thickness(0, 0, 0, 12);
             openLink.Click += (_, _) =>
             {
                 try
@@ -73,13 +60,7 @@ internal sealed class InteractiveRequestDialog : Window
             };
             intro.Children.Add(openLink);
         }
-        intro.Children.Add(new TextBlock
-        {
-            Text = request.Message,
-            Margin = new Thickness(0, 5, 0, 0),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC)),
-            TextWrapping = TextWrapping.Wrap
-        });
+        intro.Children.Add(FluentDialog.Label(request.Message, quiet: true));
         Grid.SetRow(intro, 0);
         root.Children.Add(intro);
 
@@ -102,7 +83,7 @@ internal sealed class InteractiveRequestDialog : Window
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        _countdown.Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC));
+        _countdown.SetResourceReference(TextBlock.ForegroundProperty, "FluentText2");
         _countdown.VerticalAlignment = VerticalAlignment.Center;
         footer.Children.Add(_countdown);
 
@@ -119,7 +100,7 @@ internal sealed class InteractiveRequestDialog : Window
         Grid.SetRow(footer, 2);
         root.Children.Add(footer);
 
-        Content = root;
+        FluentDialog.Dress(this, request.Title, root);
 
         if (request.AutoResolutionMs is > 0 and <= int.MaxValue)
         {
@@ -136,28 +117,20 @@ internal sealed class InteractiveRequestDialog : Window
     private void AddQuestion(Panel panel, ProviderInputQuestion question)
     {
         var group = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
-        group.Children.Add(new TextBlock
-        {
-            Text = question.Header,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x8F, 0xB8, 0xFF))
-        });
-        group.Children.Add(new TextBlock
-        {
-            Text = question.Question,
-            Margin = new Thickness(0, 4, 0, 8),
-            TextWrapping = TextWrapping.Wrap
-        });
+        group.Children.Add(FluentDialog.Label(question.Header, strong: true));
+        var asked = FluentDialog.Label(question.Question, quiet: true);
+        asked.Margin = new Thickness(0, 0, 0, 8);
+        group.Children.Add(asked);
 
         FrameworkElement control;
         if (question.Options.Count > 0 && question.AllowsMultiple)
         {
             var list = new ListBox
             {
+                Style = FluentDialog.Style(this, "FluentList"),
                 MinHeight = 64,
                 MaxHeight = 150,
-                SelectionMode = SelectionMode.Multiple,
-                Padding = new Thickness(4)
+                SelectionMode = SelectionMode.Multiple
             };
             foreach (var option in question.Options)
             {
@@ -173,12 +146,10 @@ internal sealed class InteractiveRequestDialog : Window
         }
         else if (question.Options.Count > 0)
         {
-            var combo = new ComboBox
-            {
-                MinHeight = 34,
-                Padding = new Thickness(8, 4, 8, 4),
-                IsEditable = question.AllowsOther
-            };
+            // The themed drop-down has no typing box, so a question that takes other answers keeps the plain one.
+            var combo = question.AllowsOther
+                ? new ComboBox { MinHeight = 32, Padding = new Thickness(8, 4, 8, 4), IsEditable = true }
+                : new ComboBox { Style = FluentDialog.Style(this, "FluentPopup"), HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch };
             foreach (var option in question.Options)
             {
                 combo.Items.Add(new ComboBoxItem
@@ -194,16 +165,15 @@ internal sealed class InteractiveRequestDialog : Window
         }
         else if (question.IsSecret)
         {
-            control = new PasswordBox { MinHeight = 34, Padding = new Thickness(8, 5, 8, 5) };
+            control = new PasswordBox { Style = FluentDialog.Style(this, "FluentSecretField") };
         }
         else
         {
             control = new TextBox
             {
+                Style = FluentDialog.Style(this, "FluentArea"),
                 MinHeight = 58,
-                Padding = new Thickness(8),
-                AcceptsReturn = true,
-                TextWrapping = TextWrapping.Wrap
+                AcceptsReturn = true
             };
         }
 
@@ -296,18 +266,11 @@ internal sealed class InteractiveRequestDialog : Window
             CodexBar.Core.Localization.Instance["dialog.countdown"], Math.Ceiling(remaining.TotalSeconds));
     }
 
-    private static Button CreateButton(string text, bool primary) => new()
+    private Button CreateButton(string text, bool primary)
     {
-        Content = text,
-        MinWidth = 92,
-        Height = 34,
-        Padding = new Thickness(14, 0, 14, 0),
-        Background = primary
-            ? new SolidColorBrush(Color.FromRgb(0x2F, 0x7B, 0xF6))
-            : new SolidColorBrush(Color.FromRgb(0x36, 0x3B, 0x46)),
-        Foreground = Brushes.White,
-        BorderThickness = new Thickness(0),
-        IsDefault = primary,
-        IsCancel = !primary
-    };
+        var button = FluentDialog.Button(this, text, primary);
+        button.IsDefault = primary;
+        button.IsCancel = !primary;
+        return button;
+    }
 }

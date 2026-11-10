@@ -1,11 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using CodexBar.Core;
-using Button = System.Windows.Controls.Button;
-using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
 using ListBox = System.Windows.Controls.ListBox;
 using MessageBox = System.Windows.MessageBox;
 using TextBox = System.Windows.Controls.TextBox;
@@ -20,6 +16,7 @@ namespace CodexBar.App;
 internal sealed class SchedulePromptDialog : Window
 {
     private readonly ListBox _list = new();
+    private readonly TextBlock _empty = new();
     private readonly TextBox _minutes = new();
     private readonly TextBox _promptBox = new();
     private readonly List<ScheduledPrompt> _items;
@@ -30,33 +27,22 @@ internal sealed class SchedulePromptDialog : Window
         _items = ScheduledPrompt.Normalize(existing);
 
         Title = loc["schedule.title"];
-        Width = 560;
-        Height = 440;
+        FluentDialog.Prepare(this, 560);
+        SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(0x20, 0x24, 0x2C));
-        Foreground = Brushes.White;
 
-        var root = new StackPanel { Margin = new Thickness(18) };
+        var root = new StackPanel();
 
-        root.Children.Add(new TextBlock
-        {
-            Text = loc["schedule.promptLabel"],
-            Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xBF, 0xCC)),
-            Margin = new Thickness(0, 0, 0, 4)
-        });
+        var promptLabel = FluentDialog.Label(loc["schedule.promptLabel"]);
+        promptLabel.Margin = new Thickness(0, 0, 0, 8);
+        root.Children.Add(promptLabel);
+        _promptBox.Style = FluentDialog.Style(this, "FluentArea");
         _promptBox.Text = prompt.Trim();
         _promptBox.AcceptsReturn = true;
-        _promptBox.TextWrapping = TextWrapping.Wrap;
         _promptBox.MinHeight = 60;
         _promptBox.MaxHeight = 120;
         _promptBox.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        _promptBox.Padding = new Thickness(8);
-        _promptBox.Background = new SolidColorBrush(Color.FromRgb(0x17, 0x1A, 0x20));
-        _promptBox.Foreground = Brushes.White;
-        _promptBox.BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x4B, 0x57));
-        _promptBox.BorderThickness = new Thickness(1);
         System.Windows.Automation.AutomationProperties.SetName(_promptBox, loc["schedule.promptLabel"]);
         root.Children.Add(_promptBox);
 
@@ -71,31 +57,40 @@ internal sealed class SchedulePromptDialog : Window
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 8, 0)
         });
+        _minutes.Style = FluentDialog.Style(this, "FluentField");
         _minutes.Width = 80;
         _minutes.Text = "30";
-        _minutes.Padding = new Thickness(8, 4, 8, 4);
         System.Windows.Automation.AutomationProperties.SetName(_minutes, loc["schedule.minutes"]);
         addRow.Children.Add(_minutes);
-        var add = CreateButton(loc["schedule.add"]);
+        var add = FluentDialog.Button(this, loc["schedule.add"]);
         add.Margin = new Thickness(8, 0, 0, 0);
         add.Click += (_, _) => AddSchedule();
         addRow.Children.Add(add);
         root.Children.Add(addRow);
 
         System.Windows.Automation.AutomationProperties.SetName(_list, loc["schedule.list"]);
+        _list.Style = FluentDialog.Style(this, "FluentList");
         _list.Height = 170;
-        root.Children.Add(_list);
+        _empty.Text = Tr.Text("Belum ada jadwal.", "Nothing scheduled yet.");
+        _empty.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+        _empty.VerticalAlignment = VerticalAlignment.Center;
+        _empty.IsHitTestVisible = false;
+        _empty.SetResourceReference(TextBlock.ForegroundProperty, "FluentText2");
+        var listArea = new Grid();
+        listArea.Children.Add(_list);
+        listArea.Children.Add(_empty);
+        root.Children.Add(listArea);
 
         var actions = new StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Horizontal,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-            Margin = new Thickness(0, 12, 0, 0)
+            Margin = new Thickness(0, 16, 0, 0)
         };
-        var remove = CreateButton(loc["schedule.remove"]);
+        var remove = FluentDialog.Button(this, loc["schedule.remove"]);
         remove.Click += (_, _) => RemoveSelected();
         actions.Children.Add(remove);
-        var done = CreateButton(loc["templates.done"], primary: true);
+        var done = FluentDialog.Button(this, loc["templates.done"], primary: true);
         done.Margin = new Thickness(8, 0, 0, 0);
         done.IsDefault = true;
         done.Click += (_, _) =>
@@ -107,7 +102,7 @@ internal sealed class SchedulePromptDialog : Window
         actions.Children.Add(done);
         root.Children.Add(actions);
 
-        Content = root;
+        FluentDialog.Dress(this, loc["schedule.title"], root);
         RefreshList();
     }
 
@@ -155,6 +150,7 @@ internal sealed class SchedulePromptDialog : Window
         _list.ItemsSource = _items
             .Select(item => $"{item.RunAt.LocalDateTime:yyyy-MM-dd HH:mm}  ·  {Preview(item.Prompt)}")
             .ToList();
+        _empty.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static string Preview(string prompt)
@@ -162,17 +158,4 @@ internal sealed class SchedulePromptDialog : Window
         var firstLine = prompt.Split('\n')[0].Trim();
         return firstLine.Length <= 48 ? firstLine : firstLine[..48] + "…";
     }
-
-    private static Button CreateButton(string text, bool primary = false) => new()
-    {
-        Content = text,
-        MinWidth = 82,
-        Height = 32,
-        Padding = new Thickness(12, 0, 12, 0),
-        Background = primary
-            ? new SolidColorBrush(Color.FromRgb(0x2F, 0x7B, 0xF6))
-            : new SolidColorBrush(Color.FromRgb(0x36, 0x3B, 0x46)),
-        Foreground = Brushes.White,
-        BorderThickness = new Thickness(0)
-    };
 }

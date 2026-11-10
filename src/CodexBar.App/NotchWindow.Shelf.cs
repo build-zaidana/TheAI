@@ -218,7 +218,7 @@ public partial class NotchWindow
         item.Children.Add(new TextBlock
         {
             Text = name,
-            FontSize = 10.5,
+            FontSize = 12.5,
             Foreground = (Brush)FindResource("NotchText3"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextAlignment = TextAlignment.Center,

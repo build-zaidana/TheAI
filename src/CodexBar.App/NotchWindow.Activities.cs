@@ -254,7 +254,7 @@ public partial class NotchWindow
             var meta = new TextBlock
             {
                 Text = StateLabel(activity.State) + "  " + activity.Workspace,
-                FontSize = 11,
+                FontSize = 12,
                 Margin = new Thickness(12, 0, 0, 0),
                 Foreground = (Brush)FindResource("NotchText3"),
                 VerticalAlignment = VerticalAlignment.Center

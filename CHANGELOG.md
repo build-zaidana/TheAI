@@ -23,6 +23,9 @@
 - **Welcome opens on what TheAI is for**: an agent asking for permission, answered from the notch.
 - Sentences on the island read at Regular weight; numbers stay thin. A risky request says why, and the gap above its buttons is gone.
 - The launcher's "Continue" heading no longer appears with nothing under it, and its chips line up with the rows above.
+- **Every dialog joins them**: prompt templates, schedules, approvals and questions from the agent use the same frame, theme and buttons, and an empty schedule list says so.
+- **Screen readers can use Settings**: nearly every switch, drop-down and field there had no name; now each carries its row's label. On a small screen, Settings and Welcome shrink to fit instead of running off it.
+- Small text on the island and in the chat goes up to 12 px, the same floor as the windows.
 - Tooltips, placeholders, screen-reader names and the four starter prompts follow your language; prompts you wrote stay as you wrote them.
 
 ### Added — turn the PC off later

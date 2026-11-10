@@ -75,7 +75,9 @@ public partial class SettingsWindow : Window
     {
         _host = host;
         InitializeComponent();
+        FluentDialog.FitWorkArea(this);
         PageTitle.Text = Tr.Text("Umum", "General");   // General is checked in the XAML, before this title exists
+        AccessibleNames.FromRows(this);
         _sliderApply.Tick += (_, _) =>
         {
             _sliderApply.Stop();

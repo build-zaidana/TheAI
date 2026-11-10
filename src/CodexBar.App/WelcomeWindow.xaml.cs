@@ -28,6 +28,7 @@ public partial class WelcomeWindow : Window
     public WelcomeWindow(AppSettings current, string hotkey, bool claudeInstalled, bool tour = true)
     {
         InitializeComponent();
+        FluentDialog.FitWorkArea(this);
         BuildTips(hotkey);
         BuildFeatures(current, claudeInstalled);
         if (!tour)
@@ -43,7 +44,7 @@ public partial class WelcomeWindow : Window
         [
             (Tr.Text("Arahkan kursor", "Hover"), Tr.Text("ke notch untuk membukanya, lalu scroll untuk berpindah halaman.", "over the notch to open it, then scroll to move between its pages.")),
             (hotkey, Tr.Text("membuka launcher dari mana saja. Ketik pertanyaan, lalu Enter.", "opens the launcher from anywhere. Type a question and press Enter.")),
-            ("/", Tr.Text("di launcher menampilkan perintah seperti /review dan /focus 25.", "in the launcher lists commands like /review and /focus 25.")),
+            ("/", Tr.Text("di launcher menampilkan perintah seperti /review.", "in the launcher lists commands like /review and /focus 25.")),
         ];
         foreach (var (key, text) in tips)
         {
@@ -107,7 +108,7 @@ public partial class WelcomeWindow : Window
         text.Children.Add(new TextBlock
         {
             Text = description,
-            FontSize = 11.5,
+            FontSize = 12,
             Foreground = (Brush)FindResource("FluentText2"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 0)

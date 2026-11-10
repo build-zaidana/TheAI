@@ -274,7 +274,7 @@ public partial class NotchWindow
             Child = new TextBlock
             {
                 Text = letter,
-                FontSize = 10,
+                FontSize = 12,
                 FontWeight = FontWeights.Bold,
                 Foreground = foreground,
                 HorizontalAlignment = HorizontalAlignment.Center,

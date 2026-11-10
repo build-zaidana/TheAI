@@ -165,7 +165,7 @@ public partial class NotchWindow
             var label = new TextBlock
             {
                 Text = day.ToString("ddd", CultureInfo.CurrentCulture),
-                FontSize = 11,
+                FontSize = 12,
                 FontWeight = FontWeights.Medium,
                 Foreground = i == week.Count - 1 ? IslandTokens.Text1 : IslandTokens.Text3,
                 HorizontalAlignment = HorizontalAlignment.Center,

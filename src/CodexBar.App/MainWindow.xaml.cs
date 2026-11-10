@@ -3853,7 +3853,7 @@ public partial class MainWindow : Window, INotchHost, ISettingsHost
 
     private async void ManageTemplatesButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new TemplateManagerDialog(_settings.PromptTemplates) { Owner = this };
+        var dialog = new TemplateManagerDialog(((INotchHost)this).Templates) { Owner = this };
         _dialogVisible = true;
         try
         {

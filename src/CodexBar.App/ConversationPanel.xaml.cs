@@ -174,7 +174,7 @@ public partial class ConversationPanel : Window
                 label.Children.Add(new TextBlock
                 {
                     Text = choice.Hint,
-                    FontSize = 11.5,
+                    FontSize = 12.5,
                     Foreground = (Brush)FindResource("PanelText2"),
                     Margin = new Thickness(0, 1, 0, 0),
                     MaxWidth = 260,
@@ -666,7 +666,7 @@ public partial class ConversationPanel : Window
         {
             Text = Tr.Text("Compact meringkas percakapan sejauh ini supaya ada ruang lagi; agen melanjutkan dari ringkasannya.",
                 "Compacting summarizes the conversation so far to free up space; the agent continues from the summary."),
-            FontSize = 11.5,
+            FontSize = 12.5,
             Foreground = muted,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 10)

@@ -1308,6 +1308,7 @@ public partial class NotchWindow : Window
         RenderRecentFilters();
         RecentHeader.Text = string.IsNullOrEmpty(query) ? L("notch.launcher.recent") : L("notch.launcher.matches");
         RecentHeader.Visibility = items.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        RecentHeaderRow.Margin = items.Length > 0 || RecentFilters.Children.Count > 0 ? new Thickness(12, 12, 8, 4) : new Thickness(0);
         ChipPanel.Visibility = string.IsNullOrEmpty(query) && ChipPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 

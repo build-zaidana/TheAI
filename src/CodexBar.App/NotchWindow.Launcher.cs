@@ -162,7 +162,7 @@ public partial class NotchWindow
             {
                 Content = source ?? L("notch.recent.all"),
                 Height = 22,
-                FontSize = 11,
+                FontSize = 12,
                 Margin = new Thickness(4, 0, 0, 0),
                 Padding = new Thickness(9, 0, 9, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
